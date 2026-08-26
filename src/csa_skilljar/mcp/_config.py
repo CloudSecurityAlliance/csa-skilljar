@@ -51,6 +51,25 @@ def settings_from_env(env: Mapping[str, str]) -> Settings:
     )
 
 
+def presence_from_env(env: Mapping[str, str]) -> CredentialPresence:
+    """Which credentials are present, computed from the environment's KEYS.
+
+    Deliberately does not read any value, and deliberately does not go through
+    `Settings`. The startup-warning path therefore has no data dependency on a secret
+    at all - not the value, not a boolean derived from it. This is what finally
+    satisfied CodeQL's `py/clear-text-logging-sensitive-data`, and it is also simply
+    the more honest expression of the question being asked: *is the variable set?*
+    """
+    def _set(name: str) -> bool:
+        value = env.get(name)
+        return value is not None and value.strip() != ""
+
+    return CredentialPresence(
+        v2=_set(V2_ID_VAR) and _set(V2_SECRET_VAR),
+        v1=_set(V1_KEY_VAR),
+    )
+
+
 @dataclass(frozen=True)
 class CredentialPresence:
     """Which credentials are configured - and nothing else.
@@ -66,13 +85,6 @@ class CredentialPresence:
 
     v2: bool
     v1: bool
-
-
-def credential_presence(settings: Settings) -> CredentialPresence:
-    return CredentialPresence(
-        v2=bool(settings.v2_client_id and settings.v2_client_secret),
-        v1=bool(settings.v1_api_key),
-    )
 
 
 def startup_warnings(presence: CredentialPresence) -> list[str]:
