@@ -182,14 +182,40 @@ issuance or scoping; destructive local operations; anything the spec lists as a 
 
 ## Commands
 
-```bash
-# Nothing to build yet. Planned:
-pip install -e ".[dev]"
-pytest -q                                    # offline: no network, no credentials
-ruff check src tests && mypy
-CSA_SKILLJAR_INTEGRATION=1 pytest tests/integration/   # real Skilljar, opt-in
+**Always work inside a virtual environment.** Never `pip install` into a system or user
+Python — for development, for CI, or for a user install. This is not a preference: the
+machine this was built on had `mcp` **1.27.0** installed globally, which is the pre-2.0 API
+where `mcp.server.fastmcp` still exists. Working outside a venv would have reproduced the
+single most common MCP failure mode while the code looked correct.
 
-# Available now — re-check upstream against the snapshots in specs/:
+```bash
+python3 -m venv .venv                     # .python-version pins the interpreter (3.12)
+.venv/bin/python -m pip install -e ".[dev]"
+
+.venv/bin/python -m pytest -q             # offline: no network, no credentials
+.venv/bin/ruff check src tests
+.venv/bin/mypy
+.venv/bin/python -m pytest -q --cov --cov-report=term-missing   # what CI's test job runs
+
+# Real Skilljar, opt-in:
+CSA_SKILLJAR_INTEGRATION=1 .venv/bin/python -m pytest tests/integration/
+
+# Documentation claims vs artifacts (also a required CI check):
+.venv/bin/python scripts/check_docs.py
+```
+
+Do not run a bare `pytest` / `ruff` / `mypy` — they resolve to whatever is on `PATH`,
+which is how a suite passes against the wrong dependency versions. Every command in this
+file and in `README.md` is written `.venv/bin/...` for that reason.
+
+**CI** pins the interpreter per matrix entry via `actions/setup-python`, which is the
+same isolation by another mechanism. **Users** should install with `pipx install
+csa-skilljar` (or `uv tool install`), which creates the venv for them — a plain
+`pip install` into a system Python is the one path we do not support.
+
+## Re-check upstream against the snapshots in `specs/`
+
+```bash
 curl -s https://api.skilljar.com/v2/openapi.json | jq '.paths | keys | length'
 curl -s https://api.skilljar.com/.well-known/oauth-authorization-server | jq -r '.scopes_supported[]'
 ```

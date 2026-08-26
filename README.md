@@ -141,13 +141,19 @@ composite writes. Reasons are in the spec.
 
 ## Development
 
-Nothing to build yet. When there is:
+**Always use a virtual environment.** The interpreter is pinned by `.python-version`.
 
 ```bash
-pip install -e ".[dev]"
-pytest -q                       # offline suite: no network, no credentials
-ruff check src tests && mypy
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+
+.venv/bin/python -m pytest -q          # offline suite: no network, no credentials
+.venv/bin/ruff check src tests
+.venv/bin/mypy
 ```
+
+Commands are written `.venv/bin/...` deliberately — a bare `pytest` resolves to whatever
+is on `PATH`, which is how a suite passes against the wrong dependency versions.
 
 Contributions follow [CSA's public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
 branch and PR for every change, required CI gates, no direct pushes to `main`.

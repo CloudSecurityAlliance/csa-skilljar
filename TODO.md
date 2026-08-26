@@ -45,6 +45,11 @@ file plus open GitHub Issues finds everything.
 
 ## Consideration pile
 
+- **Lockfile for CI?** `pyproject.toml` pins floors (`httpx>=0.27`, `mcp>=2.1`), not exact
+  versions. PUBLIC-GITHUB-REPO-STANDARDS says "consider a lockfile for CI". A library
+  should not over-pin what it imposes on consumers, but CI could resolve against a lock so
+  a green run means something specific. Decide before v0.1.0.
+
 Not committed to; recorded so they are not rediscovered.
 
 - Should the integration suite use the broad `CINO_READ_ONLY_TESTING_KEY`, or a narrower key?
