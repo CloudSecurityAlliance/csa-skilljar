@@ -126,6 +126,7 @@ composite writes. Reasons are in the spec.
 | File | What it answers |
 |---|---|
 | [Design spec](docs/superpowers/specs/2026-08-26-csa-skilljar-design.md) | Architecture, routing rule, credential model, auth error taxonomy, phasing. **Start here.** |
+| [ROADMAP.md](ROADMAP.md) | The block sequence — what ships in what order, and what is parked |
 | [GOALS.md](GOALS.md) | What success looks like and how we would know it failed |
 | [BUSINESS-CASE.md](BUSINESS-CASE.md) | Why CSA is investing, and the honest case that this project should shrink |
 | [TODO.md](TODO.md) | Index of all open work |
