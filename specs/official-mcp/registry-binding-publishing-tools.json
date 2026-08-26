@@ -1,0 +1,86 @@
+{
+  "_captured": "2026-08-26",
+  "_source": "live tools/list against https://mcp.skilljar.com/mcp",
+  "tools": {
+    "bind_quiz_question_banks": {
+      "scope": "quizzes:write",
+      "params": {"quiz_id": "string, required (path resource)", "data": "array, required"},
+      "item": {"type": "\"question-bank-assignments\"", "attributes": {
+        "question_bank_id": "string, REQUIRED - natural key alongside path quiz_id",
+        "order": "integer 0..2147483647 | null - omit to append; service derives Max(order)+10 within the quiz",
+        "randomize_questions": "boolean - model column default on first bind",
+        "limit_question_count": "integer 0..2147483647 - 0 means ALL questions"
+      }, "_extra": "forbid - a typo'd field is a 422, not a silently-dropped no-op"},
+      "_CRITICAL_SEMANTICS": "Re-binding an already-bound bank is an IDEMPOTENT PARTIAL UPDATE. Only fields the caller actually supplies are written; any writable field OMITTED on re-bind is PRESERVED at its stored value - NOT reset to a schema default, and an omitted `order` is NOT re-derived. Implemented as update_or_create on the natural key, so no IntegrityError.",
+      "semantics": "quiz_id resolved once up front: malformed/cross-org/soft-deleted quiz is a document-level 404. First-wins dedup on question_bank_id, so a logical bind fires its QuestionBankAssignmentBound event exactly once. Bad question_bank_id is a per-item not_found. 200/207/400."
+    },
+    "unbind_quiz_question_banks": {
+      "scope": "quizzes:write",
+      "params": {"quiz_id": "string, required", "data": "array, required"},
+      "item": {"type": "\"question-bank-assignments\"", "attributes": {"question_bank_id": "string, required"}},
+      "_shape_note": "question_bank_id lives under `attributes`, NOT as a top-level `id` - keeps it symmetric with bind/update and makes the per-item JSON:API pointer resolve to /data/{i}/attributes/question_bank_id.",
+      "semantics": "HARD delete - QuestionBankAssignment is not a SoftDeletionModel, rows are permanently removed. A bank not assigned to this quiz is a per-item not_found. 200/207/400."
+    },
+    "add_visibility_overrides": {
+      "scope": "student-groups:write",
+      "params": {"id": "string, required (group id)", "data": "array, required"},
+      "item": {"type": "\"visibility-overrides\"", "attributes": {
+        "published_course_id": "string, required, maxLength 64",
+        "is_visible": "boolean, DEFAULT true - true = allowlist (show despite default-hidden); false = blocklist (hide despite default-visible)"
+      }},
+      "semantics": "IDEMPOTENT on the (group, published_course, is_visible) tuple - an existing row returns as `succeeded`, no already_exists code. First-wins dedup on (published_course_id, is_visible), pointer at attributes/published_course_id. Group lookup runs BEFORE the envelope guard, so a missing group is 404 regardless of body.",
+      "_model_note": "The unique constraint is (student_group, published_course, is_visible), so (group, course, true) and (group, course, false) CAN coexist. Skilljar's own note says clients should pick one."
+    },
+    "remove_visibility_overrides": {
+      "scope": "student-groups:write",
+      "params": {"id": "string, required (group id)", "data": "array, required"},
+      "item": {"type": "\"visibility-overrides\"", "attributes": {
+        "published_course_id": "string, required, maxLength 64",
+        "is_visible": "boolean, DEFAULT true - true removes an allowlist override, false removes a blocklist one"
+      }},
+      "_RESPONSE_QUIRK": "BatchDeletedItem.id echoes the request's published_course_id, NOT the override's own obfuscated id - so clients can correlate inputs to outcomes without a separate lookup table. Reproduce this.",
+      "semantics": "Each item in its own transaction.atomic() block, no outer atomic. First-wins dedup on the same tuple. 404 if the group is not in the caller's org, checked before the envelope guard."
+    },
+    "publish_courses": {
+      "scope": "published-courses:write",
+      "params": {"data": "array, required"},
+      "item": {"type": "\"published-courses\"",
+        "relationships": {"course": "{data:{type:\"courses\", id}} REQUIRED", "domain": "{data:{type:\"domains\", id}} REQUIRED"},
+        "attributes": {
+          "slug": "string|null - URL path on the domain. Auto-generated if omitted. Lowercase letters/numbers/dashes, 2+ parts.",
+          "access_period_starts_at": "date-time|null, default null", "access_period_ends_at": "date-time|null, default null",
+          "restrict_access_start_end_dates": "boolean|null, default false",
+          "is_hidden": "boolean|null, default false", "visible_on_catalog": "boolean|null, default false",
+          "open_access": "boolean|null, default false - allow anonymous access",
+          "allow_self_service_reenroll": "boolean|null, default false",
+          "require_all_prerequisites": "boolean|null, default TRUE",
+          "strict_enforce_group_visibility": "boolean|null, default false",
+          "unique_progress_per_enrollment": "boolean|null, default TRUE",
+          "visibility_override_type": "enum[GROUP,CATEGORY]|null, default GROUP"
+        }, "_extra": "forbid"},
+      "semantics": "Publishing the same course to the same domain twice is a PER-ITEM conflict (`already_published`), not a whole-batch failure. 200/207/400.",
+      "_naming": "Named publish_courses (plural) but it is POST /v2/published-courses/ - i.e. CREATE a published course. republish/unpublish are the {id}/publish|unpublish sub-resources."
+    },
+    "republish_published_course": {
+      "scope": "published-courses:write", "params": {"id": "string, required"},
+      "desc": "Re-publish a previously unpublished course: sets live=true and REASSIGNS the slug."
+    },
+    "unpublish_published_course": {
+      "scope": "published-courses:write", "params": {"id": "string, required"},
+      "desc": "Unpublish a course from its domain: sets live=false and FREES the slug."
+    },
+    "register_oauth_client": {
+      "scope": "NONE - unauthenticated",
+      "params": {
+        "client_name": "string, required, maxLength 255",
+        "redirect_uris": "array[string]", "grant_types": "array[string]|null", "scope": "string|null",
+        "token_endpoint_auth_method": "string, default client_secret_post",
+        "resource": "string, default \"\""
+      },
+      "desc": "Register a new OAuth2 client via unauthenticated Dynamic Client Registration (RFC 7591).",
+      "_CRITICAL": "UNAUTHENTICATED. Public/PKCE clients (token_endpoint_auth_method == \"none\") get no client_secret; confidential clients get a ONE-TIME client_secret that cannot be retrieved again. Errors use RFC 7591's {error, error_description} shape, NOT api_v2's JSON:API envelope.",
+      "_NO_ORG_BOUND": "Skilljar's own docstring says no organization is bound or audited at registration. A DCR client is therefore NOT a substitute for an org-scoped dev credential - see WAITING-FOR-002.",
+      "_our_decision": "Goes behind the `admin` profile despite the official server shipping it on. It mints credentials (ADR-005, ROADMAP Block 8)."
+    }
+  }
+}

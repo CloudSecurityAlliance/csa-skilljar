@@ -1,0 +1,87 @@
+{
+  "_captured": "2026-08-26",
+  "_source": "live tools/list against https://mcp.skilljar.com/mcp",
+  "_envelope": "All creates take {\"data\": [ {type, attributes} ]} EXCEPT create_signup_field_values, which is hybrid (student_id top-level + data). Attribute-level detail is also in specs/skilljar-v2-openapi.json; what is captured here is what the spec does NOT say.",
+  "_batch_convention": "200 all succeed | 207 any fail | 400 empty envelope or over BATCH_MAX_ITEMS. Per-item error vocabulary lives in api_v2/docs/batch-responses.md, which is NOT public - it must be learned empirically.",
+  "_CRITICAL_422_BOUNDARY": "Per-item isolation applies only AFTER the envelope is parsed. Any schema-level validation error - a malformed field or a cross-field invariant violation - is raised by Pydantic BEFORE the handler runs and rejects the WHOLE request with a document-level 422. Only service-layer failures inside the loop are isolated per item. Get this wrong and one bad row in a batch of fifty silently becomes 'nothing was written'.",
+  "tools": {
+    "create_courses": {
+      "scope": "courses:write",
+      "attributes": {"title": "string, REQUIRED, 1..500", "short_description": "string, default \"\", max 500", "long_description_html": "string, default \"\"", "enforce_sequential_navigation": "boolean, default false", "created_by_email": "email|null - resolved to an active OrganizationMembership in the caller's org; null leaves created_by null"},
+      "dedup": "NONE - Course has no natural uniqueness key."
+    },
+    "create_lessons": {
+      "scope": "lessons:write",
+      "attributes": {"course_id": "string, REQUIRED", "type": "enum[HTML,MODULAR,QUIZ], REQUIRED", "title": "string, REQUIRED, max 500",
+        "description_html": "string, default \"\"", "order": "integer|null - defaults to max(existing)+10",
+        "content_html": "string|null", "content_items": "array|null, max 15", "quiz_id": "string|null"},
+      "_XOR_RULES": "HTML -> content_html required and non-empty; MODULAR -> content_items required, lesson-level content_html FORBIDDEN; QUIZ -> quiz_id required, both content_html and content_items FORBIDDEN. The schema Literal is the single reviewable gate; the service layer is permissive.",
+      "content_item": {"type": "enum[HTML,VIDEO,AUDIO,QUIZ,RATING], required", "header": "string, max 500", "id": "string|null - PRESENT = update existing child, OMITTED = create new (the diff key)",
+        "content_html": "only when type=HTML", "asset_id": "only when type=VIDEO or AUDIO", "quiz_id": "only when type=QUIZ", "rating": "only when type=RATING",
+        "_constraint": "Capped at 15 items; at most one QUIZ and one RATING. A foreign field for the type is a 422."},
+      "rating_config": {"rating_scale": "enum[5,10]|null - a PROXY for course-level Course.rating_scale, not a block column. The 10-point capability is gated in the service.", "rating_question": "string|null", "include_additional_feedback": "boolean|null", "additional_feedback_question": "string|null", "rating_scale_low_label": "string|null (10-point only)", "rating_scale_high_label": "string|null (10-point only)"}
+    },
+    "create_quizzes": {
+      "scope": "quizzes:write",
+      "attributes": {"name": "string, REQUIRED, max 500", "description_html": "string, default \"\"",
+        "alignment": "enum[left,center,right], default center", "passing_percentage_correct": "integer 0..100, default 0",
+        "max_attempts": "integer 0..2147483647, default 0 (0 = unlimited)", "limit_question_count": "integer 0..2147483647, default 0 (0 = all)",
+        "time_limit_seconds": "integer 0..3600000 | null (null = unlimited)",
+        "randomize_questions": "boolean, default false", "randomize_answers": "boolean, default false",
+        "require_correct_response": "boolean, default false", "show_question_feedback": "boolean, default false",
+        "show_results_on_failure": "boolean, default false", "skip_start_screen": "boolean|null, default false"},
+      "_extra": "forbid",
+      "note": "Quiz has no parent FK, so there is no per-item not_found on create. A cross-field invariant violation (check_quiz_cross_field_rules) on ANY single item rejects the whole request with 422."
+    },
+    "create_question_banks": {
+      "scope": "question-banks:write",
+      "attributes": {"name": "string, REQUIRED, max 500"},
+      "_extra": "forbid",
+      "note": "No parent FK, so no per-item not_found on create."
+    },
+    "create_questions": {
+      "scope": "question-banks:write OR quizzes:write",
+      "attributes": {"question_html": "string, REQUIRED, non-empty", "question_type": "enum[MULTIPLE_CHOICE,MULTIPLE_ANSWER,FILL_IN_THE_BLANK,FREEFORM], REQUIRED",
+        "quiz_id": "string|null", "question_bank_id": "string|null",
+        "answers": "array - MUST be empty for FREEFORM; >= 1 for all other types",
+        "correct_answer_feedback_html": "string, default \"\" - NOT allowed for FREEFORM",
+        "incorrect_answer_feedback_html": "string, default \"\" - NOT allowed for FREEFORM",
+        "case_sensitive": "boolean, default false - only valid for FILL_IN_THE_BLANK",
+        "requires_manual_grading": "boolean, default false - NOT allowed on MC/MA/FITB"},
+      "answer": {"answer_text": "string, REQUIRED, max 1000", "correct": "boolean, default false"},
+      "_XOR": "quiz_id XOR question_bank_id. Both -> 422. Neither -> 422. This is why the scope is OR.",
+      "_NOT_ACCEPTED": "Question `order` and per-answer `order` are NOT accepted - the service auto-assigns question order and answer order (idx*10 by array position). `is_graded`, `is_optional` and `answer_feedback_html` are NOT writable on create (they take Question model defaults); extra=forbid turns an attempt into a 422 rather than a silent drop.",
+      "_QUIRK": "`correct` is accepted for every type for a uniform wire shape, but the service FORCES it True for FILL_IN_THE_BLANK regardless of what was sent.",
+      "_UNSUPPORTED_TYPES": "CONTENT_UPLOAD and LINEAR_SCALE exist in the model but are rejected with 422 - the Literal is the API-enabled subset."
+    },
+    "create_students": {
+      "scope": "students:write",
+      "attributes": {"email": "string(email), REQUIRED - normalized to lowercase on save", "first_name": "string, default \"\", max 50", "last_name": "string, default \"\", max 50"},
+      "dedup": "first-wins on email; later occurrences pre-marked duplicate_in_batch without reaching the service"
+    },
+    "create_groups": {
+      "scope": "student-groups:write",
+      "attributes": {"name": "string, REQUIRED, 1..100 - UNIQUE within the organization, CASE-SENSITIVE",
+        "category_id": "string|null, max 64 - must belong to the same org or the item fails with not_found",
+        "rule_email_domains": "array[string] - bare domains (e.g. example.com) that auto-add students on signup; duplicates collapsed",
+        "send_course_enrollment_email": "boolean|null"},
+      "dedup": "first-wins on name"
+    },
+    "create_web_packages": {
+      "scope": "web-packages:write",
+      "attributes": {"content_url": "string, REQUIRED - https:// URL of the package archive", "title": "string, REQUIRED, 1..500"},
+      "_ASYNCHRONOUS": "The server fetches and re-hosts the archive ASYNCHRONOUSLY. The response describes rows in state=PROCESSING; poll GET /v2/web-packages/{id} until state is READY or ERROR. A malformed archive surfaces as state=ERROR, NOT as an error on the create response. Any tool description that omits this will mislead a model into reporting success.",
+      "_RATE_LIMIT": "Rate limited more tightly than a plain row-writing batch endpoint - each accepted item queues an outbound fetch of up to REMOTE_FETCH_MAX_BYTES, converting one request into real egress. Concurrency additionally bounded by Celery workers.",
+      "_url_validation": "The https/well-formed check is SYNTACTIC ONLY at schema-parse time (422). Authoritative network safety runs at fetch time in the worker.",
+      "dedup": "NONE - two identical content_url values are a legitimate request for two distinct packages."
+    },
+    "create_signup_field_values": {
+      "scope": "signup-fields:write",
+      "params": {"student_id": "string, REQUIRED (top level)", "data": "array, required"},
+      "item": {"type": "\"signup-field-values\"", "id": "string, REQUIRED - obfuscated SignupField pk", "attributes": {"value": "string, REQUIRED"}},
+      "_envelope": "HYBRID - student_id at the top level, per-field items in data.",
+      "semantics": "UPSERT - existing values are overwritten. 200/207/400, plus 404 if the student is unknown or has no memberships in the organization.",
+      "_naming": "Called create_* but it is create-or-update."
+    }
+  }
+}

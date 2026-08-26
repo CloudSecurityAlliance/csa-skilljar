@@ -1,0 +1,144 @@
+{
+  "_captured": "2026-08-26",
+  "_source": "live tools/list against https://mcp.skilljar.com/mcp via an authenticated Claude Code session",
+  "_note": "Parity baseline for ADR-006. Argument names are reproduced exactly; 'paginated' records whether the official tool accepts page.cursor/page.size at all.",
+  "tools": {
+    "list_courses": {
+      "scope": "courses:read", "paginated": false,
+      "desc": "List non-deleted, non-draft courses for the authenticated organization.",
+      "params": {"filter.title": {"type": "string|null", "desc": "Case-insensitive partial match on course title."}}
+    },
+    "list_lessons": {
+      "scope": "lessons:read", "paginated": false,
+      "desc": "List non-draft lessons for the authenticated organization.",
+      "params": {
+        "filter.course_id": {"type": "string|null", "desc": "Obfuscated parent course ID. Exact match."},
+        "filter.title": {"type": "string|null", "desc": "Lesson title. Case-insensitive exact match."},
+        "filter.type": {"type": "enum|null", "enum": ["ASSET","HTML","QUIZ","WEB_PACKAGE","VILT","IE_EXAM","WIDGET","MODULAR"], "desc": "Lesson type. Unknown values rejected with 422."},
+        "filter.updated_since": {"type": "date-time|null", "desc": "ISO-8601 with timezone offset; naive datetimes rejected with 422."}
+      }
+    },
+    "list_quizzes": {
+      "scope": "quizzes:read", "paginated": false,
+      "desc": "List live quizzes for the authenticated organization.",
+      "params": {
+        "filter.name": {"type": "string|null", "desc": "Quiz name. Case-insensitive exact match."},
+        "filter.updated_since": {"type": "date-time|null", "desc": "ISO-8601 with timezone offset; naive rejected with 422."}
+      }
+    },
+    "list_questions": {
+      "scope": "question-banks:read OR quizzes:read", "paginated": false,
+      "desc": "List live questions for the authenticated organization.",
+      "params": {
+        "filter.question_bank_id": {"type": "string|null", "desc": "Obfuscated parent question bank ID. Exact match."},
+        "filter.quiz_id": {"type": "string|null", "desc": "Obfuscated parent quiz ID. Exact match."}
+      }
+    },
+    "list_question_banks": {
+      "scope": "question-banks:read", "paginated": false,
+      "desc": "List live question banks for the authenticated organization.",
+      "params": {
+        "filter.name": {"type": "string|null", "desc": "Question bank name. Case-insensitive exact match."},
+        "filter.updated_since": {"type": "date-time|null", "desc": "ISO-8601 with timezone offset; naive rejected with 422."}
+      }
+    },
+    "list_web_packages": {
+      "scope": "web-packages:read", "paginated": false,
+      "desc": "List live web packages for the authenticated organization.",
+      "params": {}
+    },
+    "list_domains": {
+      "scope": "domains:read", "paginated": true,
+      "desc": "List the organization's domains.",
+      "params": {
+        "filter.access": {"type": "enum|null", "enum": ["PUBLIC","PRIVATE","PRIVATE_CODE"], "desc": "Return only domains with this access mode."},
+        "filter.name": {"type": "string|null", "desc": "Exact hostname match."},
+        "include": {"type": "string|null", "desc": "Comma-separated related resources. Supported: theme."},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_students": {
+      "scope": "students:read", "paginated": true,
+      "desc": "List students for the authenticated organization.",
+      "params": {
+        "filter.email": {"type": "string|null", "desc": "Exact email match (case-insensitive)."},
+        "filter.first_name": {"type": "string|null"}, "filter.last_name": {"type": "string|null"},
+        "filter.is_inactive": {"type": "boolean|null"},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_groups": {
+      "scope": "student-groups:read", "paginated": true,
+      "desc": "List student groups for the authenticated organization.",
+      "params": {
+        "filter.category_id": {"type": "string|null", "maxLength": 64, "desc": "Obfuscated StudentGroupCategory id. Undecodable/cross-org ids return zero results, never an error."},
+        "filter.name": {"type": "string|null", "desc": "Case-insensitive substring on group name. Sequential scan; expected org cardinality < 1k groups."},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_enrollments": {
+      "scope": "enrollments:read", "paginated": true,
+      "desc": "List the organization's enrollments (active and inactive), one row per enrollment.",
+      "params": {
+        "filter.active": {"type": "boolean|null", "desc": "Active = active and not expired. Omit to return both."},
+        "filter.completed_gte": {"type": "date-time|null"}, "filter.completed_lte": {"type": "date-time|null"},
+        "filter.enrolled_gte": {"type": "date-time|null"}, "filter.enrolled_lte": {"type": "date-time|null"},
+        "filter.course.id": {"type": "string|null"}, "filter.domains": {"type": "string|null", "desc": "Comma-separated domain names."},
+        "filter.progress_status": {"type": "string|null", "desc": "Comma-separated: completed, in_progress, not_started."},
+        "filter.student.email": {"type": "string|null"}, "filter.student.id": {"type": "string|null"},
+        "include": {"type": "string|null", "desc": "Supported: purchase, student, certificate."},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_published_courses": {
+      "scope": "published-courses:read", "paginated": true,
+      "desc": "List the organization's published courses (live and unpublished by default).",
+      "params": {
+        "filter.course": {"type": "string|null"}, "filter.domain": {"type": "string|null"},
+        "filter.live": {"type": "boolean|null"},
+        "include": {"type": "string|null", "desc": "Supported: course, domain."},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_certificates": {
+      "scope": "certificates:read", "paginated": true,
+      "desc": "List the organization's certificates, one row per issued certificate.",
+      "params": {
+        "filter.course.id": {"type": "string|null"}, "filter.student.id": {"type": "string|null"},
+        "filter.domains": {"type": "string|null"},
+        "filter.issued_gte": {"type": "date-time|null"}, "filter.issued_lte": {"type": "date-time|null"},
+        "filter.status": {"type": "enum", "enum": ["active","expired","all"], "default": "all"},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_signup_field_values": {
+      "scope": "signup-fields:read", "paginated": true,
+      "desc": "List the organization's captured signup-field values, one row per value.",
+      "params": {
+        "filter.domains": {"type": "string|null"}, "filter.signup-field.id": {"type": "string|null"},
+        "filter.student.id": {"type": "string|null"},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_course_ratings": {
+      "scope": "analytics:read", "paginated": false,
+      "desc": "List a course's student ratings, most recent first.",
+      "params": {"course_id": {"type": "string", "required": true}, "filter.student.id": {"type": "string|null"}}
+    },
+    "list_visibility_overrides": {
+      "scope": "student-groups:read", "paginated": true,
+      "desc": "Cursor-paginated list of visibility overrides for the given group. 404 if the group does not exist in the caller's org (document-level, distinct from per-item not_found inside a 207).",
+      "params": {
+        "id": {"type": "string", "required": true, "desc": "Group id."},
+        "filter.is_visible": {"type": "boolean|null", "desc": "true = allowlist rows only; false = blocklist rows only; omit for both."},
+        "filter.published_course_id": {"type": "string|null", "maxLength": 64},
+        "page.cursor": {"type": "string|null"}, "page.size": {"type": "integer", "default": 25, "min": 1, "max": 100}
+      }
+    },
+    "list_quiz_question_bank_assignments": {
+      "scope": "quizzes:read", "paginated": false,
+      "desc": "List the question-bank assignments for a quiz. Returns a plain unpaginated {\"data\":[...]} envelope - a quiz's bank assignments are a small bounded set. Malformed/cross-org/soft-deleted quiz_id raises a document-level 404.",
+      "params": {"quiz_id": {"type": "string", "required": true}}
+    }
+  }
+}

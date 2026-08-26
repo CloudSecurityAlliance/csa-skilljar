@@ -1,0 +1,62 @@
+{
+  "_captured": "2026-08-26",
+  "_source": "live tools/list against https://mcp.skilljar.com/mcp",
+  "tools": {
+    "anonymize_student": {
+      "scope": "students:anonymize", "params": {"id": "string, required"},
+      "desc": "Permanently erase a student's PII.",
+      "_CRITICAL": "Requires the `X-Confirm-Destructive: true` HTTP header. An API-level confirmation gate distinct from OAuth scope - reproduce it, and surface a clear error when absent rather than a bare 4xx."
+    },
+    "deactivate_student": {
+      "scope": "students:deactivate", "params": {"id": "string, required"},
+      "desc": "Deactivate (soft-delete) a student."
+    },
+    "set_student_password": {
+      "scope": "students:manage-password",
+      "params": {"id": "string, required", "data": "object, required"},
+      "body": {"type": "\"password-sets\"", "attributes": {"password": "string, required - must meet the organization's password policy"}},
+      "desc": "Set a student's password directly."
+    },
+    "send_password_reset": {
+      "scope": "students:manage-password",
+      "params": {"id": "string, required", "domain": "string, REQUIRED"},
+      "desc": "Send a password reset email. `?domain=learn.example.com` is required - the reset link is domain-scoped, so there is no sensible default."
+    },
+    "add_group_memberships": {
+      "scope": "student-groups:write",
+      "params": {"id": "string, required (group id)", "data": "array, required"},
+      "item": {"type": "\"students\"", "id": "string, maxLength 64", "_extra": "forbid - unknown keys (e.g. a stray attributes block copied from POST /v2/students/) surface as 422 at the schema layer rather than a silent no-op"},
+      "semantics": "IDEMPOTENT per JSON:API to-many POST. Already a member returns the existing membership as `succeeded` - there is no `already_a_member` error code. Duplicates within a batch are first-wins, later ones pre-marked `duplicate_in_batch` at /data/{i}/id.",
+      "_ordering": "The group lookup runs BEFORE the envelope guard, so a missing group is 404 regardless of body content - clients cannot infer group existence from the 400-vs-404 boundary. Deliberate; preserve it."
+    },
+    "remove_group_memberships": {
+      "scope": "student-groups:write",
+      "params": {"id": "string, required (group id)", "data": "array, required"},
+      "item": {"type": "\"students\"", "id": "string, maxLength 64", "_extra": "forbid"},
+      "semantics": "IDEMPOTENT per JSON:API to-many DELETE. A non-member returns status \"deleted\" - there is no `not_a_member` outcome on the wire (a service-level discriminator tracks it for audit and event dispatch). First-wins duplicates. 404 if the group is not in the caller's org."
+    },
+    "bulk_enroll_students": {
+      "scope": "enrollments:write",
+      "params": {
+        "published_course_id": "string, REQUIRED (top level)",
+        "expires_at": "date-time|null (top level, optional, must be in the future)",
+        "data": "array, required"
+      },
+      "item": {"type": "\"enrollments\"", "attributes": {"email": "string(email), required - normalized to lowercase server-side"}},
+      "_envelope": "HYBRID: published_course_id and expires_at are shared at the TOP level; data carries per-row items. Not a plain batch envelope - reproduce this shape exactly.",
+      "responses": "200 all succeeded | 207 any failed | 400 empty envelope, over cap, or a past expires_at (request-level)",
+      "semantics": "Rows processed independently. First-wins duplicate detection on email; later occurrences pre-marked `duplicate_in_batch` without reaching the service.",
+      "_see_also": "api_v2/docs/enrollments.md - per-row failure-code vocabulary, reactivation behaviour, retry contract. Not public; the vocabulary must be learned empirically."
+    },
+    "complete_enrollments": {
+      "scope": "enrollments:write",
+      "params": {"send_notifications": "boolean, REQUIRED", "data": "array, required"},
+      "item": {"type": "\"enrollments\"", "id": "string, required", "attributes": {
+        "completed_at": "date-time|null - null REMOVES the completion",
+        "success_status": "enum[passed,failed]|null - null CLEARS the status"
+      }},
+      "desc": "Set or remove course completion on a batch of enrollments.",
+      "_note": "`send_notifications` is REQUIRED, not defaulted - the caller is forced to decide whether learners get email. Preserve that; defaulting it silently mails people."
+    }
+  }
+}
