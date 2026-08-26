@@ -45,6 +45,7 @@ Not committed to; recorded so they are not rediscovered.
 
 ## Pointers
 
+- Sequence and block plan → `ROADMAP.md`
 - Decisions → `DECISIONS-ADR.md`, `DECISIONS-PRD.md`
 - Waiting on external conditions → `WAITING-FOR.md`
 - Friction → `FRICTION.md`
