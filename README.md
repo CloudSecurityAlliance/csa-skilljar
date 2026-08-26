@@ -148,8 +148,10 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 
 .venv/bin/python -m pytest -q          # offline suite: no network, no credentials
-.venv/bin/ruff check src tests
+.venv/bin/ruff check src tests scripts
 .venv/bin/mypy
+
+./scripts/verify.sh                    # or just this: everything CI checks
 ```
 
 Commands are written `.venv/bin/...` deliberately — a bare `pytest` resolves to whatever

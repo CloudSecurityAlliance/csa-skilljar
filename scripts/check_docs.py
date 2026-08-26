@@ -41,10 +41,13 @@ def _v2_scopes_used() -> int:
     flat: set[str] = set()
     for item in spec["paths"].values():
         for method, op in item.items():
-            if method not in ("get", "post", "put", "patch", "delete"): continue
-            if not isinstance(op, dict): continue
+            if method not in ("get", "post", "put", "patch", "delete"):
+                continue
+            if not isinstance(op, dict):
+                continue
             raw = op.get("x-required-scope")
-            if not raw: continue
+            if not raw:
+                continue
             for entry in ([raw] if isinstance(raw, str) else raw):
                 flat.update(s.strip() for s in entry.split(",") if s.strip())
     return len(flat)
@@ -64,7 +67,8 @@ def _roadmap_parity_tool_sum() -> int:
     text = (ROOT / "ROADMAP.md").read_text()
     total = 0
     for m in re.finditer(r"^### Block (\d+) — .*?· (\d+) tools", text, re.M):
-        if 2 <= int(m.group(1)) <= 9: total += int(m.group(2))
+        if 2 <= int(m.group(1)) <= 9:
+            total += int(m.group(2))
     return total
 
 
@@ -153,7 +157,8 @@ def main() -> int:
     print(f"checked {checked} claims across the documentation")
     if failures:
         print("\nFAILED:", file=sys.stderr)
-        for f in failures: print(f"  - {f}", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
         return 1
     print("all claims agree with the artifacts")
     return 0

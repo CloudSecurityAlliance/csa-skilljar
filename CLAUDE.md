@@ -189,11 +189,13 @@ where `mcp.server.fastmcp` still exists. Working outside a venv would have repro
 single most common MCP failure mode while the code looked correct.
 
 ```bash
+./scripts/verify.sh                        # everything CI checks, no suppressed output
+
 python3 -m venv .venv                     # .python-version pins the interpreter (3.12)
 .venv/bin/python -m pip install -e ".[dev]"
 
 .venv/bin/python -m pytest -q             # offline: no network, no credentials
-.venv/bin/ruff check src tests
+.venv/bin/ruff check src tests scripts
 .venv/bin/mypy
 .venv/bin/python -m pytest -q --cov --cov-report=term-missing   # what CI's test job runs
 
