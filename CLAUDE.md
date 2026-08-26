@@ -23,6 +23,28 @@ API snapshots, and surface analysis. Do not describe features as working; there 
   the live OAuth scope catalogue, and a browsable surface map.
 - **`docs-html/`** — the rendered vendor doc pages, kept for provenance. Low value; the specs
   are the useful artifact.
+- **`GOALS.md`** / **`BUSINESS-CASE.md`** — what success is, and the honest argument that this
+  project should get smaller over time. Read before proposing scope changes.
+- **`TODO.md`** — the index of ALL open work, per the CINO todo-index convention. Sweeping this
+  plus open GitHub Issues finds everything. It also carries a consideration pile of things
+  deliberately not committed to — check it before proposing a "missing" feature.
+- **`DECISIONS-ADR.md`** + **`DECISIONS-ADR/`** — seven technical decisions with their rejected
+  alternatives. ADR-002 (routing) and ADR-004 (no version in tool names) are load-bearing; do not
+  contradict them without a superseding ADR.
+- **`DECISIONS-PRD.md`** + **`DECISIONS-PRD/`** — scope, audience, and explicit out-of-scope.
+- **`SECURITY-RESOURCES.md`** — exposure surface and the prompt-injection threat. Constrains any
+  change that surfaces course content to a model.
+- **`DATA-RESOURCES.md`** / **`DATA-NEEDS.md`** — what data is handled and what is deliberately
+  never stored. **No caching, no persistence** — proposing either changes the security posture and
+  needs its own ADR.
+- **`WAITING-FOR.md`** + **`WAITING-FOR/`** — external conditions with observable triggers. 001 is
+  the retirement trigger for each v1 family; 002 blocks all of Phase 1.
+- **`FRICTION.md`** + **`FRICTION/`** — friction log. Low bar: if it is an annoyance for a human or
+  an AI, log it.
+- **`OPERATIONAL-RESOURCES.md`** — the one recurring job (`check_upstream.py`). Check its "Next
+  review" date against today when working here.
+- **`RACI.md`** — authority by domain. Note: **credential issuance is never delegated to AI.**
+- **`CHATGPT.md`** / **`GEMINI.md`** — pointers to this file, deliberately not copies.
 
 ## Critical architectural facts
 

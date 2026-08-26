@@ -121,6 +121,23 @@ Reproduces all 73 official tools, then adds v1-only families in this order:
 Deliberately out of scope: catalog page-building, webhook *receiving*, caching, and cross-API
 composite writes. Reasons are in the spec.
 
+## Project documentation
+
+| File | What it answers |
+|---|---|
+| [Design spec](docs/superpowers/specs/2026-08-26-csa-skilljar-design.md) | Architecture, routing rule, credential model, auth error taxonomy, phasing. **Start here.** |
+| [GOALS.md](GOALS.md) | What success looks like and how we would know it failed |
+| [BUSINESS-CASE.md](BUSINESS-CASE.md) | Why CSA is investing, and the honest case that this project should shrink |
+| [TODO.md](TODO.md) | Index of all open work |
+| [DECISIONS-ADR.md](DECISIONS-ADR.md) | Technical decisions and why the rejected alternatives lost |
+| [DECISIONS-PRD.md](DECISIONS-PRD.md) | Scope, audience, and what is deliberately out |
+| [SECURITY-RESOURCES.md](SECURITY-RESOURCES.md) | Exposure surface, prompt-injection risk, credential custody |
+| [DATA-RESOURCES.md](DATA-RESOURCES.md) | What data this handles, and what it deliberately never stores |
+| [WAITING-FOR.md](WAITING-FOR.md) | External conditions we are waiting on, each with an observable trigger |
+| [FRICTION.md](FRICTION.md) | Work that is harder than it should be |
+| [RACI.md](RACI.md) | Who decides what |
+| [CLAUDE.md](CLAUDE.md) | Behavioural contract for AI agents working here |
+
 ## Development
 
 Nothing to build yet. When there is:
