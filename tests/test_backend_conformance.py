@@ -1,15 +1,27 @@
 import inspect
 
-from csa_skilljar.backend import Backend, FakeBackend
+import pytest
+
+from csa_skilljar.backend import Backend, FakeBackend, V2Backend
+
+IMPLEMENTATIONS = [FakeBackend, V2Backend]
 
 
-def test_fake_satisfies_the_protocol_signature_for_signature():
-    """The fake powers every unit test. If it drifts from the protocol the whole
-    suite exercises a stale double, so compare signatures rather than trusting it."""
+@pytest.mark.parametrize("impl", IMPLEMENTATIONS, ids=lambda c: c.__name__)
+def test_implementation_matches_the_protocol_signature_for_signature(impl):
+    """The fake powers every unit test. If it drifts from the protocol the whole suite
+    exercises a stale double; if the real backend drifts, the fake tests prove nothing
+    about production. Compare signatures rather than trusting either."""
     for name in (n for n in dir(Backend) if not n.startswith("_")):
         proto = inspect.signature(getattr(Backend, name))
-        impl = inspect.signature(getattr(FakeBackend, name))
-        assert proto == impl, f"{name} drifted: protocol {proto} vs fake {impl}"
+        got = inspect.signature(getattr(impl, name))
+        assert proto == got, f"{impl.__name__}.{name} drifted: protocol {proto} vs {got}"
+
+
+@pytest.mark.parametrize("impl", IMPLEMENTATIONS, ids=lambda c: c.__name__)
+def test_implementation_covers_every_protocol_method(impl):
+    missing = {n for n in dir(Backend) if not n.startswith("_")} - set(dir(impl))
+    assert not missing, f"{impl.__name__} is missing: {sorted(missing)}"
 
 
 def test_fake_returns_a_jsonapi_envelope():
