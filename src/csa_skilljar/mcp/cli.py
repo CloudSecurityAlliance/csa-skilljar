@@ -15,13 +15,12 @@ from collections.abc import Mapping, Sequence
 
 from .. import __version__
 from ._config import (
-    ClientProvider,
-    Settings,
     V1_MISSING_WARNING,
     V2_MISSING_WARNING,
+    ClientProvider,
+    Settings,
     presence_from_env,
     settings_from_env,
-    startup_warnings,
 )
 from .server import create_server
 
