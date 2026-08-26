@@ -1,0 +1,530 @@
+[
+  {
+    "area": "Content",
+    "entity": "Courses",
+    "v1_path": "/v1/courses",
+    "v2_path": "/v2/courses/",
+    "status": "both",
+    "notes": "v2 adds external_id, is_published, lesson_count; drops course_time/manual timing fields and labels. No DELETE in v2."
+  },
+  {
+    "area": "Content",
+    "entity": "Course labels",
+    "v1_path": "/v1/courses/{id}/labels",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Label taxonomy has no v2 equivalent."
+  },
+  {
+    "area": "Content",
+    "entity": "Labels",
+    "v1_path": "/v1/labels",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Content",
+    "entity": "Lessons",
+    "v1_path": "/v1/lessons",
+    "v2_path": "/v2/lessons/",
+    "status": "both",
+    "notes": "v2 adds content_items (inline), quiz_id, external_id, timestamps; drops display_fullscreen, optional, search_keywords, time_seconds, tooltip_html. No DELETE in v2."
+  },
+  {
+    "area": "Content",
+    "entity": "Lesson content items",
+    "v1_path": "/v1/lessons/{id}/content-items",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "In v2 folded into lesson attributes as content_items, not a separate resource."
+  },
+  {
+    "area": "Content",
+    "entity": "Rating content blocks",
+    "v1_path": "/v1/lessons/{id}/rating-content-blocks",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "v2 exposes RatingConfig on lessons + read-only analytics ratings."
+  },
+  {
+    "area": "Content",
+    "entity": "Assets",
+    "v1_path": "/v1/assets",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "No file/asset upload in v2."
+  },
+  {
+    "area": "Content",
+    "entity": "Web packages",
+    "v1_path": "/v1/web-packages",
+    "v2_path": "/v2/web-packages/",
+    "status": "both",
+    "notes": "v2 adds base_path, display_name, timestamps; drops download_url, redirect_on_completion, sync_completion. v1 has PUT .../lessons to attach."
+  },
+  {
+    "area": "Assessment",
+    "entity": "Quizzes",
+    "v1_path": "/v1/quizzes",
+    "v2_path": "/v2/quizzes/",
+    "status": "both",
+    "notes": "v2 adds description_html, skip_start_screen, external_id, timestamps; v1 'html' dropped."
+  },
+  {
+    "area": "Assessment",
+    "entity": "Questions",
+    "v1_path": "/v1/quiz-questions",
+    "v2_path": "/v2/questions/",
+    "status": "both",
+    "notes": "Renamed. v2 adds order, is_graded, is_optional, question_bank_id, external_id; v1 'html'->question_html, 'type'->question_type."
+  },
+  {
+    "area": "Assessment",
+    "entity": "Question banks",
+    "v1_path": "/v1/question-banks",
+    "v2_path": "/v2/question-banks/",
+    "status": "both",
+    "notes": "v1 is read-mostly for bank contents (GET/DELETE questions only). v2 has full write via /v2/questions/ with question_bank_id."
+  },
+  {
+    "area": "Assessment",
+    "entity": "Quiz-to-bank binding",
+    "v1_path": "/v1/quizzes/{id}/question-banks",
+    "v2_path": "/v2/quizzes/{id}/question-banks/",
+    "status": "both",
+    "notes": "v1 READ-ONLY (GET only). v2 adds POST/PATCH/DELETE - you can bind, reweight and unbind banks."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Domains",
+    "v1_path": "/v1/domains",
+    "v2_path": "/v2/domains/",
+    "status": "both",
+    "notes": "v1 is writable (PATCH/PUT); v2 is READ-ONLY. v2 adds require_https, external_id."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Published courses",
+    "v1_path": "/v1/domains/{d}/published-courses",
+    "v2_path": "/v2/published-courses/",
+    "status": "both",
+    "notes": "v1 nested under domain; v2 top-level. v2 adds access_period_*, live, open_access, visibility_override_type, visible_on_catalog; v1 registration_* and offer dropped."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Publish / unpublish",
+    "v1_path": "",
+    "v2_path": "/v2/published-courses/{id}/publish|unpublish",
+    "status": "v2",
+    "notes": "Explicit lifecycle verbs; v1 approximates via the 'hidden' field."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Course prerequisites",
+    "v1_path": "/v1/.../published-course-prerequisites",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "No prerequisite management in v2."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Group prerequisites",
+    "v1_path": "/v1/.../student-group-prerequisites",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Catalog",
+    "entity": "Re-enrollment rules",
+    "v1_path": "/v1/.../reenrollment_rule",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "v2 has allow_self_service_reenroll flag only, not the rule object."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Visibility overrides",
+    "v1_path": "/v1/.../visibility-overrides",
+    "v2_path": "/v2/groups/{id}/relationships/published-course-visibility/",
+    "status": "both",
+    "notes": "Direction inverted: v1 hangs off the content object (3 parents: catalog pages, published courses, published paths); v2 hangs off the group and covers published courses only."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Tags",
+    "v1_path": "/v1/tags",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Tagging of catalog pages, published courses and paths - none in v2."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Catalog pages",
+    "v1_path": "/v1/domains/{d}/catalog-pages",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Entire page-builder surface is v1-only."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Content blocks",
+    "v1_path": "/v1/.../content-blocks",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "html / component / tile-container variants."
+  },
+  {
+    "area": "Catalog",
+    "entity": "Classic page items",
+    "v1_path": "/v1/.../classic-page-items",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Catalog",
+    "entity": "Course series",
+    "v1_path": "/v1/domains/{d}/course-series",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Read-only in v1."
+  },
+  {
+    "area": "Paths",
+    "entity": "Paths (templates)",
+    "v1_path": "/v1/paths",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Paths",
+    "entity": "Published paths",
+    "v1_path": "/v1/domains/{d}/published-paths",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Learning paths entirely absent from v2."
+  },
+  {
+    "area": "Paths",
+    "entity": "Path items",
+    "v1_path": "/v1/.../path-items",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Paths",
+    "entity": "Path enrollments",
+    "v1_path": "/v1/.../published-path-enrollments",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Paths",
+    "entity": "Plans",
+    "v1_path": "/v1/domains/{d}/plan",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Paths",
+    "entity": "Plan enrollments",
+    "v1_path": "/v1/.../plan-enrollments",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "People",
+    "entity": "Students / users",
+    "v1_path": "/v1/users + /v1/domains/{d}/users",
+    "v2_path": "/v2/students/",
+    "status": "both",
+    "notes": "Renamed users->students. v2 adds external_id, date_joined, is_inactive; v1 full_name dropped. v2 is org-wide, v1 splits org vs per-domain."
+  },
+  {
+    "area": "People",
+    "entity": "Bulk student create",
+    "v1_path": "/v1/domains/{d}/users/bulk-create",
+    "v2_path": "/v2/students/ (batch POST)",
+    "status": "both",
+    "notes": "v2 batching is universal, not a special endpoint."
+  },
+  {
+    "area": "People",
+    "entity": "Anonymize (PII erase)",
+    "v1_path": "/v1/users/{id}/anonymize",
+    "v2_path": "/v2/students/{id}/anonymize/",
+    "status": "both",
+    "notes": "Irreversible. v2 gates behind dedicated students:anonymize scope."
+  },
+  {
+    "area": "People",
+    "entity": "Set / reset password",
+    "v1_path": "",
+    "v2_path": "/v2/students/{id}/set-password|send-password-reset",
+    "status": "v2",
+    "notes": "NEW in v2. Account-takeover primitive; scope students:manage-password."
+  },
+  {
+    "area": "People",
+    "entity": "Deactivate student",
+    "v1_path": "",
+    "v2_path": "DELETE /v2/students/{id}",
+    "status": "v2",
+    "notes": "Scope students:deactivate. v1 has no equivalent verb."
+  },
+  {
+    "area": "People",
+    "entity": "User invites",
+    "v1_path": "/v1/domains/{d}/users/{u}/invites",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "People",
+    "entity": "Manager access",
+    "v1_path": "/v1/.../manager-access",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "People",
+    "entity": "Groups",
+    "v1_path": "/v1/groups",
+    "v2_path": "/v2/groups/",
+    "status": "both",
+    "notes": "v2 adds send_course_enrollment_email, timestamps (note: uses updated_at, not modified_at as elsewhere); v1 discount_percent and sign_up_field_rule dropped."
+  },
+  {
+    "area": "People",
+    "entity": "Group membership",
+    "v1_path": "/v1/groups/{id}/users",
+    "v2_path": "/v2/groups/{id}/relationships/students/",
+    "status": "both",
+    "notes": "v2 POST/DELETE only - no GET of members via the relationship; list via /v2/students/ filters."
+  },
+  {
+    "area": "People",
+    "entity": "Group categories",
+    "v1_path": "/v1/group-categories",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "v2 keeps category_id as a field but exposes no catalogue of categories."
+  },
+  {
+    "area": "People",
+    "entity": "Email domain rules",
+    "v1_path": "/v1/groups/{id}/email-domain-rules",
+    "v2_path": "(GroupAttributes.rule_email_domains)",
+    "status": "both",
+    "notes": "Promoted from sub-resource to plain field on the group in v2."
+  },
+  {
+    "area": "People",
+    "entity": "Signup field definitions",
+    "v1_path": "/v1/domains/{d}/signup-fields",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Read-only in v1; no definition endpoint in v2."
+  },
+  {
+    "area": "People",
+    "entity": "Signup field values",
+    "v1_path": "/v1/domains/{d}/users/{u}/signup-fields",
+    "v2_path": "/v2/signup-field-values/",
+    "status": "both",
+    "notes": "v2 promotes to a top-level resource with batch write."
+  },
+  {
+    "area": "Progress",
+    "entity": "Enrollments",
+    "v1_path": "/v1/.../published-courses/{pc}/enrollments",
+    "v2_path": "/v2/enrollments/",
+    "status": "both",
+    "notes": "Biggest upgrade in v2: adds score, max_score, progress_status, success_status, completed_at, due_at, has_certificate, channel, source, domain_name."
+  },
+  {
+    "area": "Progress",
+    "entity": "Enrollment completion",
+    "v1_path": "/v1/users/{u}/published-courses/{pc}",
+    "v2_path": "/v2/enrollments/completion",
+    "status": "both",
+    "notes": "v2 has a dedicated batch PATCH for marking completion."
+  },
+  {
+    "area": "Progress",
+    "entity": "Lesson progress",
+    "v1_path": "/v1/lesson-progress + /v1/users/{u}/.../lessons",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "No per-lesson progress in v2 - course-level only."
+  },
+  {
+    "area": "Progress",
+    "entity": "Progress tokens",
+    "v1_path": "/v1/progresstokens",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Progress",
+    "entity": "Certificates",
+    "v1_path": "",
+    "v2_path": "/v2/certificates/",
+    "status": "v2",
+    "notes": "NEW. Read-only list/detail."
+  },
+  {
+    "area": "Progress",
+    "entity": "Course analytics",
+    "v1_path": "",
+    "v2_path": "/v2/analytics/courses/{id} + /ratings/",
+    "status": "v2",
+    "notes": "NEW. Read-only aggregate + rating breakdown."
+  },
+  {
+    "area": "Commerce",
+    "entity": "Purchases",
+    "v1_path": "/v1/purchases",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "v2 references PurchaseResource from enrollments but exposes no purchase endpoints."
+  },
+  {
+    "area": "Commerce",
+    "entity": "Offers",
+    "v1_path": "/v1/offers",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Commerce",
+    "entity": "Promo codes",
+    "v1_path": "/v1/promo-codes + /v1/promo-code-pools",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Commerce",
+    "entity": "Access code pools",
+    "v1_path": "/v1/domains/{d}/access-code-pools",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Also /v1/groups/{id}/access-code-pools."
+  },
+  {
+    "area": "Commerce",
+    "entity": "License packages",
+    "v1_path": "/v1/license-packages",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "Seat management."
+  },
+  {
+    "area": "Commerce",
+    "entity": "Training credit codes",
+    "v1_path": "/v1/training-credit-codes",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "ILT",
+    "entity": "ILT instructors",
+    "v1_path": "/v1/ilt-instructors",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "ILT",
+    "entity": "ILT sessions",
+    "v1_path": "/v1/ilt-sessions",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "ILT",
+    "entity": "ILT multi-session events",
+    "v1_path": "/v1/ilt-multi-session-events",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "ILT",
+    "entity": "vILT session events",
+    "v1_path": "/v1/vilt-session-events",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "ILT",
+    "entity": "vILT registrations",
+    "v1_path": "/v1/vilt-session-registrations",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  },
+  {
+    "area": "Platform",
+    "entity": "Webhooks",
+    "v1_path": "/v1/webhooks",
+    "v2_path": "",
+    "status": "v1",
+    "notes": "17 ops incl. 10 sample payloads + ping. NO event notifications in v2 at all."
+  },
+  {
+    "area": "Platform",
+    "entity": "OAuth clients",
+    "v1_path": "",
+    "v2_path": "/v2/clients/",
+    "status": "v2",
+    "notes": "NEW. Create/rotate-secret/delete API clients."
+  },
+  {
+    "area": "Platform",
+    "entity": "OAuth token",
+    "v1_path": "",
+    "v2_path": "/v2/auth/token + /v2/auth/revoke",
+    "status": "v2",
+    "notes": "NEW. client_credentials flow."
+  },
+  {
+    "area": "Platform",
+    "entity": "Dynamic client registration",
+    "v1_path": "",
+    "v2_path": "/v2/oauth/register",
+    "status": "v2",
+    "notes": "NEW. RFC 7591 - this is what makes MCP OAuth work."
+  },
+  {
+    "area": "Platform",
+    "entity": "Scope catalog",
+    "v1_path": "",
+    "v2_path": "/v2/scopes/",
+    "status": "v2",
+    "notes": "NEW. Enumerate grantable scopes."
+  },
+  {
+    "area": "Platform",
+    "entity": "Ping / health",
+    "v1_path": "/v1/ping",
+    "v2_path": "",
+    "status": "v1",
+    "notes": ""
+  }
+]

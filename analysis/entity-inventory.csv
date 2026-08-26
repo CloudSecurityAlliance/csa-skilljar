@@ -1,0 +1,67 @@
+area,entity,v1_path,v2_path,status,notes
+Content,Courses,/v1/courses,/v2/courses/,both,"v2 adds external_id, is_published, lesson_count; drops course_time/manual timing fields and labels. No DELETE in v2."
+Content,Course labels,/v1/courses/{id}/labels,,v1,Label taxonomy has no v2 equivalent.
+Content,Labels,/v1/labels,,v1,
+Content,Lessons,/v1/lessons,/v2/lessons/,both,"v2 adds content_items (inline), quiz_id, external_id, timestamps; drops display_fullscreen, optional, search_keywords, time_seconds, tooltip_html. No DELETE in v2."
+Content,Lesson content items,/v1/lessons/{id}/content-items,,v1,"In v2 folded into lesson attributes as content_items, not a separate resource."
+Content,Rating content blocks,/v1/lessons/{id}/rating-content-blocks,,v1,v2 exposes RatingConfig on lessons + read-only analytics ratings.
+Content,Assets,/v1/assets,,v1,No file/asset upload in v2.
+Content,Web packages,/v1/web-packages,/v2/web-packages/,both,"v2 adds base_path, display_name, timestamps; drops download_url, redirect_on_completion, sync_completion. v1 has PUT .../lessons to attach."
+Assessment,Quizzes,/v1/quizzes,/v2/quizzes/,both,"v2 adds description_html, skip_start_screen, external_id, timestamps; v1 'html' dropped."
+Assessment,Questions,/v1/quiz-questions,/v2/questions/,both,"Renamed. v2 adds order, is_graded, is_optional, question_bank_id, external_id; v1 'html'->question_html, 'type'->question_type."
+Assessment,Question banks,/v1/question-banks,/v2/question-banks/,both,v1 is read-mostly for bank contents (GET/DELETE questions only). v2 has full write via /v2/questions/ with question_bank_id.
+Assessment,Quiz-to-bank binding,/v1/quizzes/{id}/question-banks,/v2/quizzes/{id}/question-banks/,both,"v1 READ-ONLY (GET only). v2 adds POST/PATCH/DELETE - you can bind, reweight and unbind banks."
+Catalog,Domains,/v1/domains,/v2/domains/,both,"v1 is writable (PATCH/PUT); v2 is READ-ONLY. v2 adds require_https, external_id."
+Catalog,Published courses,/v1/domains/{d}/published-courses,/v2/published-courses/,both,"v1 nested under domain; v2 top-level. v2 adds access_period_*, live, open_access, visibility_override_type, visible_on_catalog; v1 registration_* and offer dropped."
+Catalog,Publish / unpublish,,/v2/published-courses/{id}/publish|unpublish,v2,Explicit lifecycle verbs; v1 approximates via the 'hidden' field.
+Catalog,Course prerequisites,/v1/.../published-course-prerequisites,,v1,No prerequisite management in v2.
+Catalog,Group prerequisites,/v1/.../student-group-prerequisites,,v1,
+Catalog,Re-enrollment rules,/v1/.../reenrollment_rule,,v1,"v2 has allow_self_service_reenroll flag only, not the rule object."
+Catalog,Visibility overrides,/v1/.../visibility-overrides,/v2/groups/{id}/relationships/published-course-visibility/,both,"Direction inverted: v1 hangs off the content object (3 parents: catalog pages, published courses, published paths); v2 hangs off the group and covers published courses only."
+Catalog,Tags,/v1/tags,,v1,"Tagging of catalog pages, published courses and paths - none in v2."
+Catalog,Catalog pages,/v1/domains/{d}/catalog-pages,,v1,Entire page-builder surface is v1-only.
+Catalog,Content blocks,/v1/.../content-blocks,,v1,html / component / tile-container variants.
+Catalog,Classic page items,/v1/.../classic-page-items,,v1,
+Catalog,Course series,/v1/domains/{d}/course-series,,v1,Read-only in v1.
+Paths,Paths (templates),/v1/paths,,v1,
+Paths,Published paths,/v1/domains/{d}/published-paths,,v1,Learning paths entirely absent from v2.
+Paths,Path items,/v1/.../path-items,,v1,
+Paths,Path enrollments,/v1/.../published-path-enrollments,,v1,
+Paths,Plans,/v1/domains/{d}/plan,,v1,
+Paths,Plan enrollments,/v1/.../plan-enrollments,,v1,
+People,Students / users,/v1/users + /v1/domains/{d}/users,/v2/students/,both,"Renamed users->students. v2 adds external_id, date_joined, is_inactive; v1 full_name dropped. v2 is org-wide, v1 splits org vs per-domain."
+People,Bulk student create,/v1/domains/{d}/users/bulk-create,/v2/students/ (batch POST),both,"v2 batching is universal, not a special endpoint."
+People,Anonymize (PII erase),/v1/users/{id}/anonymize,/v2/students/{id}/anonymize/,both,Irreversible. v2 gates behind dedicated students:anonymize scope.
+People,Set / reset password,,/v2/students/{id}/set-password|send-password-reset,v2,NEW in v2. Account-takeover primitive; scope students:manage-password.
+People,Deactivate student,,DELETE /v2/students/{id},v2,Scope students:deactivate. v1 has no equivalent verb.
+People,User invites,/v1/domains/{d}/users/{u}/invites,,v1,
+People,Manager access,/v1/.../manager-access,,v1,
+People,Groups,/v1/groups,/v2/groups/,both,"v2 adds send_course_enrollment_email, timestamps (note: uses updated_at, not modified_at as elsewhere); v1 discount_percent and sign_up_field_rule dropped."
+People,Group membership,/v1/groups/{id}/users,/v2/groups/{id}/relationships/students/,both,v2 POST/DELETE only - no GET of members via the relationship; list via /v2/students/ filters.
+People,Group categories,/v1/group-categories,,v1,v2 keeps category_id as a field but exposes no catalogue of categories.
+People,Email domain rules,/v1/groups/{id}/email-domain-rules,(GroupAttributes.rule_email_domains),both,Promoted from sub-resource to plain field on the group in v2.
+People,Signup field definitions,/v1/domains/{d}/signup-fields,,v1,Read-only in v1; no definition endpoint in v2.
+People,Signup field values,/v1/domains/{d}/users/{u}/signup-fields,/v2/signup-field-values/,both,v2 promotes to a top-level resource with batch write.
+Progress,Enrollments,/v1/.../published-courses/{pc}/enrollments,/v2/enrollments/,both,"Biggest upgrade in v2: adds score, max_score, progress_status, success_status, completed_at, due_at, has_certificate, channel, source, domain_name."
+Progress,Enrollment completion,/v1/users/{u}/published-courses/{pc},/v2/enrollments/completion,both,v2 has a dedicated batch PATCH for marking completion.
+Progress,Lesson progress,/v1/lesson-progress + /v1/users/{u}/.../lessons,,v1,No per-lesson progress in v2 - course-level only.
+Progress,Progress tokens,/v1/progresstokens,,v1,
+Progress,Certificates,,/v2/certificates/,v2,NEW. Read-only list/detail.
+Progress,Course analytics,,/v2/analytics/courses/{id} + /ratings/,v2,NEW. Read-only aggregate + rating breakdown.
+Commerce,Purchases,/v1/purchases,,v1,v2 references PurchaseResource from enrollments but exposes no purchase endpoints.
+Commerce,Offers,/v1/offers,,v1,
+Commerce,Promo codes,/v1/promo-codes + /v1/promo-code-pools,,v1,
+Commerce,Access code pools,/v1/domains/{d}/access-code-pools,,v1,Also /v1/groups/{id}/access-code-pools.
+Commerce,License packages,/v1/license-packages,,v1,Seat management.
+Commerce,Training credit codes,/v1/training-credit-codes,,v1,
+ILT,ILT instructors,/v1/ilt-instructors,,v1,
+ILT,ILT sessions,/v1/ilt-sessions,,v1,
+ILT,ILT multi-session events,/v1/ilt-multi-session-events,,v1,
+ILT,vILT session events,/v1/vilt-session-events,,v1,
+ILT,vILT registrations,/v1/vilt-session-registrations,,v1,
+Platform,Webhooks,/v1/webhooks,,v1,17 ops incl. 10 sample payloads + ping. NO event notifications in v2 at all.
+Platform,OAuth clients,,/v2/clients/,v2,NEW. Create/rotate-secret/delete API clients.
+Platform,OAuth token,,/v2/auth/token + /v2/auth/revoke,v2,NEW. client_credentials flow.
+Platform,Dynamic client registration,,/v2/oauth/register,v2,NEW. RFC 7591 - this is what makes MCP OAuth work.
+Platform,Scope catalog,,/v2/scopes/,v2,NEW. Enumerate grantable scopes.
+Platform,Ping / health,/v1/ping,,v1,
