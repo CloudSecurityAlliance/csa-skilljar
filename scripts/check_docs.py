@@ -23,12 +23,14 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _spec_counts(path: pathlib.Path) -> tuple[int, int]:
-    """(paths, operations) for an OpenAPI document."""
-    if path.suffix in (".yml", ".yaml"):
-        import yaml
-        spec = yaml.safe_load(path.read_text())
-    else:
-        spec = json.loads(path.read_text())
+    """(paths, operations) for an OpenAPI document.
+
+    JSON only, deliberately. `specs/skilljar-v1-openapi.json` exists precisely so tooling
+    does not need a YAML parser, and requiring PyYAML here would add a dependency to a
+    script whose whole job is to run anywhere with nothing installed. The YAML remains the
+    as-fetched artifact; `check_upstream.py` is what notices if it drifts from upstream.
+    """
+    spec = json.loads(path.read_text())
     verbs = ("get", "post", "put", "patch", "delete")
     ops = sum(1 for item in spec["paths"].values() for m in item if m in verbs)
     return len(spec["paths"]), ops
@@ -73,7 +75,7 @@ def build_checks() -> list[tuple[str, int, list[tuple[str, str]]]]:
     stops matching, that is a FAILURE, not a silent pass - a claim we can no longer
     locate is a claim we can no longer verify.
     """
-    v1_paths, v1_ops = _spec_counts(ROOT / "specs" / "skilljar-v1-openapi.yml")
+    v1_paths, v1_ops = _spec_counts(ROOT / "specs" / "skilljar-v1-openapi.json")
     v2_paths, v2_ops = _spec_counts(ROOT / "specs" / "skilljar-v2-openapi.json")
     scopes_advertised = len(json.loads(
         (ROOT / "analysis" / "live-authz-metadata.json").read_text())["scopes_supported"])
