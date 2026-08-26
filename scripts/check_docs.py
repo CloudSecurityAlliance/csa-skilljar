@@ -23,12 +23,14 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _spec_counts(path: pathlib.Path) -> tuple[int, int]:
-    """(paths, operations) for an OpenAPI document."""
-    if path.suffix in (".yml", ".yaml"):
-        import yaml
-        spec = yaml.safe_load(path.read_text())
-    else:
-        spec = json.loads(path.read_text())
+    """(paths, operations) for an OpenAPI document.
+
+    JSON only, deliberately. `specs/skilljar-v1-openapi.json` exists precisely so tooling
+    does not need a YAML parser, and requiring PyYAML here would add a dependency to a
+    script whose whole job is to run anywhere with nothing installed. The YAML remains the
+    as-fetched artifact; `check_upstream.py` is what notices if it drifts from upstream.
+    """
+    spec = json.loads(path.read_text())
     verbs = ("get", "post", "put", "patch", "delete")
     ops = sum(1 for item in spec["paths"].values() for m in item if m in verbs)
     return len(spec["paths"]), ops
@@ -39,10 +41,13 @@ def _v2_scopes_used() -> int:
     flat: set[str] = set()
     for item in spec["paths"].values():
         for method, op in item.items():
-            if method not in ("get", "post", "put", "patch", "delete"): continue
-            if not isinstance(op, dict): continue
+            if method not in ("get", "post", "put", "patch", "delete"):
+                continue
+            if not isinstance(op, dict):
+                continue
             raw = op.get("x-required-scope")
-            if not raw: continue
+            if not raw:
+                continue
             for entry in ([raw] if isinstance(raw, str) else raw):
                 flat.update(s.strip() for s in entry.split(",") if s.strip())
     return len(flat)
@@ -62,7 +67,8 @@ def _roadmap_parity_tool_sum() -> int:
     text = (ROOT / "ROADMAP.md").read_text()
     total = 0
     for m in re.finditer(r"^### Block (\d+) — .*?· (\d+) tools", text, re.M):
-        if 2 <= int(m.group(1)) <= 9: total += int(m.group(2))
+        if 2 <= int(m.group(1)) <= 9:
+            total += int(m.group(2))
     return total
 
 
@@ -73,7 +79,7 @@ def build_checks() -> list[tuple[str, int, list[tuple[str, str]]]]:
     stops matching, that is a FAILURE, not a silent pass - a claim we can no longer
     locate is a claim we can no longer verify.
     """
-    v1_paths, v1_ops = _spec_counts(ROOT / "specs" / "skilljar-v1-openapi.yml")
+    v1_paths, v1_ops = _spec_counts(ROOT / "specs" / "skilljar-v1-openapi.json")
     v2_paths, v2_ops = _spec_counts(ROOT / "specs" / "skilljar-v2-openapi.json")
     scopes_advertised = len(json.loads(
         (ROOT / "analysis" / "live-authz-metadata.json").read_text())["scopes_supported"])
@@ -151,7 +157,8 @@ def main() -> int:
     print(f"checked {checked} claims across the documentation")
     if failures:
         print("\nFAILED:", file=sys.stderr)
-        for f in failures: print(f"  - {f}", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
         return 1
     print("all claims agree with the artifacts")
     return 0

@@ -11,10 +11,11 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: design complete, not yet implemented.**
-> This repository currently holds the design spec, upstream API snapshots, and surface analysis.
-> There is no package to install yet. The plan is in
-> [`docs/superpowers/specs/2026-08-26-csa-skilljar-design.md`](docs/superpowers/specs/2026-08-26-csa-skilljar-design.md).
+> **Status: Block 1 implemented, not yet released.**
+> The server runs, authenticates and answers over stdio, with four tools: `check_access`,
+> `describe_capabilities`, `report_a_problem` and `list_courses`. It is **not on PyPI yet** —
+> v0.0.1 ships once it has been verified against a live Skilljar organization.
+> The 73-tool parity surface arrives over Blocks 2–9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 
@@ -141,13 +142,21 @@ composite writes. Reasons are in the spec.
 
 ## Development
 
-Nothing to build yet. When there is:
+**Always use a virtual environment.** The interpreter is pinned by `.python-version`.
 
 ```bash
-pip install -e ".[dev]"
-pytest -q                       # offline suite: no network, no credentials
-ruff check src tests && mypy
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+
+.venv/bin/python -m pytest -q          # offline suite: no network, no credentials
+.venv/bin/ruff check src tests scripts
+.venv/bin/mypy
+
+./scripts/verify.sh                    # or just this: everything CI checks
 ```
+
+Commands are written `.venv/bin/...` deliberately — a bare `pytest` resolves to whatever
+is on `PATH`, which is how a suite passes against the wrong dependency versions.
 
 Contributions follow [CSA's public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
 branch and PR for every change, required CI gates, no direct pushes to `main`.

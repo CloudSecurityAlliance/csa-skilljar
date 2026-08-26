@@ -128,6 +128,47 @@ Practical rules:
   are clearly investing in v2. This project complements it. Describe differences factually and
   without disparagement — this repo is public and CSA's name is on it.
 
+## Zero defect — surface failures, never suppress them
+
+Follows [ZERO-DEFECT.md](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/ZERO-DEFECT.md).
+The principles that have already caught real defects here:
+
+- **ZD-1, handle every error explicitly.** No swallowed exceptions. `decode_claims`
+  returned `{}` on any failure, making "this token has no claims" and "this is not a
+  JWT" indistinguishable. It now reports through `logging` and says which it was.
+- **ZD-2, generate errors aggressively.** A `200` whose body is not JSON, or is JSON
+  that is not an object, is an error — not something to hand downstream. An unknown API
+  path is a loud error, because `scopes_for()` returning `()` legitimately means
+  "declared, needs no scope", and conflating that with a typo silently disables the
+  scope pre-check: a control failing open and saying nothing.
+- **ZD-17, silence is not health.** Ask of every branch that concludes there is no work:
+  *if this fired forever, would anyone notice?* One lived in `V2Credentials._expired` —
+  with no usable `exp` it returned `True` permanently, so every call re-granted a token.
+  Correct code, false premise, no error anywhere. Same shape as the `rotate-nginx-logs`
+  case in ZERO-DEFECT §17.
+- **ZD-12, tests produce two signals.** Did it pass, *and* did it log anything alarming?
+  `tests/conftest.py` fails any test that emits an `ERROR` record. Scoped to ERROR
+  deliberately: several tests assert on WARNING output, and a check that fires on correct
+  behaviour gets muted — which ZD-2 says is worse than no check.
+
+**Never suppress command output.** Do not write `cmd >/dev/null && echo ok` — a
+suppressed failure is indistinguishable from a pass, and it landed two red commits during
+Block 1. Run **`./scripts/verify.sh`** before every commit: tests, lint, types and doc
+claims, no suppression, non-zero on any failure.
+
+**Every guard gets mutation-tested once.** Break the thing it protects, watch it fail,
+restore. The `conftest.py` ERROR guard passed its own probe only on the second attempt —
+the first used `caplog.records`, which pytest clears between phases, so in teardown it was
+always empty and the check could never fire.
+
+**One deviation from ZERO-DEFECT, stated rather than ignored:** ZD-13 requires secrets in
+a dedicated secrets manager, not environment variables. This is a local stdio server
+launched by an MCP client, where environment variables in the client's own config are the
+only delivery mechanism available. The compensating controls are that nothing is written
+to disk (`client_credentials` needs no token cache), credentials never appear in a
+message, log or `__repr__`, and scopes are narrowed per install. Revisit if this ever runs
+as a hosted service.
+
 ## Operating rules — how to work here
 
 These are not aspirations. Each one is here because it was violated during the design
@@ -182,14 +223,42 @@ issuance or scoping; destructive local operations; anything the spec lists as a 
 
 ## Commands
 
-```bash
-# Nothing to build yet. Planned:
-pip install -e ".[dev]"
-pytest -q                                    # offline: no network, no credentials
-ruff check src tests && mypy
-CSA_SKILLJAR_INTEGRATION=1 pytest tests/integration/   # real Skilljar, opt-in
+**Always work inside a virtual environment.** Never `pip install` into a system or user
+Python — for development, for CI, or for a user install. This is not a preference: the
+machine this was built on had `mcp` **1.27.0** installed globally, which is the pre-2.0 API
+where `mcp.server.fastmcp` still exists. Working outside a venv would have reproduced the
+single most common MCP failure mode while the code looked correct.
 
-# Available now — re-check upstream against the snapshots in specs/:
+```bash
+./scripts/verify.sh                        # everything CI checks, no suppressed output
+
+python3 -m venv .venv                     # .python-version pins the interpreter (3.12)
+.venv/bin/python -m pip install -e ".[dev]"
+
+.venv/bin/python -m pytest -q             # offline: no network, no credentials
+.venv/bin/ruff check src tests scripts
+.venv/bin/mypy
+.venv/bin/python -m pytest -q --cov --cov-report=term-missing   # what CI's test job runs
+
+# Real Skilljar, opt-in:
+CSA_SKILLJAR_INTEGRATION=1 .venv/bin/python -m pytest tests/integration/
+
+# Documentation claims vs artifacts (also a required CI check):
+.venv/bin/python scripts/check_docs.py
+```
+
+Do not run a bare `pytest` / `ruff` / `mypy` — they resolve to whatever is on `PATH`,
+which is how a suite passes against the wrong dependency versions. Every command in this
+file and in `README.md` is written `.venv/bin/...` for that reason.
+
+**CI** pins the interpreter per matrix entry via `actions/setup-python`, which is the
+same isolation by another mechanism. **Users** should install with `pipx install
+csa-skilljar` (or `uv tool install`), which creates the venv for them — a plain
+`pip install` into a system Python is the one path we do not support.
+
+## Re-check upstream against the snapshots in `specs/`
+
+```bash
 curl -s https://api.skilljar.com/v2/openapi.json | jq '.paths | keys | length'
 curl -s https://api.skilljar.com/.well-known/oauth-authorization-server | jq -r '.scopes_supported[]'
 ```
