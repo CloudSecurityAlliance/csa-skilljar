@@ -1,0 +1,56 @@
+{
+  "_captured": "2026-08-26",
+  "_source": "live tools/list against https://mcp.skilljar.com/mcp",
+  "_note": "Delete semantics here are irreplaceable - soft vs hard, what cascades, what survives. Reproduce exactly.",
+  "get_tools": {
+    "get_course":              {"scope": "courses:read",            "params": {"id": "string, required"}},
+    "get_lesson":              {"scope": "lessons:read",            "params": {"id": "string, required"}},
+    "get_quiz":                {"scope": "quizzes:read",            "params": {"id": "string, required"}},
+    "get_question":            {"scope": "question-banks:read OR quizzes:read", "params": {"id": "string, required"}, "desc": "Answers nested inline."},
+    "get_question_bank":       {"scope": "question-banks:read",     "params": {"id": "string, required"}},
+    "get_student":             {"scope": "students:read",           "params": {"id": "string, required"}},
+    "get_group":               {"scope": "student-groups:read",     "params": {"id": "string, required"}},
+    "get_certificate":         {"scope": "certificates:read",       "params": {"id": "string, required"}},
+    "get_domain":              {"scope": "domains:read",            "params": {"id": "string, required"}},
+    "get_published_course":    {"scope": "published-courses:read",  "params": {"id": "string, required"}},
+    "get_web_package":         {"scope": "web-packages:read",       "params": {"id": "string, required"}},
+    "get_enrollment":          {"scope": "enrollments:read",        "params": {"id": "string, required", "include": "string|null"}},
+    "get_signup_field_value":  {"scope": "signup-fields:read",      "params": {"signup_field_value_id": "string, required"},
+                                "_INCONSISTENCY": "Parameter is `signup_field_value_id`, NOT `id`. Every other get_* uses `id`. Reproduce exactly for parity (ADR-006)."},
+    "get_course_analytics":    {"scope": "analytics:read",          "params": {"course_id": "string, required", "filter.domains": "string|null"}}
+  },
+  "delete_tools": {
+    "_batch_envelope": {
+      "shape": "{\"data\": [{\"type\": \"<resource>\", \"id\": \"<obfuscated id>\"}]}",
+      "cap": "BATCH_MAX_ITEMS (value not disclosed in the tool schema)",
+      "responses": "200 all deleted | 207 any failed | 400 empty envelope or over cap",
+      "duplicates": "first-wins on id; later occurrences pre-marked duplicate_in_batch pointing at /data/{i}/id, without reaching the service",
+      "per_item_failure": "already-deleted / wrong-org / malformed ids surface as per-item not_found, never a document-level error"
+    },
+    "delete_quizzes": {
+      "scope": "quizzes:write", "style": "batch",
+      "cascade": "SOFT-deletes the quiz's OWN questions and their answers; HARD-removes its question-bank ASSIGNMENTS; then SOFT-deletes the quiz. Shared question banks and their bank-owned questions/answers are UNTOUCHED - a quiz only owns questions where question.quiz == quiz."
+    },
+    "delete_questions": {
+      "scope": "question-banks:write OR quizzes:write", "style": "batch",
+      "cascade": "SOFT-deletes the question's answers, then the question. Parent quiz / bank and its other questions untouched. A question is homed under a quiz XOR a bank, which is why the scope is OR."
+    },
+    "delete_question_banks": {
+      "scope": "question-banks:write", "style": "batch",
+      "cascade": "SOFT-deletes the bank's questions and their answers; HARD-removes every QuestionBankAssignment referencing the bank (unbinding any quizzes that used it); then SOFT-deletes the bank. Quizzes that referenced it stay ALIVE - only their assignment rows go."
+    },
+    "delete_groups": {
+      "scope": "student-groups:write", "style": "batch",
+      "cascade": "HARD delete - StudentGroup is NOT a SoftDeletionModel. All FK-back relations cascade at the database: memberships, visibility overrides, other link tables. Per-row .delete() fires pre_delete/post_delete, preserving the Salesforce sync receiver and workflow/analytics cleanup hooks."
+    },
+    "delete_web_package": {
+      "scope": "web-packages:write", "style": "by-id", "params": {"id": "string, required"},
+      "cascade": "Soft-delete. Returns 409 when a lesson in a LIVE course still references the package - deleting it would leave that lesson with no content. Otherwise 204.",
+      "_why_not_batch": "The conflict outcome has no natural home in a per-row batch result; batch-responses.md warns against letting a ConflictError fall through the document-level path mid-batch. Matches DELETE /v2/students/{id}."
+    },
+    "delete_published_course": {
+      "scope": "published-courses:write", "style": "by-id", "params": {"id": "string, required"},
+      "cascade": "A soft unpublish, matching v1 DELETE behaviour."
+    }
+  }
+}
