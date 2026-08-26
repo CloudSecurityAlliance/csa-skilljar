@@ -11,8 +11,8 @@ watching someone else's API rather than running our own.
   availability (`401` vs `404`), and the official MCP server's tool registry when credentials
   allow. Opens a GitHub issue on drift.
 - **Tier** — `simple-scheduled`
-- **Status** — `planned`
-- **Code** — `scripts/check_upstream.py` (not yet written)
+- **Status** — `production`
+- **Code** — `scripts/check_upstream.py`; workflow `.github/workflows/upstream.yml`
 - **Runtime** — Python, GitHub Actions
 - **Schedule** — weekly, plus manual dispatch
 - **Inputs** — `specs/skilljar-v1-openapi.yml`, `specs/skilljar-v2-openapi.json`, a stored registry
@@ -28,7 +28,11 @@ watching someone else's API rather than running our own.
 - **Cadence** — weekly is deliberate. Skilljar ships on a release cadence measured in months; a
   daily check would be noise, and a quarterly one would let a whole phase get built against a gap
   that had already closed.
-- **Health check** — the job runs and reports; a run that finds nothing must say so explicitly.
+- **Health check** — three exit codes, kept distinct on purpose: `0` no drift, `1` Skilljar
+  moved (files an issue), `2` could not reach Skilljar (an outage, files nothing). The first
+  scheduled run failed on one transient SSL timeout among 34 probes and reported identically
+  to real drift; an outage that looks like a finding trains people to ignore findings.
+  A run that finds nothing must say so explicitly.
   Per ZERO-DEFECT, silence is not health — "no drift" and "the check ran" are two separate facts
   and both get reported.
 - **Runbook** — on an opened issue: confirm the change by hand, then decide whether it triggers a
@@ -36,7 +40,7 @@ watching someone else's API rather than running our own.
   refresh. Update `specs/` in the same PR as any code change so the baseline and the code move
   together.
 - **Owner** — Kurt Seifried
-- **Last touched** — 2026-08-26
+- **Last touched** — 2026-08-26 (shipped)
 - **Next review** — 2026-11-26
 - **Notes** — Degrades gracefully without credentials: the spec and scope-catalogue checks need no
   authentication, the registry check does. A skipped check is reported as skipped, never as passed.

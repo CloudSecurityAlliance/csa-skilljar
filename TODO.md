@@ -4,34 +4,41 @@ Index of **all** open work on this project. One line per item; detail lives in G
 design spec, or the logs this file points at. Per the CINO todo-index convention, sweeping this
 file plus open GitHub Issues finds everything.
 
-**Status: design complete, nothing implemented.**
+**Status: Block 1 shipped to `main`. Not yet released — v0.0.1 needs `WAITING-FOR-002`.**
 
 ## Blocked / waiting
 
-- Obtain a v2 OAuth client (id + secret) scoped for development — blocks all of Phase 1 → `WAITING-FOR-002`
-- v2 endpoints for webhooks, paths, assets, commerce — reserved scopes, not built → `WAITING-FOR-001`
+- Obtain a v2 OAuth client (id + secret) scoped for development → `WAITING-FOR-002`.
+  **Blocks only the v0.0.1 release**, not development — Block 1 was built entirely
+  offline against `FakeBackend`, and Block 2 can be too.
+- v2 endpoints for webhooks, paths, assets, commerce — reserved scopes, not built →
+  `WAITING-FOR-001`. Watched by `scripts/check_upstream.py`.
 
-## Next — Block 1: a working server (v0.0.1)
+## Next
 
-- ~~Write the Block 1 implementation plan~~ — done: `docs/superpowers/plans/2026-08-26-block-1-working-server.md`
-- `pyproject.toml`, `src/` layout, typed marker, single-sourced version
-- `Backend` protocol + `V2Backend` + `FakeBackend` + conformance test
-- `PolicyBackend` with fail-closed `_GATES`, and the hand-written capability expectation matrix
-- Auth: `client_credentials` grant, the seven-state error taxonomy, local scope pre-check
-- Two-tier startup checks (config presence synchronous → validity in background)
-- Tool: `check_access` — which credentials work and what each unlocks
-- Tool: `describe_capabilities` — always registered; what exists but is not enabled
-- Tool: `report_a_problem` — version, OS, Python, active policy; no ids, no credentials
-- Tool: `list_courses` — one real read, so "it works" means something
-- `--version` on stderr, reachable with no MCP client in the loop
-- Test asserting nothing reachable writes to stdout
-- CI: lint, type-check, test matrix, coverage floor, security scan — all required checks
-- Branch protection enforced for admins, once the checks above exist
-- ~~`SECURITY.md`~~ — done. `RELEASING.md` still pending (needed for the v0.0.1 release)
-- `scripts/check_upstream.py` + weekly CI job
-- Model-in-the-loop cold-use test for tool descriptions (contract documented in Task 13; harness lands Block 2)
-- Replace `check_access`'s reach through `client._backend._backend._creds` with a
-  `SkilljarClient.credential_status()` accessor before more callers depend on the shape
+- Block 2 — courses & lessons (8 tools) → `ROADMAP.md`
+- Model-in-the-loop cold-use test for tool descriptions (contract documented in
+  `tests/test_descriptions.py`; harness lands with Block 2)
+
+## Done (Block 1, shipped to main 2026-08-26)
+
+Recorded because a stale index is worse than none — these were open lines until the
+work landed, and leaving them would make the sweep lie.
+
+- ~~Block 1 implementation plan~~ → `docs/superpowers/plans/2026-08-26-block-1-working-server.md`
+- ~~Packaging, `src/` layout, typed marker, single-sourced version~~
+- ~~`Backend` protocol + `V2Backend` + `FakeBackend` + conformance test~~ (covers both impls)
+- ~~`PolicyBackend` with fail-closed `_GATES` + hand-written capability matrix~~
+- ~~Auth: `client_credentials`, seven-state error taxonomy, local scope pre-check~~
+- ~~Two-tier startup checks~~
+- ~~Tools: `check_access`, `describe_capabilities`, `report_a_problem`, `list_courses`~~
+- ~~`--version` on stderr with no MCP client in the loop~~
+- ~~Test asserting nothing reachable writes to stdout~~
+- ~~CI: lint, type-check, test matrix, coverage floor, security scan~~
+- ~~Branch protection enforced for admins~~
+- ~~`SECURITY.md`~~ · ~~Dependabot (pip + github-actions)~~
+- ~~`scripts/check_upstream.py` + weekly CI job~~
+- ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)
 
