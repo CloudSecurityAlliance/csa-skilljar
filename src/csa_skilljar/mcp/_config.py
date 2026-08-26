@@ -51,18 +51,44 @@ def settings_from_env(env: Mapping[str, str]) -> Settings:
     )
 
 
-def startup_warnings(settings: Settings) -> list[str]:
+@dataclass(frozen=True)
+class CredentialPresence:
+    """Which credentials are configured - and nothing else.
+
+    Exists so the startup-warning path never receives an object that holds a secret.
+    CodeQL flagged `py/clear-text-logging-sensitive-data` on the original design, where
+    `Settings` flowed into `startup_warnings()` and its output was printed. No value was
+    ever printed - the messages are built from constants - but nothing *structurally*
+    prevented a later edit from interpolating one. Narrowing the input makes "a startup
+    warning cannot contain a credential" a property of the types rather than of careful
+    coding, which is a better answer than an inline suppression.
+    """
+
+    v2: bool
+    v1: bool
+
+
+def credential_presence(settings: Settings) -> CredentialPresence:
+    return CredentialPresence(
+        v2=bool(settings.v2_client_id and settings.v2_client_secret),
+        v1=bool(settings.v1_api_key),
+    )
+
+
+def startup_warnings(presence: CredentialPresence) -> list[str]:
     """Tier 1: synchronous, zero network. Written to stderr by the CLI.
+
+    Takes only booleans by design - see `CredentialPresence`.
 
     Tier 2 - actually validating the credential - happens in the background after
     `initialize` returns, because a blocking network call here turns a slow Skilljar
     into an opaque "server failed to start".
     """
     out: list[str] = []
-    if not (settings.v2_client_id and settings.v2_client_secret):
+    if not presence.v2:
         out.append(f"{V2_ID_VAR} / {V2_SECRET_VAR} not set - v2 tools will report setup "
                    f"steps. Call `check_access` for details.")
-    if not settings.v1_api_key:
+    if not presence.v1:
         out.append(f"{V1_KEY_VAR} not set - v1-only capabilities are unavailable (none are "
                    f"implemented yet). Call `check_access` for details.")
     return out

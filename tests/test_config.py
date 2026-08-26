@@ -3,7 +3,12 @@ import threading
 import pytest
 
 from csa_skilljar import exceptions as exc
-from csa_skilljar.mcp._config import ClientProvider, settings_from_env, startup_warnings
+from csa_skilljar.mcp._config import (
+    ClientProvider,
+    credential_presence,
+    settings_from_env,
+    startup_warnings,
+)
 
 CONFIGURED = {"CSA_SKILLJAR_V2_CLIENT_ID": "cid", "CSA_SKILLJAR_V2_CLIENT_SECRET": "sk-live-DEADBEEF"}
 
@@ -26,14 +31,14 @@ def test_settings_repr_never_leaks_a_credential():
 
 
 def test_startup_warnings_name_the_missing_credential_and_what_still_works():
-    joined = " ".join(startup_warnings(settings_from_env({})))
+    joined = " ".join(startup_warnings(credential_presence(settings_from_env({}))))
     assert "CSA_SKILLJAR_V2_CLIENT_ID" in joined
     assert "check_access" in joined, "a warning must point at the tool that explains it"
 
 
 def test_startup_warnings_are_silent_about_v2_when_it_is_configured():
     s = settings_from_env(CONFIGURED)
-    assert not any("V2_CLIENT_ID" in w for w in startup_warnings(s))
+    assert not any("V2_CLIENT_ID" in w for w in startup_warnings(credential_presence(s)))
 
 
 def test_startup_warnings_make_no_network_call(monkeypatch):
@@ -44,7 +49,7 @@ def test_startup_warnings_make_no_network_call(monkeypatch):
 
     monkeypatch.setattr(httpx.Client, "post", boom)
     monkeypatch.setattr(httpx.Client, "get", boom)
-    startup_warnings(settings_from_env(CONFIGURED))
+    startup_warnings(credential_presence(settings_from_env(CONFIGURED)))
 
 
 def test_provider_without_credentials_raises_only_when_called():
@@ -90,3 +95,18 @@ def test_client_exposes_the_policy_for_inspection():
     p = ClientProvider(settings_from_env({**CONFIGURED, "CSA_SKILLJAR_PROFILE": "authoring"}))
     assert p().policy is not None
     assert p().policy.capabilities == frozenset(PROFILES["authoring"])
+
+
+def test_startup_warnings_cannot_even_see_a_credential():
+    """Structural, not behavioural: the warning path takes two booleans, so there is no
+    credential in scope to leak. CodeQL flagged the previous design, which passed a
+    secret-bearing Settings into a function whose output is printed."""
+    import dataclasses
+
+    from csa_skilljar.mcp._config import CredentialPresence
+
+    fields = {f.name for f in dataclasses.fields(CredentialPresence)}
+    assert fields == {"v2", "v1"}
+    presence = credential_presence(settings_from_env(CONFIGURED))
+    assert "sk-live-DEADBEEF" not in repr(presence)
+    assert all("sk-live-DEADBEEF" not in w for w in startup_warnings(presence))

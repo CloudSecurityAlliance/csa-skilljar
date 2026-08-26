@@ -14,7 +14,13 @@ import sys
 from collections.abc import Mapping, Sequence
 
 from .. import __version__
-from ._config import ClientProvider, Settings, settings_from_env, startup_warnings
+from ._config import (
+    ClientProvider,
+    Settings,
+    credential_presence,
+    settings_from_env,
+    startup_warnings,
+)
 from .server import create_server
 
 USAGE = """usage: csa-skilljar-mcp [--version]
@@ -67,7 +73,9 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     settings = settings_from_env(env)
     # stderr, never stdout. Most MCP clients surface a server's stderr in their logs,
     # which is the only place to say this before the first tool call.
-    for line in startup_warnings(settings):
+    # credential_presence() narrows Settings to two booleans, so no object holding
+    # a credential ever reaches this print. See CredentialPresence.
+    for line in startup_warnings(credential_presence(settings)):
         print(f"csa-skilljar: {line}", file=sys.stderr)
 
     # Credentials are never resolved here: a missing one must not stop the server
