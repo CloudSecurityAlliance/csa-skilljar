@@ -11,10 +11,11 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: design complete, not yet implemented.**
-> This repository currently holds the design spec, upstream API snapshots, and surface analysis.
-> There is no package to install yet. The plan is in
-> [`docs/superpowers/specs/2026-08-26-csa-skilljar-design.md`](docs/superpowers/specs/2026-08-26-csa-skilljar-design.md).
+> **Status: Block 1 implemented, not yet released.**
+> The server runs, authenticates and answers over stdio, with four tools: `check_access`,
+> `describe_capabilities`, `report_a_problem` and `list_courses`. It is **not on PyPI yet** —
+> v0.0.1 ships once it has been verified against a live Skilljar organization.
+> The 73-tool parity surface arrives over Blocks 2–9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 

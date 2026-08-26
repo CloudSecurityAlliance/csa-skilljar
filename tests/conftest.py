@@ -29,3 +29,15 @@ def no_unexpected_error_logs(caplog):
         "test passed but logged ERROR-level records:\n  "
         + "\n  ".join(f"{r.name}: {r.getMessage()}" for r in errors)
     )
+
+
+@pytest.fixture
+def anyio_backend():
+    """asyncio only. The server is stdio and the SDK runs on asyncio in practice;
+    running the protocol tests under trio as well would test the SDK, not us."""
+    return "asyncio"
+
+
+def pytest_addoption(parser):
+    parser.addoption("--cold-use", action="store_true", default=False,
+                     help="run the model-in-the-loop description test")
