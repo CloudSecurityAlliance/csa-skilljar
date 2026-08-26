@@ -2092,7 +2092,280 @@ git commit -m "feat: console script with stderr-only output and tool-name guards
 
 ---
 
-### Task 13: Ship v0.0.1
+### Task 13: Protocol-level tests and the description lint
+
+This task exists because of two gaps found in review, and it is the difference between
+"the offline suite is green" and "this server actually works".
+
+**Files:**
+- Create: `tests/test_protocol.py`, `tests/test_descriptions.py`
+
+**Interfaces:**
+- Consumes: `create_server`, `FakeBackend`, `SkilljarClient`.
+- Produces: nothing importable. These are guards.
+
+- [ ] **Step 1: Confirm the SDK's call path before writing against it**
+
+Do not guess this API. Find the real one:
+
+```bash
+python - <<'EOF'
+import inspect
+from mcp.server import MCPServer
+print([m for m in dir(MCPServer) if "call" in m.lower() or "tool" in m.lower()])
+print(inspect.signature(MCPServer.call_tool))
+EOF
+```
+
+Write down the confirmed signature; the tests below use `await app.call_tool(name, arguments)`.
+If the installed SDK differs, adapt the calls — **not** by falling back to calling the tool
+function directly, which is exactly what these tests exist to avoid.
+
+- [ ] **Step 2: Write the failing protocol test**
+
+```python
+# tests/test_protocol.py
+"""Drive every tool through `call_tool`, not through the library.
+
+Calling the underlying function is shorter and tests almost nothing that matters. The
+bugs that reach users live in the delivery layer: a parameter alias that publishes a
+correct schema and fails every call, a tool shipped with no description, a TypedDict
+that returns null structured content below Python 3.12. Only the protocol path sees them.
+"""
+import pytest
+from csa_skilljar.backend import FakeBackend
+from csa_skilljar.client import SkilljarClient
+from csa_skilljar.mcp._config import settings_from_env
+from csa_skilljar.mcp.server import create_server
+from csa_skilljar.policy import Policy, PolicyBackend
+
+ROWS = [{"type": "courses", "id": "c1",
+         "attributes": {"title": "Zero Trust Foundations", "lesson_count": 4}}]
+
+
+def build(env=None):
+    settings = settings_from_env(env or {})
+    client = SkilljarClient(PolicyBackend(FakeBackend(courses=ROWS), Policy.from_profile("parity")))
+    return create_server(lambda: client, settings=settings), settings
+
+
+@pytest.mark.anyio
+async def test_every_registered_tool_is_callable_through_the_protocol():
+    """Coverage computed from the REGISTRY, not a maintained list - so a tool added in
+    Block 2 shows up here as a hole instead of being quietly absent."""
+    app, _ = build()
+    args = {"check_access": {}, "describe_capabilities": {},
+            "report_a_problem": {"what_happened": "nothing, this is a test"},
+            "list_courses": {}}
+    registered = set(app._tool_manager._tools)          # noqa: SLF001
+    assert registered == set(args), f"registry drifted from the exercise table: {registered ^ set(args)}"
+    for name, kwargs in args.items():
+        result = await app.call_tool(name, kwargs)
+        assert result is not None, f"{name} returned nothing through the protocol"
+
+
+@pytest.mark.anyio
+async def test_structured_content_is_populated_not_null():
+    """A bare dict return is not serializable for structured output, and a TypedDict
+    imported from `typing` rather than `typing_extensions` silently emits no schema
+    below 3.12 - tests pass on 3.12+, the 3.10 user sees null and no error anywhere."""
+    app, _ = build()
+    result = await app.call_tool("list_courses", {})
+    assert result.structured_content is not None, "structured output is null - check the TypedDict import"
+    assert result.structured_content["courses"][0]["title"] == "Zero Trust Foundations"
+
+
+@pytest.mark.anyio
+async def test_arguments_survive_the_protocol_boundary():
+    """The `Field(alias=...)` trap publishes a correct schema and then fails every call,
+    because the SDK dumps the validated model BY ALIAS and calls fn(**kwargs). Passing a
+    real argument through `call_tool` is the only thing that catches it."""
+    app, _ = build()
+    result = await app.call_tool("list_courses", {"filter_title": "zero"})
+    assert len(result.structured_content["courses"]) == 1
+    empty = await app.call_tool("list_courses", {"filter_title": "no-such-course"})
+    assert empty.structured_content["courses"] == []
+
+
+@pytest.mark.anyio
+async def test_a_refusal_reaches_the_caller_as_a_readable_error():
+    settings = settings_from_env({})
+    client = SkilljarClient(PolicyBackend(FakeBackend(courses=ROWS), Policy.from_profile("admin")))
+    app = create_server(lambda: client, settings=settings)
+    result = await app.call_tool("list_courses", {})
+    text = str(result)
+    assert "content.read" in text and "CSA_SKILLJAR_PROFILE" in text, \
+        "a refusal must name the capability and the setting, not just fail"
+```
+
+Add to `pyproject.toml` under `[project.optional-dependencies] dev`: `"anyio>=4"`, and:
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["anyio: async tests"]
+```
+
+plus a `conftest.py` at `tests/conftest.py`:
+
+```python
+import pytest
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+```
+
+- [ ] **Step 3: Run it and watch it fail**
+
+Run: `pytest -q tests/test_protocol.py`
+Expected: FAIL — the tools are not yet reachable through `call_tool`, or `structured_content` is null.
+
+- [ ] **Step 4: Make it pass**
+
+No new production code should be needed if Tasks 9–11 were done correctly. If
+`structured_content` is null, the cause is a `TypedDict` imported from `typing` instead of
+`typing_extensions` — fix the import in `_schemas.py`. If an argument fails to bind, the
+cause is a pydantic alias — remove it; a camelCase wire name must be the literal Python
+parameter name.
+
+- [ ] **Step 5: Write the description lint**
+
+```python
+# tests/test_descriptions.py
+"""Tool descriptions ARE the product (design spec 4.3), so test them like one.
+
+`len(description) > 80` is theatre - it passes for eighty characters of restated tool
+name. These assertions encode what a description must tell a model that has never seen
+this server: what it returns, what it will NOT return, and what each required argument
+is for.
+
+The genuinely conclusive test is a model using the tools cold, which needs a model and
+so is gated below. This tier runs in CI on every commit and catches the failure modes
+that are mechanically detectable.
+"""
+import re
+import pytest
+from csa_skilljar.mcp._config import ClientProvider, settings_from_env
+from csa_skilljar.mcp.server import create_server
+
+
+def tools():
+    s = settings_from_env({})
+    return create_server(ClientProvider(s), settings=s)._tool_manager._tools  # noqa: SLF001
+
+
+# Per-tool contract. A new tool with no entry FAILS - the same fail-closed direction
+# as policy._GATES, for the same reason.
+REQUIREMENTS = {
+    "check_access": {"mentions": ["credential", "no call", "relay"]},
+    "describe_capabilities": {"mentions": ["not enabled", "cannot be changed"]},
+    "report_a_problem": {"mentions": ["what_happened", "no", "credential"]},
+    "list_courses": {"mentions": ["one page", "has_more", "next_cursor", "courses:read", "filter_title"]},
+}
+
+
+def test_every_tool_has_a_declared_description_contract():
+    missing = set(tools()) - set(REQUIREMENTS)
+    assert not missing, f"tools with no description contract: {sorted(missing)} - add one, do not delete this test"
+
+
+@pytest.mark.parametrize("name", sorted(REQUIREMENTS))
+def test_description_says_what_a_cold_reader_needs(name):
+    desc = (tools()[name].description or "").lower()
+    for needle in REQUIREMENTS[name]["mentions"]:
+        assert needle.lower() in desc, f"{name}: description never mentions {needle!r}"
+
+
+@pytest.mark.parametrize("name", sorted(REQUIREMENTS))
+def test_description_is_not_just_the_tool_name_restated(name):
+    desc = (tools()[name].description or "").strip()
+    first = desc.split("\n")[0].lower()
+    words = set(re.findall(r"[a-z_]+", first)) - set(name.split("_"))
+    assert len(words) >= 6, f"{name}: first line restates the tool name and says nothing else"
+
+
+@pytest.mark.parametrize("name", sorted(REQUIREMENTS))
+def test_every_required_parameter_is_explained_in_the_description(name):
+    tool = tools()[name]
+    desc = (tool.description or "").lower()
+    required = tool.input_schema.get("required", [])       # input_schema, NOT inputSchema
+    for param in required:
+        assert param.lower() in desc, f"{name}: required parameter {param!r} is never explained"
+```
+
+- [ ] **Step 6: Run the lint and fix the descriptions it rejects**
+
+Run: `pytest -q tests/test_descriptions.py`
+Expected: initially some FAIL. **Fix the descriptions, not the test.** Every assertion
+corresponds to something a model needs and cannot infer.
+
+- [ ] **Step 7: Add the opt-in cold-use test**
+
+```python
+# tests/test_descriptions.py  (append)
+
+@pytest.mark.skipif("not config.getoption('--cold-use', default=False)",
+                    reason="needs a model; run with --cold-use")
+def test_a_model_can_use_these_tools_from_a_standing_start():
+    """The conclusive version, and the reason the lint above exists as a cheap proxy.
+
+    Give a model ONLY the tool list - no source, no README, no examples - and a goal.
+    It must pick the right tool with the right arguments. This is what
+    DEMO-AS-END-TO-END-TEST means by testing whether the descriptions are good enough
+    to use cold; it is the actual product being measured.
+
+    Deliberately NOT in CI: it costs a model call and is non-deterministic. Run it
+    before any release that changes a description.
+    """
+    pytest.skip("harness for this lands with Block 2; the contract is documented here")
+```
+
+Register the flag in `tests/conftest.py`:
+
+```python
+def pytest_addoption(parser):
+    parser.addoption("--cold-use", action="store_true", default=False,
+                     help="run the model-in-the-loop description test")
+```
+
+- [ ] **Step 8: Mutation-test both guards**
+
+A check that cannot fail is theatre. Prove each one bites:
+
+```bash
+# 1. Break a description, expect the lint to fail
+python - <<'EOF'
+import pathlib
+p = pathlib.Path("src/csa_skilljar/mcp/_tools/courses.py"); s = p.read_text()
+p.write_text(s.replace('"""List the organization', '"""Lists courses.\n\n        OLD DOCSTRING FOLLOWS.\n\n        List the organization', 1))
+EOF
+pytest -q tests/test_descriptions.py   # expect FAIL
+git checkout src/csa_skilljar/mcp/_tools/courses.py
+
+# 2. Break structured output, expect the protocol test to fail
+sed -i.bak 's/from typing_extensions import/from typing import/' src/csa_skilljar/mcp/_schemas.py
+pytest -q tests/test_protocol.py       # expect FAIL on Python 3.10/3.11
+mv src/csa_skilljar/mcp/_schemas.py.bak src/csa_skilljar/mcp/_schemas.py
+```
+
+Record both outcomes in the commit message. If either mutation did **not** fail the
+suite, the guard is decorative and must be fixed before moving on.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add tests/test_protocol.py tests/test_descriptions.py tests/conftest.py pyproject.toml
+git commit -m "test: drive every tool through call_tool, and lint descriptions as product
+
+Mutation-tested both: a degraded description fails the lint, and a TypedDict
+imported from typing rather than typing_extensions fails the protocol test
+below 3.12."
+```
+
+---
+
+### Task 14: Ship v0.0.1
 
 **Files:**
 - Create: `SECURITY.md`, `RELEASING.md`, `.github/workflows/release.yml`
@@ -2179,13 +2452,26 @@ JSON
 
 - [ ] **Step 6: Verify against real Skilljar before tagging**
 
-With `CSA_SKILLJAR_V2_CLIENT_ID` / `_SECRET` set, connect the server to Claude Code and run:
-1. `check_access` → v2 configured **and working**, granted scopes listed, expiry reported
-2. `describe_capabilities` → `content.read` enabled, `people.destructive` in `available_but_disabled`
-3. `list_courses` → **real CSA courses**
-4. `report_a_problem` → a report with the version and no credential values
+Task 13 already proves every tool works through the MCP protocol, so this step is about
+the **one thing a fake cannot tell you**: whether the real API behaves as the spec says.
 
-This is the block's definition of done. A green offline suite is not it — the whole point of `list_courses` is that "it works" means something.
+Automated — the gated integration suite, which is the actual gate:
+
+```bash
+CSA_SKILLJAR_INTEGRATION=1 CSA_SKILLJAR_V2_CLIENT_ID=... CSA_SKILLJAR_V2_CLIENT_SECRET=... \
+  pytest -q tests/integration/
+```
+
+`tests/integration/test_live_v2.py` must assert: a token is granted; `list_courses`
+returns at least one real course; `check_access` reports `working: true` with a non-empty
+scope list; and a deliberately under-scoped request raises `ScopeError` **before** any
+HTTP call. That last one is the fake/real blind spot — a fake is always more permissive
+than reality, and a soft-deleted-comment-shaped bug survived 660 green tests in
+`csa-google-workspace` for exactly this reason.
+
+Manual — **confirmation, not the gate.** Connect the server to Claude Code once and call
+the four tools, to check that the descriptions read well in a real session. If this is
+inconvenient, ship anyway: the integration suite is what decides.
 
 - [ ] **Step 7: Release**
 
@@ -2211,11 +2497,11 @@ Expected: `0.0.1`. Confirm on PyPI that the published files carry build provenan
 
 ## Self-Review
 
-**Spec coverage.** §3 architecture → Tasks 3, 6, 7, 8. §4.1 naming → Task 12 guard. §4.2 additive compatibility → Task 11 (`page_cursor`/`page_size` on `list_courses`). §4.3 descriptions → every tool docstring, guarded by `test_every_tool_has_a_description`. §5.1 two credentials → Task 8. §5.2 two-tier startup → Task 8 (`startup_warnings`, no-network test) + Task 12 (stderr). §5.3 error taxonomy → Tasks 2, 4, 7, 9 (states 1, 2, 4, 5, 6, 7 covered; **state 3, a v1 `403`, is not reachable until Block 11** and is deliberately deferred). §5.4 scope pre-check → Tasks 5, 7. §6 gating → Task 6, both layers. §7 error model → Task 9. §8.1 three tiers → unit only this block; integration lands in Block 2. §8.4 hand-written matrix → Task 6.
+**Spec coverage.** §3 architecture → Tasks 3, 6, 7, 8. §4.1 naming → Task 12 guard. §4.2 additive compatibility → Task 11 (`page_cursor`/`page_size` on `list_courses`). §4.3 descriptions → every tool docstring, guarded by `test_every_tool_has_a_description`. §5.1 two credentials → Task 8. §5.2 two-tier startup → Task 8 (`startup_warnings`, no-network test) + Task 12 (stderr). §5.3 error taxonomy → Tasks 2, 4, 7, 9 (states 1, 2, 4, 5, 6, 7 covered; **state 3, a v1 `403`, is not reachable until Block 11** and is deliberately deferred). §5.4 scope pre-check → Tasks 5, 7. §6 gating → Task 6, both layers. §7 error model → Task 9. §8.1 three tiers → unit (Tasks 1-12), protocol (Task 13), integration (Task 14 step 6, gated). §8.3 demo-as-end-to-end → **partially closed in Task 13**: coverage is computed from the tool registry and every tool is driven through `call_tool`. The model-in-the-loop half is documented as a contract and lands with Block 2. §8.4 hand-written matrix → Task 6.
 
-**Deferred from the spec, deliberately:** `scripts/check_upstream.py` (§9) is in `TODO.md` and can land any time in Blocks 1–2; it blocks nothing here. The demonstration-as-test (§8.3) is roadmapped after Block 5 — four tools is not a tour worth taking.
+**Deferred from the spec, deliberately:** `scripts/check_upstream.py` (§9) is in `TODO.md` and can land any time in Blocks 1–2; it blocks nothing here. The *narrated* demonstration is still roadmapped after Block 5 — four tools is not a tour worth taking — but its two load-bearing properties, registry-computed coverage and protocol-level execution, arrive in Task 13 rather than waiting five blocks.
 
-**Placeholders:** none. Every code step carries the actual code; Task 13 steps 1–2 specify document *contents* by required section rather than prose, which is the right granularity for a threat model that must be written, not templated.
+**Placeholders:** none. Every code step carries the actual code; Task 14 steps 1–2 specify document *contents* by required section rather than prose, which is the right granularity for a threat model that must be written, not templated.
 
 **Type consistency:** `Envelope = dict[str, Any]` defined in Task 3 and used in Task 7. `Backend.list_courses` keyword-only signature is identical across Protocol, `FakeBackend` (Task 3) and `V2Backend` (Task 7) — enforced by `test_fake_satisfies_the_protocol_signature_for_signature`. `ClientProvider` is constructed in Task 8 and consumed in Tasks 9–11. `_GATES` keys (Task 6) match `Backend` method names (Task 3), enforced by `test_every_backend_method_has_a_declared_gate`.
 

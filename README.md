@@ -135,7 +135,7 @@ composite writes. Reasons are in the spec.
 | [SECURITY-RESOURCES.md](SECURITY-RESOURCES.md) | Exposure surface, prompt-injection risk, credential custody |
 | [DATA-RESOURCES.md](DATA-RESOURCES.md) | What data this handles, and what it deliberately never stores |
 | [WAITING-FOR.md](WAITING-FOR.md) | External conditions we are waiting on, each with an observable trigger |
-| [FRICTION.md](FRICTION.md) | Work that is harder than it should be |
+| [FRICTION.md](FRICTION.md) | Work that is harder than it should be — including how this project works with AI |
 | [RACI.md](RACI.md) | Who decides what |
 | [CLAUDE.md](CLAUDE.md) | Behavioural contract for AI agents working here |
 
