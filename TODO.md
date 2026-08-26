@@ -16,7 +16,8 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
-- Block 2 — courses & lessons (8 tools) → `ROADMAP.md`
+- Block 2 — courses & lessons (8 tools) → plan written:
+  `docs/superpowers/plans/2026-08-26-block-2-courses-and-lessons.md`
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
