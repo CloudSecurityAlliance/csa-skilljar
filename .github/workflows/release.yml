@@ -1,0 +1,46 @@
+name: release
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi          # protected environment with a required reviewer
+    permissions:
+      id-token: write          # OIDC, so no long-lived API token exists to leak
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]" build twine pip-audit bandit
+      - run: pytest -q --cov
+      - run: pip-audit
+      - run: bandit -r src
+      - name: Tag must equal the packaged version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(python -c "import csa_skilljar; print(csa_skilljar.__version__)")
+          echo "tag=$TAG packaged=$PKG"
+          [ "$TAG" = "$PKG" ] || { echo "::error::tag $TAG != version $PKG"; exit 1; }
+      - run: python -m build
+      - run: twine check dist/*
+      - name: Guard the artifact contents
+        run: |
+          python - <<'PY'
+          import glob, sys, tarfile, zipfile
+          BAD = (".env", "token", "secret", "credential", "analysis/", "docs-html/")
+          names = []
+          for f in glob.glob("dist/*.tar.gz"):
+              names += tarfile.open(f).getnames()
+          for f in glob.glob("dist/*.whl"):
+              names += zipfile.ZipFile(f).namelist()
+          hits = [n for n in names if any(p in n.lower() for p in BAD)]
+          if hits:
+              sys.exit(f"refusing to publish, artifact contains: {sorted(set(hits))}")
+          if not any(n.endswith("py.typed") for n in names):
+              sys.exit("refusing to publish: py.typed missing from the artifact")
+          print(f"artifact contents clean ({len(names)} entries, py.typed present)")
+          PY
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

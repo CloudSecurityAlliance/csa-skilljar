@@ -1,0 +1,49 @@
+name: upstream drift
+on:
+  schedule:
+    - cron: "0 7 * * 1"      # Mondays 07:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  drift:
+    name: live Skilljar matches the snapshots in specs/
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write          # only this job, only to file the drift report
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with: { python-version: "3.12" }
+      - id: check
+        run: |
+          set +e
+          python scripts/check_upstream.py > report.txt 2> drift.txt
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat report.txt drift.txt
+      - name: File an issue when upstream has moved
+        if: steps.check.outputs.exit == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "\`scripts/check_upstream.py\` found drift between live Skilljar and the"
+            echo "snapshots in \`specs/\`."
+            echo
+            echo '```'
+            cat report.txt drift.txt
+            echo '```'
+            echo
+            echo "If a reserved area now returns 401, see \`WAITING-FOR-001\` — the matching"
+            echo "v1 family can be retired and its tools re-pointed at v2 with no rename."
+            echo
+            echo "Run: \`.venv/bin/python scripts/check_upstream.py\`"
+          } > body.md
+          gh issue create --title "Upstream drift detected $(date -u +%Y-%m-%d)" \
+            --body-file body.md --label upstream-drift || \
+          gh issue create --title "Upstream drift detected $(date -u +%Y-%m-%d)" \
+            --body-file body.md
+      - name: Fail the run so the schedule surfaces it
+        if: steps.check.outputs.exit != '0'
+        run: exit 1
