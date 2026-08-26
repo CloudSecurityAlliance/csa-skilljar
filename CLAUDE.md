@@ -128,6 +128,46 @@ Practical rules:
   are clearly investing in v2. This project complements it. Describe differences factually and
   without disparagement — this repo is public and CSA's name is on it.
 
+## Operating rules — how to work here
+
+These are not aspirations. Each one is here because it was violated during the design
+session and cost something real.
+
+1. **Inventory before declaring a blocker.** Before telling the user "I need X from you",
+   look for X: `.env` in the working directory, environment variables, existing config,
+   already-connected services. Phase 0 was declared blocked on a v1 API key that was
+   sitting in this repo's own `.env` the whole time.
+
+2. **Perishable access gets harvested, not sampled.** When a capability is human-gated,
+   temporary, or about to be revoked, take *everything* on first contact rather than
+   fetching what the current question needs. `FRICTION-001` records that enumerating the
+   official MCP server needs an interactive login — that analysis was written, and then
+   the registry was nearly lost anyway because nobody drew the conclusion. If access
+   might not exist tomorrow, capture it completely today.
+
+3. **Probe before asking.** If a question can be answered by a free, read-only,
+   side-effect-free action, take the action instead of asking. Unauthenticated discovery
+   documents, `401`-vs-`404` existence probes, and published spec files answered most of
+   what was put to the user as a multiple-choice question.
+
+4. **Convention completion.** When a documented convention determines a set of artifacts —
+   the CINO project file set, the public-repo checklist — propose and produce the whole
+   set rather than waiting to be asked for each piece.
+
+5. **A check that cannot fail is theatre.** Every guard added here must be mutation-tested
+   at least once: break the thing it guards, watch it fail, restore. `scripts/check_docs.py`
+   was verified this way against both a wrong number and a reworded claim.
+
+## Autonomy contract
+
+**Proceed without asking:** read-only probes of anything; local file work; branches, PRs,
+and merging documentation PRs on green; running tests; following a documented convention
+to completion.
+
+**Ask first:** anything that creates state on a third party (registering OAuth clients,
+filing issues on other people's repos); publishing (PyPI, public repos); credential
+issuance or scoping; destructive local operations; anything the spec lists as a non-goal.
+
 ## Working in this repo
 
 - **Branch + PR for every change**; never commit to `main`. Conventional prefixes (`feat/`,

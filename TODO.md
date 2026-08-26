@@ -29,6 +29,9 @@ file plus open GitHub Issues finds everything.
 - Branch protection enforced for admins, once the checks above exist
 - `SECURITY.md` and `RELEASING.md` (deliberately deferred from the scaffold PR)
 - `scripts/check_upstream.py` + weekly CI job
+- Model-in-the-loop cold-use test for tool descriptions (contract documented in Task 13; harness lands Block 2)
+- Replace `check_access`'s reach through `client._backend._backend._creds` with a
+  `SkilljarClient.credential_status()` accessor before more callers depend on the shape
 
 ## Later (Blocks 2–17)
 

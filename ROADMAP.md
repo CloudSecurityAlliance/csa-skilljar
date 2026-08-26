@@ -232,9 +232,12 @@ actually uses is reachable.
 
 ## Aspirational
 
-- **The demonstration that is also the end-to-end test.** Worth building once there are enough
-  tools for a tour to be worth taking — probably after Block 5. Returns the *plan*, not the
-  result, so the model calls the tools and the tool descriptions get tested.
+- **The narrated demonstration that is also the end-to-end test.** Worth building once there are
+  enough tools for a tour to be worth taking — probably after Block 5. Returns the *plan*, not
+  the result, so the model calls the tools.
+  Its two load-bearing properties arrive earlier: **Block 1 already computes coverage from the
+  tool registry and drives every tool through `call_tool`**, and lints descriptions against a
+  per-tool contract. What Block 5 adds is the model-in-the-loop half.
 - **Shrinking.** Each v1 family retired as v2 ships its equivalent, triggered by
   `check_upstream.py` and `WAITING-FOR-001`. **A block that deletes code is a success.**
 - **Answering the five research questions** in design spec §10, contributed back to
