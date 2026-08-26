@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Refuse the commit if scripts/verify.sh fails.
+#
+# Exists because "run verify before committing" was violated three times during Block 1
+# in exactly the same way: a shell chain that ran verify, printed its output, and then
+# committed regardless because the exit code was never checked. A rule that depends on
+# remembering to check is not a gate. This is.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Bypass deliberately:    git commit --no-verify   (and say why in the message)
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+[ -x scripts/verify.sh ] || exit 0
+if ! ./scripts/verify.sh; then
+  echo
+  echo "pre-commit: verify failed, commit refused."
+  echo "Fix it, or use --no-verify deliberately and say why in the commit message."
+  exit 1
+fi

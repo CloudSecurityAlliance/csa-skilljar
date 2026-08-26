@@ -44,6 +44,14 @@ jobs:
             --body-file body.md --label upstream-drift || \
           gh issue create --title "Upstream drift detected $(date -u +%Y-%m-%d)" \
             --body-file body.md
-      - name: Fail the run so the schedule surfaces it
-        if: steps.check.outputs.exit != '0'
+      - name: Report an outage distinctly from a finding
+        if: steps.check.outputs.exit == '2'
+        run: |
+          echo "::warning::Could not reach Skilljar. This says nothing about whether the"
+          echo "::warning::snapshots in specs/ are still accurate - the check did not run."
+          cat drift.txt
+          exit 1
+
+      - name: Fail the run so the schedule surfaces drift
+        if: steps.check.outputs.exit == '1'
         run: exit 1

@@ -26,12 +26,29 @@ from __future__ import annotations
 import json
 import pathlib
 import sys
+import time
 import urllib.error
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BASE = "https://api.skilljar.com"
 TIMEOUT = 30
+RETRIES = 3
+BACKOFF_SECONDS = 2.0
+
+EXIT_OK = 0
+EXIT_DRIFT = 1
+EXIT_UNREACHABLE = 2
+
+
+class Unreachable(Exception):
+    """Skilljar could not be reached. An infrastructure problem, NOT a finding.
+
+    Kept distinct from drift because conflating them is the ZD-17 failure in reverse:
+    the first scheduled run failed on a single transient SSL handshake timeout among 34
+    sequential probes, and reported identically to real drift. An outage that looks like
+    a finding trains people to ignore findings.
+    """
 
 # Scope areas advertised by the authorization server that had no endpoint on 2026-08-26.
 # Each is a v1 family this project currently carries; a 401 here is the signal to plan
@@ -47,14 +64,23 @@ RESERVED_AREAS = [
 
 
 def _get(url: str) -> tuple[int, bytes]:
+    """GET with retries. An HTTP status - including 401/404 - is a RESULT, not a failure.
+
+    Only a transport-level failure is retried, and only a persistent one raises.
+    """
+    last: Exception | None = None
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:   # noqa: S310 - fixed https host
-            return r.status, r.read()
-    except urllib.error.HTTPError as e:
-        return e.code, b""
-    except (urllib.error.URLError, TimeoutError) as e:
-        raise SystemExit(f"could not reach {url}: {e}") from e
+    for attempt in range(RETRIES):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - fixed https host
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, b""          # a status we asked for; never retried
+        except Exception as e:          # noqa: BLE001 - URLError, TimeoutError, ssl errors
+            last = e
+            if attempt < RETRIES - 1:
+                time.sleep(BACKOFF_SECONDS * (attempt + 1))
+    raise Unreachable(f"could not reach {url} after {RETRIES} attempts: {last}")
 
 
 def check_v2_surface(drift: list[str]) -> None:
@@ -123,10 +149,18 @@ def check_official_registry(drift: list[str]) -> bool:
 def main() -> int:
     print("checking Skilljar upstream against the snapshots in specs/\n")
     drift: list[str] = []
-    check_v2_surface(drift)
-    check_scope_catalogue(drift)
-    check_reserved_areas(drift)
-    ran_registry = check_official_registry(drift)
+    try:
+        check_v2_surface(drift)
+        check_scope_catalogue(drift)
+        check_reserved_areas(drift)
+        ran_registry = check_official_registry(drift)
+    except Unreachable as e:
+        # NOT drift. Exit 2 so the caller can tell an outage from a finding.
+        print(f"\nUNREACHABLE: {e}", file=sys.stderr)
+        print("This is an infrastructure problem, not a finding about Skilljar's API. "
+              "Nothing about the snapshots in specs/ has been established either way.",
+              file=sys.stderr)
+        return EXIT_UNREACHABLE
 
     print()
     if not ran_registry:
@@ -141,9 +175,9 @@ def main() -> int:
             print(f"  - {d}", file=sys.stderr)
         print("\nRefresh specs/ and analysis/, regenerate scopes.py, and update the "
               "coverage map.", file=sys.stderr)
-        return 1
+        return EXIT_DRIFT
     print("no drift: live Skilljar matches the snapshots in specs/")
-    return 0
+    return EXIT_OK
 
 
 if __name__ == "__main__":

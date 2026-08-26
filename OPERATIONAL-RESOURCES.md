@@ -28,7 +28,11 @@ watching someone else's API rather than running our own.
 - **Cadence** — weekly is deliberate. Skilljar ships on a release cadence measured in months; a
   daily check would be noise, and a quarterly one would let a whole phase get built against a gap
   that had already closed.
-- **Health check** — the job runs and reports; a run that finds nothing must say so explicitly.
+- **Health check** — three exit codes, kept distinct on purpose: `0` no drift, `1` Skilljar
+  moved (files an issue), `2` could not reach Skilljar (an outage, files nothing). The first
+  scheduled run failed on one transient SSL timeout among 34 probes and reported identically
+  to real drift; an outage that looks like a finding trains people to ignore findings.
+  A run that finds nothing must say so explicitly.
   Per ZERO-DEFECT, silence is not health — "no drift" and "the check ran" are two separate facts
   and both get reported.
 - **Runbook** — on an opened issue: confirm the change by hand, then decide whether it triggers a
