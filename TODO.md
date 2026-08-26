@@ -13,7 +13,7 @@ file plus open GitHub Issues finds everything.
 
 ## Next — Block 1: a working server (v0.0.1)
 
-- Write the Block 1 implementation plan from the approved design spec
+- ~~Write the Block 1 implementation plan~~ — done: `docs/superpowers/plans/2026-08-26-block-1-working-server.md`
 - `pyproject.toml`, `src/` layout, typed marker, single-sourced version
 - `Backend` protocol + `V2Backend` + `FakeBackend` + conformance test
 - `PolicyBackend` with fail-closed `_GATES`, and the hand-written capability expectation matrix
