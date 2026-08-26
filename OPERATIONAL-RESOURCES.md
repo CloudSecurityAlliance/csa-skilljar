@@ -11,8 +11,8 @@ watching someone else's API rather than running our own.
   availability (`401` vs `404`), and the official MCP server's tool registry when credentials
   allow. Opens a GitHub issue on drift.
 - **Tier** — `simple-scheduled`
-- **Status** — `planned`
-- **Code** — `scripts/check_upstream.py` (not yet written)
+- **Status** — `production`
+- **Code** — `scripts/check_upstream.py`; workflow `.github/workflows/upstream.yml`
 - **Runtime** — Python, GitHub Actions
 - **Schedule** — weekly, plus manual dispatch
 - **Inputs** — `specs/skilljar-v1-openapi.yml`, `specs/skilljar-v2-openapi.json`, a stored registry
@@ -36,7 +36,7 @@ watching someone else's API rather than running our own.
   refresh. Update `specs/` in the same PR as any code change so the baseline and the code move
   together.
 - **Owner** — Kurt Seifried
-- **Last touched** — 2026-08-26
+- **Last touched** — 2026-08-26 (shipped)
 - **Next review** — 2026-11-26
 - **Notes** — Degrades gracefully without credentials: the spec and scope-catalogue checks need no
   authentication, the registry check does. A skipped check is reported as skipped, never as passed.
