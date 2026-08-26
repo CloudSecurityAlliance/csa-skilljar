@@ -84,7 +84,7 @@ appear in the docs; rows never do.
 | v1 API keys are organisation-wide and unscopeable | Skilljar offers no per-scope v1 credential. Accepted: v1 tools are used only where v2 has no equivalent, and the profile system still gates which of them an install exposes. | Kurt Seifried |
 | `CINO_READ_ONLY_TESTING_KEY` reaches all of v1 against production | Read-only, so the exposure is disclosure rather than damage. Open question in `TODO.md` on whether the integration suite should use something narrower. | Kurt Seifried |
 | Prompt-injection defence is configuration, not enforcement | An operator who grants every scope and enables `full` has the same exposure as the official server. Mitigation is documentation and a conservative default, which is a real but partial control. | Kurt Seifried |
-| No `SECURITY.md` yet | Deliberately deferred from the scaffold — it needs real content, not boilerplate. Tracked in `TODO.md`; lands with the first implementation PR. | Kurt Seifried |
+| ~~No `SECURITY.md`~~ | **Closed 2026-08-26.** `SECURITY.md` delegates reporting to CSA's org-wide policy in `csa-product-security` and adds the project-specific threat model. | Kurt Seifried |
 
 ## Dismissed static-analysis findings
 
