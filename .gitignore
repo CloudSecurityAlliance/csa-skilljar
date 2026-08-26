@@ -1,0 +1,31 @@
+# --- credentials: never commit -------------------------------------------
+# A public repo must not depend on anyone's *global* gitignore for this.
+.env
+.env.*
+!.env.example
+*token*.json
+*secret*.json
+client_secret*.json
+credentials.json
+*.pem
+
+# --- Skilljar data ---------------------------------------------------------
+# Probe output and API responses contain real learner PII (42k+ users in the
+# reference org). Never commit extracted data, only counts and shapes.
+analysis/*-response.json
+probe-output/
+*.probe.json
+
+# --- python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/

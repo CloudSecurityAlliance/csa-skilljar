@@ -1,0 +1,439 @@
+<title>Skilljar API Surface Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+--bg:#F6F7F9; --surf:#FFFFFF; --surf2:#EDEFF3; --ink:#14181F; --ink2:#4A5261; --ink3:#6E7686;
+--rule:#DCE0E7; --rule2:#C6CCD6;
+--v1:#8A5A12; --v1bg:#F7EEDC; --v1line:#D9B571;
+--v2:#0C6459; --v2bg:#DDEFEC; --v2line:#69B7AC;
+--warn:#9B2F38; --warnbg:#F9E7E8;
+--shadow:0 1px 2px rgba(20,24,31,.05),0 8px 24px -16px rgba(20,24,31,.25);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#0F1218; --surf:#161A22; --surf2:#1D232E; --ink:#E9ECF1; --ink2:#A7AFBE; --ink3:#7B8494;
+--rule:#272E3A; --rule2:#38414F;
+--v1:#E3A94E; --v1bg:#2E240F; --v1line:#6B5323;
+--v2:#4FC9B7; --v2bg:#0C2C28; --v2line:#1F6157;
+--warn:#EA8B93; --warnbg:#33191C;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+--bg:#0F1218; --surf:#161A22; --surf2:#1D232E; --ink:#E9ECF1; --ink2:#A7AFBE; --ink3:#7B8494;
+--rule:#272E3A; --rule2:#38414F;
+--v1:#E3A94E; --v1bg:#2E240F; --v1line:#6B5323;
+--v2:#4FC9B7; --v2bg:#0C2C28; --v2line:#1F6157;
+--warn:#EA8B93; --warnbg:#33191C;
+--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;
+font-family:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 96px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,4.4vw,3.1rem);font-weight:700;letter-spacing:-.025em;line-height:1.06}
+h2{font-size:1.55rem;font-weight:700;letter-spacing:-.015em}
+h3{font-size:1.06rem;font-weight:600;letter-spacing:-.005em}
+p{margin:0}
+.prose{font-family:"Source Serif 4",Georgia,serif;color:var(--ink2);font-size:1.035rem;line-height:1.65;max-width:66ch}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+/* header */
+header.top{border-bottom:1px solid var(--rule);background:var(--surf);margin-bottom:40px}
+.top .wrap{padding-top:52px;padding-bottom:36px}
+.eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink3);
+display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.eyebrow b{color:var(--v2);font-weight:600}
+.lede{margin-top:18px}
+.prov{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px}
+.prov a,.prov span.pv{display:inline-flex;align-items:center;gap:8px;font-size:.79rem;
+padding:6px 11px;border:1px solid var(--rule2);border-radius:2px;color:var(--ink2);
+text-decoration:none;background:var(--bg);font-family:"JetBrains Mono",monospace}
+.prov a:hover{border-color:var(--ink3);color:var(--ink)}
+.prov a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--v2);outline-offset:2px}
+.tag1{color:var(--v1);border-color:var(--v1line)}
+.tag2{color:var(--v2);border-color:var(--v2line)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+background:var(--rule);border:1px solid var(--rule);margin:36px 0 0}
+.stat{background:var(--surf);padding:20px 22px}
+.stat .v{font-size:2.1rem;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.stat .k{font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-top:8px;font-weight:600}
+.stat.s1 .v{color:var(--v1)} .stat.s2 .v{color:var(--v2)}
+/* generic section */
+section.blk{margin-top:64px}
+.hd{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-bottom:14px;
+border-bottom:2px solid var(--ink);margin-bottom:26px}
+.hd .sub{font-size:.8rem;color:var(--ink3);letter-spacing:.04em}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--surf);border:1px solid var(--rule);padding:20px 22px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 12px;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.vs{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:.87rem;align-items:baseline}
+.vs .l{font-family:"JetBrains Mono",monospace;font-size:.72rem;font-weight:500;letter-spacing:.04em}
+.vs .l1{color:var(--v1)} .vs .l2{color:var(--v2)}
+.vs .t{color:var(--ink2)}
+/* controls */
+.ctl{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--rule);
+padding:14px 0;margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:flex;border:1px solid var(--rule2);border-radius:2px;overflow:hidden}
+.seg button{font:inherit;font-size:.79rem;font-weight:500;padding:7px 14px;border:0;cursor:pointer;
+background:var(--surf);color:var(--ink2);border-right:1px solid var(--rule2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button.f1[aria-pressed="true"]{background:var(--v1);color:#fff}
+.seg button.f2[aria-pressed="true"]{background:var(--v2);color:#fff}
+input[type=search]{font:inherit;font-size:.85rem;padding:7px 12px;border:1px solid var(--rule2);
+border-radius:2px;background:var(--surf);color:var(--ink);min-width:230px;flex:1;max-width:340px}
+.hits{font-size:.78rem;color:var(--ink3);font-variant-numeric:tabular-nums;margin-left:auto}
+/* tables */
+.scroll{overflow-x:auto;border:1px solid var(--rule);background:var(--surf)}
+table{border-collapse:collapse;width:100%;font-size:.855rem}
+thead th{text-align:left;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);
+font-weight:600;padding:11px 14px;border-bottom:1px solid var(--rule2);background:var(--surf2);white-space:nowrap}
+tbody th,tbody td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top;text-align:left}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+tbody th{font-weight:600;white-space:nowrap;color:var(--ink)}
+td.p code{font-size:.755rem;padding:2px 6px;border-radius:2px;display:inline-block;
+white-space:nowrap;line-height:1.5}
+td.p code.c1{background:var(--v1bg);color:var(--v1)}
+td.p code.c2{background:var(--v2bg);color:var(--v2)}
+td.n{color:var(--ink2);min-width:270px;font-family:"Source Serif 4",Georgia,serif;font-size:.92rem;line-height:1.5}
+td.s{white-space:nowrap}
+.none{color:var(--ink3);opacity:.6}
+.inline{font-size:.755rem;color:var(--ink3);font-family:"JetBrains Mono",monospace}
+.b{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:600;letter-spacing:.05em;
+text-transform:uppercase;padding:3px 8px;border-radius:2px;white-space:nowrap;border:1px solid transparent}
+.b1{background:var(--v1bg);color:var(--v1);border-color:var(--v1line)}
+.b2{background:var(--v2bg);color:var(--v2);border-color:var(--v2line)}
+.bb{background:var(--surf2);color:var(--ink2);border-color:var(--rule2)}
+.bb i{width:6px;height:6px;border-radius:50%;display:block}
+.bb .d1{background:var(--v1)} .bb .d2{background:var(--v2);margin-left:-3px}
+.area{margin-top:30px}
+.area h3{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:11px}
+.cnt{font-size:.72rem;font-weight:500;color:var(--ink3);letter-spacing:.04em;text-transform:none}
+.area[hidden]{display:none}
+/* field chips */
+code.f{font-size:.7rem;padding:2px 6px;margin:0 3px 3px 0;border-radius:2px;display:inline-block;line-height:1.5}
+code.f.sh{background:var(--surf2);color:var(--ink2)}
+code.f.o1{background:var(--v1bg);color:var(--v1)}
+code.f.o2{background:var(--v2bg);color:var(--v2)}
+table.fld td{min-width:200px}
+table.fld th[scope=row]{white-space:nowrap;padding-right:18px}
+/* callout */
+.call{border-left:3px solid var(--warn);background:var(--warnbg);padding:16px 20px;margin-top:20px}
+.call strong{color:var(--warn)}
+.call p{font-family:"Source Serif 4",Georgia,serif;color:var(--ink2);font-size:.97rem}
+ul.rec{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:12px}
+ul.rec li{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;
+padding-bottom:12px;border-bottom:1px solid var(--rule)}
+ul.rec li:last-child{border-bottom:0}
+ul.rec .m{font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:500;color:var(--ink3);
+padding-top:4px;white-space:nowrap;letter-spacing:.04em}
+ul.rec .tx{font-family:"Source Serif 4",Georgia,serif;color:var(--ink2);font-size:.99rem}
+ul.rec .tx b{color:var(--ink);font-family:"Archivo",sans-serif;font-weight:600;font-size:.93rem}
+footer{margin-top:72px;padding-top:22px;border-top:1px solid var(--rule);
+font-size:.78rem;color:var(--ink3);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:640px){.ctl{position:static} td.n{min-width:220px}}
+</style>
+
+<header class="top"><div class="wrap">
+<div class="eyebrow"><span>Skilljar REST API</span><span>·</span><span>v1 vs <b>v2</b></span><span>·</span><span>fetched 26 Aug 2026</span></div>
+<h1>Skilljar API Surface Map</h1>
+<p class="prose lede">Every resource in both Skilljar APIs, reconciled into one inventory of <strong>66 entities</strong>. v2 is not a superset or a subset of v1 — it is a narrower, differently-shaped API that adds real capability in some areas and drops whole product surfaces in others. Both specs are machine-readable and linked below.</p>
+<div class="prov">
+<a class="tag1" href="https://api.skilljar.com/docs/schema.yml">v1 · /docs/schema.yml · OpenAPI 3.0.3</a>
+<a class="tag2" href="https://api.skilljar.com/v2/openapi.json">v2 · /v2/openapi.json · OpenAPI 3.1.0</a>
+<span class="pv">v1 · 160 paths / 340 ops</span>
+<span class="pv">v2 · 44 paths / 82 ops</span>
+</div>
+<div class="stats">
+<div class="stat"><div class="v">66</div><div class="k">Entities mapped</div></div>
+<div class="stat"><div class="v">19</div><div class="k">In both APIs</div></div>
+<div class="stat s1"><div class="v">38</div><div class="k">v1 only</div></div>
+<div class="stat s2"><div class="v">9</div><div class="k">v2 only</div></div>
+</div>
+</div></header>
+
+<div class="wrap">
+
+<section class="blk">
+<div class="hd"><h2>They are shaped differently</h2><span class="sub">Before comparing resources, these conventions differ everywhere</span></div>
+<div class="cards">
+<div class="card"><h4>Authentication</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">HTTP Basic — API key as username, empty password. Also a bearer token scheme.</span>
+<span class="l l2">v2</span><span class="t">OAuth 2.0 bearer JWT. <code>client_credentials</code> via <code>/v2/auth/token</code>, plus RFC 7591 dynamic registration — which is what lets MCP clients self-register.</span>
+</div></div>
+<div class="card"><h4>Authorization</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">All-or-nothing. An API key reaches every endpoint.</span>
+<span class="l l2">v2</span><span class="t">28 scopes, declared per operation as <code>x-required-scope</code> (any-of). Destructive actions are isolated: <code>students:anonymize</code>, <code>students:deactivate</code>, <code>students:manage-password</code>.</span>
+</div></div>
+<div class="card"><h4>Pagination</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">Offset style — <code>count</code>, <code>next</code>, <code>previous</code>, <code>results</code>.</span>
+<span class="l l2">v2</span><span class="t">Cursor style — <code>data</code>, <code>meta</code>, <code>links</code>, <code>has_more</code>, <code>next_cursor</code>, <code>included</code>. No total count.</span>
+</div></div>
+<div class="card"><h4>Writes</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">One resource per call. <code>POST /v1/quizzes</code>, <code>PATCH /v1/quizzes/{id}</code>.</span>
+<span class="l l2">v2</span><span class="t">Batch by default — 44 of 82 operations write at collection level. <code>PATCH /v2/quizzes/</code> takes many items and returns <code>207</code> with per-item success/failure and a summary.</span>
+</div></div>
+<div class="card"><h4>Response shape</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">Flat objects. <code>id</code> sits alongside the data.</span>
+<span class="l l2">v2</span><span class="t">JSON:API — <code>resource</code> / <code>attributes</code> / <code>relationships</code>. <code>id</code> moves to the envelope, so it disappears from every attribute diff below.</span>
+</div></div>
+<div class="card"><h4>External identity</h4><div class="vs">
+<span class="l l1">v1</span><span class="t">None. You keep your own ID mapping table.</span>
+<span class="l l2">v2</span><span class="t"><code>external_id</code> on courses, lessons, quizzes, banks, questions, students, published courses, domains and web packages — your key, stored on their object.</span>
+</div></div>
+</div>
+<div class="call"><p><strong>Consequence for tooling:</strong> nothing written against v1 ports to v2 mechanically. Auth, pagination, request envelope and write granularity all change together. Treat them as two integrations, not two versions.</p></div>
+</section>
+
+<section class="blk">
+<div class="hd"><h2>The consolidated inventory</h2><span class="sub">66 entities across 9 areas</span></div>
+<div class="ctl">
+<div class="seg" role="group" aria-label="Filter by availability">
+<button data-f="all" aria-pressed="true">All</button>
+<button data-f="both" aria-pressed="false">In both</button>
+<button class="f1" data-f="v1" aria-pressed="false">v1 only</button>
+<button class="f2" data-f="v2" aria-pressed="false">v2 only</button>
+</div>
+<input type="search" id="q" placeholder="Filter by name, path or note…" aria-label="Search entities">
+<span class="hits" id="hits">66 shown</span>
+</div>
+<section class="area" data-area="Content">
+<h3>Content <span class="cnt">8 entities — 3 both · 5 v1 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="both" data-t="courses /v1/courses /v2/courses/ v2 adds external_id, is_published, lesson_count; drops course_time/manual timing fields and labels. no delete in v2.">
+<th scope="row">Courses</th><td class="p"><code class="c1">/v1/courses</code></td><td class="p"><code class="c2">/v2/courses/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 adds external_id, is_published, lesson_count; drops course_time/manual timing fields and labels. No DELETE in v2.</td></tr><tr data-status="v1" data-t="course labels /v1/courses/{id}/labels  label taxonomy has no v2 equivalent.">
+<th scope="row">Course labels</th><td class="p"><code class="c1">/v1/courses/{id}/labels</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Label taxonomy has no v2 equivalent.</td></tr><tr data-status="v1" data-t="labels /v1/labels  ">
+<th scope="row">Labels</th><td class="p"><code class="c1">/v1/labels</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="both" data-t="lessons /v1/lessons /v2/lessons/ v2 adds content_items (inline), quiz_id, external_id, timestamps; drops display_fullscreen, optional, search_keywords, time_seconds, tooltip_html. no delete in v2.">
+<th scope="row">Lessons</th><td class="p"><code class="c1">/v1/lessons</code></td><td class="p"><code class="c2">/v2/lessons/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 adds content_items (inline), quiz_id, external_id, timestamps; drops display_fullscreen, optional, search_keywords, time_seconds, tooltip_html. No DELETE in v2.</td></tr><tr data-status="v1" data-t="lesson content items /v1/lessons/{id}/content-items  in v2 folded into lesson attributes as content_items, not a separate resource.">
+<th scope="row">Lesson content items</th><td class="p"><code class="c1">/v1/lessons/{id}/content-items</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">In v2 folded into lesson attributes as content_items, not a separate resource.</td></tr><tr data-status="v1" data-t="rating content blocks /v1/lessons/{id}/rating-content-blocks  v2 exposes ratingconfig on lessons + read-only analytics ratings.">
+<th scope="row">Rating content blocks</th><td class="p"><code class="c1">/v1/lessons/{id}/rating-content-blocks</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">v2 exposes RatingConfig on lessons + read-only analytics ratings.</td></tr><tr data-status="v1" data-t="assets /v1/assets  no file/asset upload in v2.">
+<th scope="row">Assets</th><td class="p"><code class="c1">/v1/assets</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">No file/asset upload in v2.</td></tr><tr data-status="both" data-t="web packages /v1/web-packages /v2/web-packages/ v2 adds base_path, display_name, timestamps; drops download_url, redirect_on_completion, sync_completion. v1 has put .../lessons to attach.">
+<th scope="row">Web packages</th><td class="p"><code class="c1">/v1/web-packages</code></td><td class="p"><code class="c2">/v2/web-packages/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 adds base_path, display_name, timestamps; drops download_url, redirect_on_completion, sync_completion. v1 has PUT .../lessons to attach.</td></tr></tbody></table></div></section><section class="area" data-area="Assessment">
+<h3>Assessment <span class="cnt">4 entities — 4 both</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="both" data-t="quizzes /v1/quizzes /v2/quizzes/ v2 adds description_html, skip_start_screen, external_id, timestamps; v1 &#x27;html&#x27; dropped.">
+<th scope="row">Quizzes</th><td class="p"><code class="c1">/v1/quizzes</code></td><td class="p"><code class="c2">/v2/quizzes/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 adds description_html, skip_start_screen, external_id, timestamps; v1 &#x27;html&#x27; dropped.</td></tr><tr data-status="both" data-t="questions /v1/quiz-questions /v2/questions/ renamed. v2 adds order, is_graded, is_optional, question_bank_id, external_id; v1 &#x27;html&#x27;-&gt;question_html, &#x27;type&#x27;-&gt;question_type.">
+<th scope="row">Questions</th><td class="p"><code class="c1">/v1/quiz-questions</code></td><td class="p"><code class="c2">/v2/questions/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Renamed. v2 adds order, is_graded, is_optional, question_bank_id, external_id; v1 &#x27;html&#x27;-&gt;question_html, &#x27;type&#x27;-&gt;question_type.</td></tr><tr data-status="both" data-t="question banks /v1/question-banks /v2/question-banks/ v1 is read-mostly for bank contents (get/delete questions only). v2 has full write via /v2/questions/ with question_bank_id.">
+<th scope="row">Question banks</th><td class="p"><code class="c1">/v1/question-banks</code></td><td class="p"><code class="c2">/v2/question-banks/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v1 is read-mostly for bank contents (GET/DELETE questions only). v2 has full write via /v2/questions/ with question_bank_id.</td></tr><tr data-status="both" data-t="quiz-to-bank binding /v1/quizzes/{id}/question-banks /v2/quizzes/{id}/question-banks/ v1 read-only (get only). v2 adds post/patch/delete - you can bind, reweight and unbind banks.">
+<th scope="row">Quiz-to-bank binding</th><td class="p"><code class="c1">/v1/quizzes/{id}/question-banks</code></td><td class="p"><code class="c2">/v2/quizzes/{id}/question-banks/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v1 READ-ONLY (GET only). v2 adds POST/PATCH/DELETE - you can bind, reweight and unbind banks.</td></tr></tbody></table></div></section><section class="area" data-area="Catalog">
+<h3>Catalog <span class="cnt">12 entities — 3 both · 8 v1 only · 1 v2 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="both" data-t="domains /v1/domains /v2/domains/ v1 is writable (patch/put); v2 is read-only. v2 adds require_https, external_id.">
+<th scope="row">Domains</th><td class="p"><code class="c1">/v1/domains</code></td><td class="p"><code class="c2">/v2/domains/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v1 is writable (PATCH/PUT); v2 is READ-ONLY. v2 adds require_https, external_id.</td></tr><tr data-status="both" data-t="published courses /v1/domains/{d}/published-courses /v2/published-courses/ v1 nested under domain; v2 top-level. v2 adds access_period_*, live, open_access, visibility_override_type, visible_on_catalog; v1 registration_* and offer dropped.">
+<th scope="row">Published courses</th><td class="p"><code class="c1">/v1/domains/{d}/published-courses</code></td><td class="p"><code class="c2">/v2/published-courses/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v1 nested under domain; v2 top-level. v2 adds access_period_*, live, open_access, visibility_override_type, visible_on_catalog; v1 registration_* and offer dropped.</td></tr><tr data-status="v2" data-t="publish / unpublish  /v2/published-courses/{id}/publish|unpublish explicit lifecycle verbs; v1 approximates via the &#x27;hidden&#x27; field.">
+<th scope="row">Publish / unpublish</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/published-courses/{id}/publish|unpublish</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">Explicit lifecycle verbs; v1 approximates via the &#x27;hidden&#x27; field.</td></tr><tr data-status="v1" data-t="course prerequisites /v1/.../published-course-prerequisites  no prerequisite management in v2.">
+<th scope="row">Course prerequisites</th><td class="p"><code class="c1">/v1/.../published-course-prerequisites</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">No prerequisite management in v2.</td></tr><tr data-status="v1" data-t="group prerequisites /v1/.../student-group-prerequisites  ">
+<th scope="row">Group prerequisites</th><td class="p"><code class="c1">/v1/.../student-group-prerequisites</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="re-enrollment rules /v1/.../reenrollment_rule  v2 has allow_self_service_reenroll flag only, not the rule object.">
+<th scope="row">Re-enrollment rules</th><td class="p"><code class="c1">/v1/.../reenrollment_rule</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">v2 has allow_self_service_reenroll flag only, not the rule object.</td></tr><tr data-status="both" data-t="visibility overrides /v1/.../visibility-overrides /v2/groups/{id}/relationships/published-course-visibility/ direction inverted: v1 hangs off the content object (3 parents: catalog pages, published courses, published paths); v2 hangs off the group and covers published courses only.">
+<th scope="row">Visibility overrides</th><td class="p"><code class="c1">/v1/.../visibility-overrides</code></td><td class="p"><code class="c2">/v2/groups/{id}/relationships/published-course-visibility/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Direction inverted: v1 hangs off the content object (3 parents: catalog pages, published courses, published paths); v2 hangs off the group and covers published courses only.</td></tr><tr data-status="v1" data-t="tags /v1/tags  tagging of catalog pages, published courses and paths - none in v2.">
+<th scope="row">Tags</th><td class="p"><code class="c1">/v1/tags</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Tagging of catalog pages, published courses and paths - none in v2.</td></tr><tr data-status="v1" data-t="catalog pages /v1/domains/{d}/catalog-pages  entire page-builder surface is v1-only.">
+<th scope="row">Catalog pages</th><td class="p"><code class="c1">/v1/domains/{d}/catalog-pages</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Entire page-builder surface is v1-only.</td></tr><tr data-status="v1" data-t="content blocks /v1/.../content-blocks  html / component / tile-container variants.">
+<th scope="row">Content blocks</th><td class="p"><code class="c1">/v1/.../content-blocks</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">html / component / tile-container variants.</td></tr><tr data-status="v1" data-t="classic page items /v1/.../classic-page-items  ">
+<th scope="row">Classic page items</th><td class="p"><code class="c1">/v1/.../classic-page-items</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="course series /v1/domains/{d}/course-series  read-only in v1.">
+<th scope="row">Course series</th><td class="p"><code class="c1">/v1/domains/{d}/course-series</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Read-only in v1.</td></tr></tbody></table></div></section><section class="area" data-area="Paths">
+<h3>Paths <span class="cnt">6 entities — 6 v1 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="v1" data-t="paths (templates) /v1/paths  ">
+<th scope="row">Paths (templates)</th><td class="p"><code class="c1">/v1/paths</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="published paths /v1/domains/{d}/published-paths  learning paths entirely absent from v2.">
+<th scope="row">Published paths</th><td class="p"><code class="c1">/v1/domains/{d}/published-paths</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Learning paths entirely absent from v2.</td></tr><tr data-status="v1" data-t="path items /v1/.../path-items  ">
+<th scope="row">Path items</th><td class="p"><code class="c1">/v1/.../path-items</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="path enrollments /v1/.../published-path-enrollments  ">
+<th scope="row">Path enrollments</th><td class="p"><code class="c1">/v1/.../published-path-enrollments</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="plans /v1/domains/{d}/plan  ">
+<th scope="row">Plans</th><td class="p"><code class="c1">/v1/domains/{d}/plan</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="plan enrollments /v1/.../plan-enrollments  ">
+<th scope="row">Plan enrollments</th><td class="p"><code class="c1">/v1/.../plan-enrollments</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr></tbody></table></div></section><section class="area" data-area="People">
+<h3>People <span class="cnt">13 entities — 7 both · 4 v1 only · 2 v2 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="both" data-t="students / users /v1/users + /v1/domains/{d}/users /v2/students/ renamed users-&gt;students. v2 adds external_id, date_joined, is_inactive; v1 full_name dropped. v2 is org-wide, v1 splits org vs per-domain.">
+<th scope="row">Students / users</th><td class="p"><code class="c1">/v1/users + /v1/domains/{d}/users</code></td><td class="p"><code class="c2">/v2/students/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Renamed users-&gt;students. v2 adds external_id, date_joined, is_inactive; v1 full_name dropped. v2 is org-wide, v1 splits org vs per-domain.</td></tr><tr data-status="both" data-t="bulk student create /v1/domains/{d}/users/bulk-create /v2/students/ (batch post) v2 batching is universal, not a special endpoint.">
+<th scope="row">Bulk student create</th><td class="p"><code class="c1">/v1/domains/{d}/users/bulk-create</code></td><td class="p"><code class="c2">/v2/students/ (batch POST)</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 batching is universal, not a special endpoint.</td></tr><tr data-status="both" data-t="anonymize (pii erase) /v1/users/{id}/anonymize /v2/students/{id}/anonymize/ irreversible. v2 gates behind dedicated students:anonymize scope.">
+<th scope="row">Anonymize (PII erase)</th><td class="p"><code class="c1">/v1/users/{id}/anonymize</code></td><td class="p"><code class="c2">/v2/students/{id}/anonymize/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Irreversible. v2 gates behind dedicated students:anonymize scope.</td></tr><tr data-status="v2" data-t="set / reset password  /v2/students/{id}/set-password|send-password-reset new in v2. account-takeover primitive; scope students:manage-password.">
+<th scope="row">Set / reset password</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/students/{id}/set-password|send-password-reset</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW in v2. Account-takeover primitive; scope students:manage-password.</td></tr><tr data-status="v2" data-t="deactivate student  delete /v2/students/{id} scope students:deactivate. v1 has no equivalent verb.">
+<th scope="row">Deactivate student</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">DELETE /v2/students/{id}</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">Scope students:deactivate. v1 has no equivalent verb.</td></tr><tr data-status="v1" data-t="user invites /v1/domains/{d}/users/{u}/invites  ">
+<th scope="row">User invites</th><td class="p"><code class="c1">/v1/domains/{d}/users/{u}/invites</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="manager access /v1/.../manager-access  ">
+<th scope="row">Manager access</th><td class="p"><code class="c1">/v1/.../manager-access</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="both" data-t="groups /v1/groups /v2/groups/ v2 adds send_course_enrollment_email, timestamps (note: uses updated_at, not modified_at as elsewhere); v1 discount_percent and sign_up_field_rule dropped.">
+<th scope="row">Groups</th><td class="p"><code class="c1">/v1/groups</code></td><td class="p"><code class="c2">/v2/groups/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 adds send_course_enrollment_email, timestamps (note: uses updated_at, not modified_at as elsewhere); v1 discount_percent and sign_up_field_rule dropped.</td></tr><tr data-status="both" data-t="group membership /v1/groups/{id}/users /v2/groups/{id}/relationships/students/ v2 post/delete only - no get of members via the relationship; list via /v2/students/ filters.">
+<th scope="row">Group membership</th><td class="p"><code class="c1">/v1/groups/{id}/users</code></td><td class="p"><code class="c2">/v2/groups/{id}/relationships/students/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 POST/DELETE only - no GET of members via the relationship; list via /v2/students/ filters.</td></tr><tr data-status="v1" data-t="group categories /v1/group-categories  v2 keeps category_id as a field but exposes no catalogue of categories.">
+<th scope="row">Group categories</th><td class="p"><code class="c1">/v1/group-categories</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">v2 keeps category_id as a field but exposes no catalogue of categories.</td></tr><tr data-status="both" data-t="email domain rules /v1/groups/{id}/email-domain-rules (groupattributes.rule_email_domains) promoted from sub-resource to plain field on the group in v2.">
+<th scope="row">Email domain rules</th><td class="p"><code class="c1">/v1/groups/{id}/email-domain-rules</code></td><td class="p"><span class="inline">(GroupAttributes.rule_email_domains)</span></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Promoted from sub-resource to plain field on the group in v2.</td></tr><tr data-status="v1" data-t="signup field definitions /v1/domains/{d}/signup-fields  read-only in v1; no definition endpoint in v2.">
+<th scope="row">Signup field definitions</th><td class="p"><code class="c1">/v1/domains/{d}/signup-fields</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Read-only in v1; no definition endpoint in v2.</td></tr><tr data-status="both" data-t="signup field values /v1/domains/{d}/users/{u}/signup-fields /v2/signup-field-values/ v2 promotes to a top-level resource with batch write.">
+<th scope="row">Signup field values</th><td class="p"><code class="c1">/v1/domains/{d}/users/{u}/signup-fields</code></td><td class="p"><code class="c2">/v2/signup-field-values/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 promotes to a top-level resource with batch write.</td></tr></tbody></table></div></section><section class="area" data-area="Progress">
+<h3>Progress <span class="cnt">6 entities — 2 both · 2 v1 only · 2 v2 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="both" data-t="enrollments /v1/.../published-courses/{pc}/enrollments /v2/enrollments/ biggest upgrade in v2: adds score, max_score, progress_status, success_status, completed_at, due_at, has_certificate, channel, source, domain_name.">
+<th scope="row">Enrollments</th><td class="p"><code class="c1">/v1/.../published-courses/{pc}/enrollments</code></td><td class="p"><code class="c2">/v2/enrollments/</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">Biggest upgrade in v2: adds score, max_score, progress_status, success_status, completed_at, due_at, has_certificate, channel, source, domain_name.</td></tr><tr data-status="both" data-t="enrollment completion /v1/users/{u}/published-courses/{pc} /v2/enrollments/completion v2 has a dedicated batch patch for marking completion.">
+<th scope="row">Enrollment completion</th><td class="p"><code class="c1">/v1/users/{u}/published-courses/{pc}</code></td><td class="p"><code class="c2">/v2/enrollments/completion</code></td>
+<td class="s"><span class="b bb"><i class="d1"></i><i class="d2"></i>both</span></td><td class="n">v2 has a dedicated batch PATCH for marking completion.</td></tr><tr data-status="v1" data-t="lesson progress /v1/lesson-progress + /v1/users/{u}/.../lessons  no per-lesson progress in v2 - course-level only.">
+<th scope="row">Lesson progress</th><td class="p"><code class="c1">/v1/lesson-progress + /v1/users/{u}/.../lessons</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">No per-lesson progress in v2 - course-level only.</td></tr><tr data-status="v1" data-t="progress tokens /v1/progresstokens  ">
+<th scope="row">Progress tokens</th><td class="p"><code class="c1">/v1/progresstokens</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v2" data-t="certificates  /v2/certificates/ new. read-only list/detail.">
+<th scope="row">Certificates</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/certificates/</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. Read-only list/detail.</td></tr><tr data-status="v2" data-t="course analytics  /v2/analytics/courses/{id} + /ratings/ new. read-only aggregate + rating breakdown.">
+<th scope="row">Course analytics</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/analytics/courses/{id} + /ratings/</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. Read-only aggregate + rating breakdown.</td></tr></tbody></table></div></section><section class="area" data-area="Commerce">
+<h3>Commerce <span class="cnt">6 entities — 6 v1 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="v1" data-t="purchases /v1/purchases  v2 references purchaseresource from enrollments but exposes no purchase endpoints.">
+<th scope="row">Purchases</th><td class="p"><code class="c1">/v1/purchases</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">v2 references PurchaseResource from enrollments but exposes no purchase endpoints.</td></tr><tr data-status="v1" data-t="offers /v1/offers  ">
+<th scope="row">Offers</th><td class="p"><code class="c1">/v1/offers</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="promo codes /v1/promo-codes + /v1/promo-code-pools  ">
+<th scope="row">Promo codes</th><td class="p"><code class="c1">/v1/promo-codes + /v1/promo-code-pools</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="access code pools /v1/domains/{d}/access-code-pools  also /v1/groups/{id}/access-code-pools.">
+<th scope="row">Access code pools</th><td class="p"><code class="c1">/v1/domains/{d}/access-code-pools</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Also /v1/groups/{id}/access-code-pools.</td></tr><tr data-status="v1" data-t="license packages /v1/license-packages  seat management.">
+<th scope="row">License packages</th><td class="p"><code class="c1">/v1/license-packages</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">Seat management.</td></tr><tr data-status="v1" data-t="training credit codes /v1/training-credit-codes  ">
+<th scope="row">Training credit codes</th><td class="p"><code class="c1">/v1/training-credit-codes</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr></tbody></table></div></section><section class="area" data-area="ILT">
+<h3>ILT <span class="cnt">5 entities — 5 v1 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="v1" data-t="ilt instructors /v1/ilt-instructors  ">
+<th scope="row">ILT instructors</th><td class="p"><code class="c1">/v1/ilt-instructors</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="ilt sessions /v1/ilt-sessions  ">
+<th scope="row">ILT sessions</th><td class="p"><code class="c1">/v1/ilt-sessions</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="ilt multi-session events /v1/ilt-multi-session-events  ">
+<th scope="row">ILT multi-session events</th><td class="p"><code class="c1">/v1/ilt-multi-session-events</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="vilt session events /v1/vilt-session-events  ">
+<th scope="row">vILT session events</th><td class="p"><code class="c1">/v1/vilt-session-events</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr><tr data-status="v1" data-t="vilt registrations /v1/vilt-session-registrations  ">
+<th scope="row">vILT registrations</th><td class="p"><code class="c1">/v1/vilt-session-registrations</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr></tbody></table></div></section><section class="area" data-area="Platform">
+<h3>Platform <span class="cnt">6 entities — 2 v1 only · 4 v2 only</span></h3>
+<div class="scroll"><table class="inv">
+<thead><tr><th scope="col">Entity</th><th scope="col">v1</th><th scope="col">v2</th><th scope="col">Where</th><th scope="col">What differs</th></tr></thead>
+<tbody><tr data-status="v1" data-t="webhooks /v1/webhooks  17 ops incl. 10 sample payloads + ping. no event notifications in v2 at all.">
+<th scope="row">Webhooks</th><td class="p"><code class="c1">/v1/webhooks</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n">17 ops incl. 10 sample payloads + ping. NO event notifications in v2 at all.</td></tr><tr data-status="v2" data-t="oauth clients  /v2/clients/ new. create/rotate-secret/delete api clients.">
+<th scope="row">OAuth clients</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/clients/</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. Create/rotate-secret/delete API clients.</td></tr><tr data-status="v2" data-t="oauth token  /v2/auth/token + /v2/auth/revoke new. client_credentials flow.">
+<th scope="row">OAuth token</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/auth/token + /v2/auth/revoke</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. client_credentials flow.</td></tr><tr data-status="v2" data-t="dynamic client registration  /v2/oauth/register new. rfc 7591 - this is what makes mcp oauth work.">
+<th scope="row">Dynamic client registration</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/oauth/register</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. RFC 7591 - this is what makes MCP OAuth work.</td></tr><tr data-status="v2" data-t="scope catalog  /v2/scopes/ new. enumerate grantable scopes.">
+<th scope="row">Scope catalog</th><td class="p"><span class="none">—</span></td><td class="p"><code class="c2">/v2/scopes/</code></td>
+<td class="s"><span class="b b2">v2 only</span></td><td class="n">NEW. Enumerate grantable scopes.</td></tr><tr data-status="v1" data-t="ping / health /v1/ping  ">
+<th scope="row">Ping / health</th><td class="p"><code class="c1">/v1/ping</code></td><td class="p"><span class="none">—</span></td>
+<td class="s"><span class="b b1">v1 only</span></td><td class="n"></td></tr></tbody></table></div></section>
+</section>
+
+<section class="blk">
+<div class="hd"><h2>Field-level differences</h2><span class="sub">The 11 entities both APIs model — attribute names only</span></div>
+<p class="prose">v2 drops <code>id</code> from attributes into the JSON:API envelope, so it never appears as shared. Bare renames show up as one loss and one gain: <code>html</code>→<code>question_html</code>, <code>type</code>→<code>question_type</code>, <code>hidden</code>→<code>is_hidden</code>, <code>group_category_id</code>→<code>category_id</code>.</p>
+<div class="scroll" style="margin-top:20px"><table class="fld">
+<thead><tr><th scope="col">Entity</th><th scope="col">In both</th><th scope="col">v1 only</th><th scope="col">v2 only</th></tr></thead>
+<tbody><tr><th scope="row">Course</th>
+<td><code class="f sh">average_rating</code><code class="f sh">created_at</code><code class="f sh">enforce_sequential_navigation</code><code class="f sh">long_description_html</code><code class="f sh">modified_at</code><code class="f sh">promo_image_url</code><code class="f sh">short_description</code><code class="f sh">title</code></td><td><code class="f o1">course_and_lesson_time_format</code><code class="f o1">course_time</code><code class="f o1">display_course_and_lesson_time</code><code class="f o1">display_manual_course_time</code><code class="f o1">draft_origin_id</code><code class="f o1">id</code><code class="f o1">labels</code><code class="f o1">manual_course_time</code></td><td><code class="f o2">external_id</code><code class="f o2">is_published</code><code class="f o2">lesson_count</code></td></tr><tr><th scope="row">Lesson</th>
+<td><code class="f sh">content_html</code><code class="f sh">course_id</code><code class="f sh">description_html</code><code class="f sh">order</code><code class="f sh">title</code><code class="f sh">type</code></td><td><code class="f o1">content_asset_id</code><code class="f o1">content_quiz_id</code><code class="f o1">content_web_package_id</code><code class="f o1">display_fullscreen</code><code class="f o1">id</code><code class="f o1">optional</code><code class="f o1">search_keywords</code><code class="f o1">time_seconds</code><code class="f o1">tooltip_html</code></td><td><code class="f o2">content_items</code><code class="f o2">created_at</code><code class="f o2">external_id</code><code class="f o2">modified_at</code><code class="f o2">quiz_id</code></td></tr><tr><th scope="row">Quiz</th>
+<td><code class="f sh">alignment</code><code class="f sh">limit_question_count</code><code class="f sh">max_attempts</code><code class="f sh">name</code><code class="f sh">passing_percentage_correct</code><code class="f sh">randomize_answers</code><code class="f sh">randomize_questions</code><code class="f sh">require_correct_response</code><code class="f sh">show_question_feedback</code><code class="f sh">show_results_on_failure</code><code class="f sh">time_limit_seconds</code></td><td><code class="f o1">html</code><code class="f o1">id</code></td><td><code class="f o2">created_at</code><code class="f o2">description_html</code><code class="f o2">external_id</code><code class="f o2">modified_at</code><code class="f o2">skip_start_screen</code></td></tr><tr><th scope="row">Question bank</th>
+<td><code class="f sh">name</code></td><td><code class="f o1">id</code><code class="f o1">question_count</code><code class="f o1">quiz_association_count</code></td><td><code class="f o2">created_at</code><code class="f o2">external_id</code><code class="f o2">modified_at</code></td></tr><tr><th scope="row">Question</th>
+<td><code class="f sh">answers</code><code class="f sh">case_sensitive</code><code class="f sh">correct_answer_feedback_html</code><code class="f sh">incorrect_answer_feedback_html</code><code class="f sh">requires_manual_grading</code></td><td><code class="f o1">html</code><code class="f o1">id</code><code class="f o1">quiz</code><code class="f o1">quiz_question_bank</code><code class="f o1">type</code></td><td><code class="f o2">answer_feedback_html</code><code class="f o2">created_at</code><code class="f o2">external_id</code><code class="f o2">is_graded</code><code class="f o2">is_optional</code><code class="f o2">modified_at</code><code class="f o2">order</code><code class="f o2">question_bank_id</code><code class="f o2">question_html</code><code class="f o2">question_type</code><code class="f o2">quiz_id</code></td></tr><tr><th scope="row">Group</th>
+<td><code class="f sh">name</code><code class="f sh">rule_email_domains</code></td><td><code class="f o1">discount_percent</code><code class="f o1">group_category_id</code><code class="f o1">id</code><code class="f o1">sign_up_field_rule</code><code class="f o1">user_count</code></td><td><code class="f o2">category_id</code><code class="f o2">created_at</code><code class="f o2">send_course_enrollment_email</code><code class="f o2">updated_at</code></td></tr><tr><th scope="row">Student / user</th>
+<td><code class="f sh">email</code><code class="f sh">first_name</code><code class="f sh">last_name</code></td><td><code class="f o1">full_name</code><code class="f o1">id</code></td><td><code class="f o2">date_joined</code><code class="f o2">external_id</code><code class="f o2">is_inactive</code></td></tr><tr><th scope="row">Published course</th>
+<td><code class="f sh">allow_self_service_reenroll</code><code class="f sh">require_all_prerequisites</code><code class="f sh">restrict_access_start_end_dates</code><code class="f sh">slug</code><code class="f sh">strict_enforce_group_visibility</code><code class="f sh">unique_progress_per_enrollment</code></td><td><code class="f o1">course</code><code class="f o1">course_url</code><code class="f o1">hidden</code><code class="f o1">id</code><code class="f o1">offer</code><code class="f o1">registration_ends_at</code><code class="f o1">registration_required</code><code class="f o1">registration_starts_at</code><code class="f o1">timezone</code></td><td><code class="f o2">access_period_ends_at</code><code class="f o2">access_period_starts_at</code><code class="f o2">created_at</code><code class="f o2">external_id</code><code class="f o2">is_hidden</code><code class="f o2">live</code><code class="f o2">modified_at</code><code class="f o2">open_access</code><code class="f o2">visibility_override_type</code><code class="f o2">visible_on_catalog</code></td></tr><tr><th scope="row">Enrollment</th>
+<td><code class="f sh">active</code><code class="f sh">enrolled_at</code><code class="f sh">expires_at</code><code class="f sh">feedback</code><code class="f sh">rating</code></td><td><code class="f o1">id</code><code class="f o1">purchase</code><code class="f o1">user</code></td><td><code class="f o2">channel</code><code class="f o2">completed_at</code><code class="f o2">domain_name</code><code class="f o2">due_at</code><code class="f o2">has_certificate</code><code class="f o2">max_score</code><code class="f o2">progress_status</code><code class="f o2">rating_scale</code><code class="f o2">score</code><code class="f o2">source</code><code class="f o2">success_status</code></td></tr><tr><th scope="row">Web package</th>
+<td><code class="f sh">state</code><code class="f sh">title</code><code class="f sh">type</code></td><td><code class="f o1">download_url</code><code class="f o1">id</code><code class="f o1">redirect_on_completion</code><code class="f o1">sync_completion</code></td><td><code class="f o2">base_path</code><code class="f o2">created_at</code><code class="f o2">display_name</code><code class="f o2">modified_at</code></td></tr><tr><th scope="row">Domain</th>
+<td><code class="f sh">access</code><code class="f sh">marketing_message</code><code class="f sh">name</code></td><td><code class="f o1">access_code_message_html</code><code class="f o1">catalog_title</code><code class="f o1">id</code><code class="f o1">private</code></td><td><code class="f o2">access_message_html</code><code class="f o2">created_at</code><code class="f o2">external_id</code><code class="f o2">modified_at</code><code class="f o2">require_https</code></td></tr></tbody></table></div>
+<div class="call"><p><strong>One inconsistency worth guarding against:</strong> v2 stamps <code>created_at</code> / <code>modified_at</code> on nearly every object — except <code>GroupAttributes</code>, which uses <code>updated_at</code>. Assume a uniform timestamp field and group sync breaks silently.</p></div>
+</section>
+
+<section class="blk">
+<div class="hd"><h2>What this means for a CSA integration</h2><span class="sub">Reading the map for training-content work</span></div>
+<ul class="rec">
+<li><span class="m">BANKS</span><span class="tx"><b>Question banks are fully supported in v2 — and are better there.</b> v1 can only read a bank's questions and delete them; it has no way to add a question to a bank or bind a bank to a quiz. v2 does all of it, including reweighting the binding. For reusable exam-item pools this reverses the expected verdict.</span></li>
+<li><span class="m">GAPS</span><span class="tx"><b>Three surfaces are absent from v2 with no workaround.</b> Webhooks (17 v1 operations, zero in v2), instructor-led and virtual sessions, and the entire commerce stack — purchases, offers, promo codes, license packages, training credits. Learning paths are also v1-only.</span></li>
+<li><span class="m">REPORTING</span><span class="tx"><b>Course-level reporting is better in v2; lesson-level is v1-only.</b> v2 enrollments carry <code>score</code>, <code>max_score</code>, <code>progress_status</code>, <code>success_status</code>, <code>completed_at</code> and <code>has_certificate</code>. But nothing in v2 reports per-lesson progress.</span></li>
+<li><span class="m">SCOPES</span><span class="tx"><b>Least privilege is achievable on v2 and impossible on v1.</b> An authoring credential can hold <code>courses</code>, <code>lessons</code>, <code>quizzes</code> and <code>question-banks</code> scopes and no <code>students:*</code> at all — which closes the prompt-injection path from "summarize this lesson" to "anonymize this student" at the token rather than relying on agent judgment. A v1 key cannot be narrowed.</span></li>
+<li><span class="m">BOTH</span><span class="tx"><b>A complete integration needs both APIs.</b> v2 for authoring, enrollment, reporting and anything an agent touches; v1 for webhooks, paths, ILT and commerce. Note that v1 keys and v2 clients are separate credentials with separate trust levels.</span></li>
+</ul>
+</section>
+
+<footer>
+<span>Generated from the published OpenAPI specs, 26 August 2026. Counts are derived from the specs, not from documentation prose.</span>
+<span class="mono">v1 3.0.3 · v2 3.1.0</span>
+</footer>
+</div>
+
+<script>
+(function(){
+  var rows=[].slice.call(document.querySelectorAll('tr[data-status]'));
+  var areas=[].slice.call(document.querySelectorAll('.area'));
+  var q=document.getElementById('q'), hits=document.getElementById('hits');
+  var btns=[].slice.call(document.querySelectorAll('.seg button'));
+  var mode='all';
+  try{ var sv=localStorage.getItem('sj-filter'); if(sv) mode=sv; }catch(e){}
+  function apply(){
+    var t=(q.value||'').trim().toLowerCase(), n=0;
+    rows.forEach(function(r){
+      var ok=(mode==='all'||r.dataset.status===mode)&&(!t||r.dataset.t.indexOf(t)>-1);
+      r.hidden=!ok; if(ok) n++;
+    });
+    areas.forEach(function(a){
+      a.hidden=!a.querySelector('tr[data-status]:not([hidden])');
+    });
+    hits.textContent=n+(n===1?' shown':' shown');
+    btns.forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.f===mode));});
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){
+    mode=b.dataset.f; try{localStorage.setItem('sj-filter',mode);}catch(e){} apply();
+  });});
+  q.addEventListener('input',apply);
+  apply();
+})();
+</script>
