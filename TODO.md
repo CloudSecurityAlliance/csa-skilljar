@@ -27,7 +27,7 @@ file plus open GitHub Issues finds everything.
 - Test asserting nothing reachable writes to stdout
 - CI: lint, type-check, test matrix, coverage floor, security scan — all required checks
 - Branch protection enforced for admins, once the checks above exist
-- `SECURITY.md` and `RELEASING.md` (deliberately deferred from the scaffold PR)
+- ~~`SECURITY.md`~~ — done. `RELEASING.md` still pending (needed for the v0.0.1 release)
 - `scripts/check_upstream.py` + weekly CI job
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in Task 13; harness lands Block 2)
 - Replace `check_access`'s reach through `client._backend._backend._creds` with a
