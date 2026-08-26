@@ -1,3 +1,10 @@
+```
+project_tracker_base: CINO Project Tracker:appf7fRQUvY9Iy7sL
+project_tracker_table: Projects:tblchmbxSAavvJKaY
+project_tracker_record: csa-skilljar:recbwfx6O30BboQNv
+project_source: github:CloudSecurityAlliance-Internal/CINO-Projects/projects/CloudSecurityAlliance/csa-skilljar
+```
+
 # csa-skilljar
 
 A Python library and local MCP server for the [Skilljar](https://www.skilljar.com/) customer
