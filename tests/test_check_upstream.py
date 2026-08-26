@@ -23,7 +23,6 @@ _spec.loader.exec_module(cu)
 
 def _snapshot_matching_responses():
     """Responses identical to the committed snapshots, so a clean run means no drift."""
-    import json
     root = pathlib.Path(__file__).resolve().parent.parent
     v2 = (root / "specs" / "skilljar-v2-openapi.json").read_bytes()
     az = (root / "analysis" / "live-authz-metadata.json").read_bytes()
