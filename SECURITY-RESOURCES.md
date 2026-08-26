@@ -86,6 +86,14 @@ appear in the docs; rows never do.
 | Prompt-injection defence is configuration, not enforcement | An operator who grants every scope and enables `full` has the same exposure as the official server. Mitigation is documentation and a conservative default, which is a real but partial control. | Kurt Seifried |
 | No `SECURITY.md` yet | Deliberately deferred from the scaffold — it needs real content, not boilerplate. Tracked in `TODO.md`; lands with the first implementation PR. | Kurt Seifried |
 
+## Dismissed static-analysis findings
+
+Recorded here so a dismissal is reviewable rather than invisible.
+
+| Rule | Where | Why dismissed |
+|---|---|---|
+| `py/clear-text-logging-sensitive-data` (CodeQL, high) | `src/csa_skilljar/mcp/cli.py` startup warning | **False positive.** `os.environ` is a taint source, and CodeQL does not distinguish a value *read from* the environment from a module constant *selected because of* it. The printed strings are module-level constants naming environment **variables**, never their values. Three structural rewrites were attempted first - narrowing `Settings` to two booleans, deriving presence from env keys rather than values, and making the messages module constants so only control flow depends on env - and none shifted the alert. The counter-evidence is `tests/test_zero_defect.py::test_no_credential_value_can_reach_the_cli_output`, which runs the real CLI with distinctive credential values and asserts none reach stdout or stderr. **If that test fails, this dismissal is wrong and the alert must be reopened.** |
+
 ## Review schedule
 
 - **Last reviewed:** 2026-08-26 (initial, pre-implementation)

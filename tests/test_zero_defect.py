@@ -110,3 +110,36 @@ def test_decode_claims_never_writes_to_stdout(capsys, caplog):
         auth.decode_claims("not-a-jwt")
     assert capsys.readouterr().out == ""
     assert "could not be decoded" in caplog.text
+
+
+# --- CodeQL py/clear-text-logging-sensitive-data: the standing counter-evidence -----
+
+def test_no_credential_value_can_reach_the_cli_output(monkeypatch):
+    """CodeQL reports `py/clear-text-logging-sensitive-data` on the startup warning.
+
+    It is a false positive, and this test is the evidence that keeps it one. `os.environ`
+    is a taint source and CodeQL does not distinguish "a value read from env" from "a
+    module constant selected because of env" - three structural rewrites did not shift
+    it. The dismissal on the alert points here.
+
+    If this test ever fails, the dismissal is wrong and the alert should be reopened.
+    """
+    import contextlib
+    import io
+
+    from csa_skilljar.mcp import cli
+
+    monkeypatch.setattr(cli, "_run_server", lambda *a, **k: None)
+    secrets = {
+        "CSA_SKILLJAR_V2_CLIENT_ID": "cid-SUPERSECRET-1",
+        "CSA_SKILLJAR_V2_CLIENT_SECRET": "sk-live-SUPERSECRET-2",
+        "CSA_SKILLJAR_V1_API_KEY": "v1key-SUPERSECRET-3",
+    }
+    for env in (secrets, {}, {k: v for k, v in secrets.items() if "V2" in k}):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            cli.main([], env=env)
+        combined = out.getvalue() + err.getvalue()
+        assert out.getvalue() == "", "stdout is the JSON-RPC channel"
+        for value in secrets.values():
+            assert value not in combined, f"credential value leaked into output: {value}"
