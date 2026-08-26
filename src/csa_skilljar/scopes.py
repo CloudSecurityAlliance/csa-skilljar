@@ -93,3 +93,13 @@ REQUIRED_SCOPE: dict[str, tuple[str, ...]] = {
 def scopes_for(method: str, path: str) -> tuple[str, ...]:
     """Any-of scopes for an operation. Empty tuple means no scope is required."""
     return REQUIRED_SCOPE.get(f"{method.upper()} {path}", ())
+
+
+def is_known_operation(method: str, path: str) -> bool:
+    """Whether the spec declares this operation at all.
+
+    Distinct from `scopes_for` returning an empty tuple, which legitimately means
+    "declared, and needs no scope" (the pre-auth token endpoints). Conflating the
+    two would let a typo'd path silently skip the scope pre-check.
+    """
+    return f"{method.upper()} {path}" in REQUIRED_SCOPE

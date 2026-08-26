@@ -128,6 +128,47 @@ Practical rules:
   are clearly investing in v2. This project complements it. Describe differences factually and
   without disparagement — this repo is public and CSA's name is on it.
 
+## Zero defect — surface failures, never suppress them
+
+Follows [ZERO-DEFECT.md](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/ZERO-DEFECT.md).
+The principles that have already caught real defects here:
+
+- **ZD-1, handle every error explicitly.** No swallowed exceptions. `decode_claims`
+  returned `{}` on any failure, making "this token has no claims" and "this is not a
+  JWT" indistinguishable. It now reports through `logging` and says which it was.
+- **ZD-2, generate errors aggressively.** A `200` whose body is not JSON, or is JSON
+  that is not an object, is an error — not something to hand downstream. An unknown API
+  path is a loud error, because `scopes_for()` returning `()` legitimately means
+  "declared, needs no scope", and conflating that with a typo silently disables the
+  scope pre-check: a control failing open and saying nothing.
+- **ZD-17, silence is not health.** Ask of every branch that concludes there is no work:
+  *if this fired forever, would anyone notice?* One lived in `V2Credentials._expired` —
+  with no usable `exp` it returned `True` permanently, so every call re-granted a token.
+  Correct code, false premise, no error anywhere. Same shape as the `rotate-nginx-logs`
+  case in ZERO-DEFECT §17.
+- **ZD-12, tests produce two signals.** Did it pass, *and* did it log anything alarming?
+  `tests/conftest.py` fails any test that emits an `ERROR` record. Scoped to ERROR
+  deliberately: several tests assert on WARNING output, and a check that fires on correct
+  behaviour gets muted — which ZD-2 says is worse than no check.
+
+**Never suppress command output.** Do not write `cmd >/dev/null && echo ok` — a
+suppressed failure is indistinguishable from a pass, and it landed two red commits during
+Block 1. Run **`./scripts/verify.sh`** before every commit: tests, lint, types and doc
+claims, no suppression, non-zero on any failure.
+
+**Every guard gets mutation-tested once.** Break the thing it protects, watch it fail,
+restore. The `conftest.py` ERROR guard passed its own probe only on the second attempt —
+the first used `caplog.records`, which pytest clears between phases, so in teardown it was
+always empty and the check could never fire.
+
+**One deviation from ZERO-DEFECT, stated rather than ignored:** ZD-13 requires secrets in
+a dedicated secrets manager, not environment variables. This is a local stdio server
+launched by an MCP client, where environment variables in the client's own config are the
+only delivery mechanism available. The compensating controls are that nothing is written
+to disk (`client_credentials` needs no token cache), credentials never appear in a
+message, log or `__repr__`, and scopes are narrowed per install. Revisit if this ever runs
+as a hosted service.
+
 ## Operating rules — how to work here
 
 These are not aspirations. Each one is here because it was violated during the design
