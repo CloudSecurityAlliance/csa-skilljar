@@ -26,6 +26,19 @@ V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 - a variable n
 V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"               # nosec B105 - a variable name, not a secret
 PROFILE_VAR = "CSA_SKILLJAR_PROFILE"
 
+# Module constants, not f-strings built at call time. The startup-warning path must have
+# no data dependency on the environment whatsoever - only a control-flow one - or CodeQL
+# reports py/clear-text-logging-sensitive-data, since `os.environ` is a taint source and
+# it does not distinguish "a value from env" from "a constant chosen because of env".
+V2_MISSING_WARNING = (
+    f"{V2_ID_VAR} / {V2_SECRET_VAR} not set - v2 tools will report setup steps. "
+    f"Call `check_access` for details."
+)
+V1_MISSING_WARNING = (
+    f"{V1_KEY_VAR} not set - v1-only capabilities are unavailable (none are implemented "
+    f"yet). Call `check_access` for details."
+)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -98,11 +111,9 @@ def startup_warnings(presence: CredentialPresence) -> list[str]:
     """
     out: list[str] = []
     if not presence.v2:
-        out.append(f"{V2_ID_VAR} / {V2_SECRET_VAR} not set - v2 tools will report setup "
-                   f"steps. Call `check_access` for details.")
+        out.append(V2_MISSING_WARNING)
     if not presence.v1:
-        out.append(f"{V1_KEY_VAR} not set - v1-only capabilities are unavailable (none are "
-                   f"implemented yet). Call `check_access` for details.")
+        out.append(V1_MISSING_WARNING)
     return out
 
 

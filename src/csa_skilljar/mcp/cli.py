@@ -17,6 +17,8 @@ from .. import __version__
 from ._config import (
     ClientProvider,
     Settings,
+    V1_MISSING_WARNING,
+    V2_MISSING_WARNING,
     presence_from_env,
     settings_from_env,
     startup_warnings,
@@ -73,11 +75,14 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     settings = settings_from_env(env)
     # stderr, never stdout. Most MCP clients surface a server's stderr in their logs,
     # which is the only place to say this before the first tool call.
-    # presence_from_env() reads only whether the variables are SET, never their values,
-    # and never touches `settings`. So the printing path has no data dependency on a
-    # credential at all - see CredentialPresence.
-    for line in startup_warnings(presence_from_env(env)):
-        print(f"csa-skilljar: {line}", file=sys.stderr)
+    # The printed strings are module CONSTANTS; the environment only decides *whether*
+    # each is printed. So there is no data path from os.environ to this output at all,
+    # only a control-flow one. See CredentialPresence and V2_MISSING_WARNING.
+    presence = presence_from_env(env)
+    if not presence.v2:
+        print(f"csa-skilljar: {V2_MISSING_WARNING}", file=sys.stderr)
+    if not presence.v1:
+        print(f"csa-skilljar: {V1_MISSING_WARNING}", file=sys.stderr)
 
     # Credentials are never resolved here: a missing one must not stop the server
     # starting, or the client reports an opaque "server failed to start" and the user
