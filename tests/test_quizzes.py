@@ -147,3 +147,22 @@ def test_delete_requires_at_least_one_id(quizzes):
     with pytest.raises(ToolError) as e:
         quizzes["delete_quizzes"](quiz_ids=[])
     assert "at least one" in str(e.value)
+
+
+def test_deleting_a_quiz_spares_bank_owned_questions():
+    """The cascade rule from the captured registry, and the reason it is in the tool's
+    description: a quiz owns only questions created with quiz_id set. Shared exam
+    content in a bank survives."""
+    client = SkilljarClient(PolicyBackend(FakeBackend(
+        quizzes=[{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}],
+        questions=[
+            {"type": "questions", "id": "qu1",
+             "attributes": {"quiz_id": "q1", "question_html": "owned"}},
+            {"type": "questions", "id": "qu2",
+             "attributes": {"question_bank_id": "b1", "question_html": "shared"}},
+        ]), Policy.from_profile("full")))
+    app = MCPServer(name="t")
+    register_quiz_tools(app, lambda: client)
+    app._tool_manager._tools["delete_quizzes"].fn(quiz_ids=["q1"])
+    remaining = [q["id"] for q in client.list_questions()["data"]]
+    assert remaining == ["qu2"], "the bank-owned question must survive"

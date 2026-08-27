@@ -82,6 +82,18 @@ class Backend(Protocol):
 
     def delete_quizzes(self, *, quiz_ids: list[str]) -> Envelope: ...
 
+    def list_questions(self, *, quiz_id: str | None = None,
+                       question_bank_id: str | None = None, cursor: str | None = None,
+                       page_size: int | None = None) -> Envelope: ...
+
+    def get_question(self, *, question_id: str) -> Envelope: ...
+
+    def create_questions(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_questions(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_questions(self, *, question_ids: list[str]) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -93,7 +105,8 @@ class FakeBackend:
 
     def __init__(self, courses: list[dict[str, Any]] | None = None,
                  lessons: list[dict[str, Any]] | None = None,
-                 quizzes: list[dict[str, Any]] | None = None) -> None:
+                 quizzes: list[dict[str, Any]] | None = None,
+                 questions: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -101,6 +114,7 @@ class FakeBackend:
         self._courses = copy.deepcopy(list(courses or []))
         self._lessons = copy.deepcopy(list(lessons or []))
         self._quizzes = copy.deepcopy(list(quizzes or []))
+        self._questions = copy.deepcopy(list(questions or []))
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -294,8 +308,89 @@ class FakeBackend:
             self._quizzes.remove(row)
             # A quiz owns only questions where question.quiz == quiz. Bank-owned
             # questions survive - that is the cascade rule from the captured registry.
-            self._questions = [q for q in getattr(self, "_questions", [])
+            self._questions = [q for q in self._questions
                                if q.get("attributes", {}).get("quiz_id") != qid]
+            data.append({"status": "deleted", "id": qid})
+        return self._batch(data)
+
+    def list_questions(self, *, quiz_id: str | None = None,
+                       question_bank_id: str | None = None, cursor: str | None = None,
+                       page_size: int | None = None) -> Envelope:
+        rows = self._questions
+        if quiz_id is not None:
+            rows = [x for x in rows if x.get("attributes", {}).get("quiz_id") == quiz_id]
+        if question_bank_id is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("question_bank_id") == question_bank_id]
+        return self._page(rows, cursor, page_size, "/v2/questions/")
+
+    def get_question(self, *, question_id: str) -> Envelope:
+        for row in self._questions:
+            if row.get("id") == question_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no question with id {question_id}")
+
+    def create_questions(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, attrs in enumerate(items):
+            parent = attrs.get("quiz_id") or attrs.get("question_bank_id")
+            if not parent:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": "a question needs a quiz_id or a question_bank_id",
+                             "source": {"pointer": f"/data/{i}"}})
+                continue
+            stored = dict(attrs)
+            # The service assigns order and per-answer order; it never accepts them.
+            stored["order"] = (max((q.get("attributes", {}).get("order", 0)
+                                    for q in self._questions), default=0) + 10)
+            answers = [dict(a) for a in stored.get("answers", [])]
+            if stored.get("question_type") == "FILL_IN_THE_BLANK":
+                # Quirk from the captured registry: `correct` is accepted for a uniform
+                # wire shape and then FORCED True for this type regardless.
+                for a in answers:
+                    a["correct"] = True
+            for idx, a in enumerate(answers):
+                a["order"] = idx * 10
+            stored["answers"] = answers
+            new_id = f"qu{len(self._questions) + 1}"
+            self._questions.append({"type": "questions", "id": new_id, "attributes": stored})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_questions(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            qid = item.get("id")
+            row = next((r for r in self._questions if r.get("id") == qid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no question with id {qid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            stored_type = row.get("attributes", {}).get("question_type")
+            # Cross-state validation: a flag conflicting with the STORED type is a
+            # PER-ITEM validation_error, not a document-level 422 - the schema cannot
+            # see the stored type, so this can only happen here.
+            if "case_sensitive" in item and stored_type != "FILL_IN_THE_BLANK":
+                data.append({"status": "error", "code": "validation_error",
+                             "detail": f"case_sensitive is only valid on FILL_IN_THE_BLANK "
+                                       f"questions; this one is {stored_type}",
+                             "source": {"pointer": f"/data/{i}/attributes/case_sensitive"}})
+                continue
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": qid})
+        return self._batch(data)
+
+    def delete_questions(self, *, question_ids: list[str]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, qid in enumerate(question_ids):
+            row = next((r for r in self._questions if r.get("id") == qid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no question with id {qid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            self._questions.remove(row)
             data.append({"status": "deleted", "id": qid})
         return self._batch(data)
 
@@ -458,3 +553,28 @@ class V2Backend:
     def delete_quizzes(self, *, quiz_ids: list[str]) -> Envelope:
         return self._send("DELETE", "/v2/quizzes/", {
             "data": [{"type": "quizzes", "id": qid} for qid in quiz_ids]})
+
+    def list_questions(self, *, quiz_id: str | None = None,
+                       question_bank_id: str | None = None, cursor: str | None = None,
+                       page_size: int | None = None) -> Envelope:
+        return self._get("/v2/questions/", {
+            "filter[quiz_id]": quiz_id, "filter[question_bank_id]": question_bank_id,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_question(self, *, question_id: str) -> Envelope:
+        return self._get(f"/v2/questions/{question_id}", template="/v2/questions/{id}")
+
+    def create_questions(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/questions/", {
+            "data": [{"type": "questions", "attributes": a} for a in items]})
+
+    def update_questions(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/questions/", {
+            "data": [{"type": "questions", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def delete_questions(self, *, question_ids: list[str]) -> Envelope:
+        return self._send("DELETE", "/v2/questions/", {
+            "data": [{"type": "questions", "id": qid} for qid in question_ids]})

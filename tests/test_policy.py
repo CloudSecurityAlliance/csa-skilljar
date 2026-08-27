@@ -48,13 +48,15 @@ def test_refusal_names_the_setting_the_operator_would_change():
 # is invisible to any test that reads _GATES, and that is the bug this exists to catch.
 EXPECTED_BY_CAPABILITY = {
     "content.read": {"list_courses", "get_course", "list_lessons", "get_lesson",
-                     "list_quizzes", "get_quiz"},
+                     "list_quizzes", "get_quiz",
+                     "list_questions", "get_question"},
     "content.write": {"create_courses", "update_courses",
                       "create_lessons", "update_lessons",
-                      "create_quizzes", "update_quizzes"},
+                      "create_quizzes", "update_quizzes",
+                      "create_questions", "update_questions"},
     # Deliberately NOT in content.write: an authoring credential must not be able to
     # destroy what it can create.
-    "content.delete": {"delete_quizzes"},
+    "content.delete": {"delete_quizzes", "delete_questions"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -67,6 +69,9 @@ CALL_ARGS = {
     "list_quizzes": {}, "get_quiz": {"quiz_id": "q1"},
     "create_quizzes": {"items": []}, "update_quizzes": {"items": []},
     "delete_quizzes": {"quiz_ids": []},
+    "list_questions": {}, "get_question": {"question_id": "qu1"},
+    "create_questions": {"items": []}, "update_questions": {"items": []},
+    "delete_questions": {"question_ids": []},
 }
 
 

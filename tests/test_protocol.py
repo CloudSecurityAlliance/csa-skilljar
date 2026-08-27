@@ -39,18 +39,29 @@ EXERCISE = {
     "create_quizzes": {"quizzes": [{"name": "New"}]},
     "update_quizzes": {"quizzes": [{"id": "q1", "name": "Renamed"}]},
     "delete_quizzes": {"quiz_ids": ["q1"]},
+    "list_questions": {},
+    "get_question": {"id": "qu1"},
+    "create_questions": {"questions": [{"question_html": "<p>Q?</p>",
+                                        "question_type": "FREEFORM",
+                                        "quiz_id": "q1", "answers": []}]},
+    "update_questions": {"questions": [{"id": "qu1", "question_html": "<p>Changed</p>"}]},
+    "delete_questions": {"question_ids": ["qu1"]},
 }
 
 
 LESSON_ROWS = [{"type": "lessons", "id": "l1",
                 "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
 QUIZ_ROWS = [{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}]
+QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
+    "question_html": "<p>Q?</p>", "question_type": "FREEFORM", "quiz_id": "q1",
+    "answers": []}}]
 
 
 def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     client = SkilljarClient(PolicyBackend(
-        FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS),
+        FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
+                    questions=QUESTION_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 

@@ -46,6 +46,11 @@ REQUIREMENTS = {
     "create_quizzes": ["batch", "quizzes:write", "name", "unlimited"],
     "update_quizzes": ["batch", "quizzes:write", "preserved"],
     "delete_quizzes": ["destructive", "untouched", "content.delete", "explicit instruction"],
+    "list_questions": ["one page", "has_more", "xor", "get_question"],
+    "get_question": ["untrusted", "answers", "list_questions"],
+    "create_questions": ["batch", "exactly one", "freeform", "1000"],
+    "update_questions": ["immutable", "read-only", "delete_questions", "that row"],
+    "delete_questions": ["destructive", "untouched", "content.delete", "question_ids"],
 }
 
 
