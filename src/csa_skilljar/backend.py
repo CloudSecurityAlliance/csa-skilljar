@@ -54,6 +54,8 @@ class Backend(Protocol):
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope: ...
 
+    def get_course(self, *, course_id: str) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -72,14 +74,29 @@ class FakeBackend:
         if title is not None:
             needle = title.lower()
             rows = [c for c in rows if needle in c.get("attributes", {}).get("title", "").lower()]
+        return self._page(rows, cursor, page_size, "/v2/courses/")
+
+    def _page(self, rows: list[dict[str, Any]], cursor: str | None,
+              page_size: int | None, self_link: str) -> Envelope:
+        """v2's cursor pagination shape, shared by every listing.
+
+        The cursor is an integer index here and an opaque token upstream - which is
+        exactly why `tests/integration/` has to prove real pagination separately.
+        """
         start = int(cursor) if cursor else 0
         size = page_size or 25
         page = rows[start:start + size]
         nxt = start + size
         more = nxt < len(rows)
         return {"data": page, "meta": {"page_size": size},
-                "links": {"self": "/v2/courses/", "next": None, "prev": None},
+                "links": {"self": self_link, "next": None, "prev": None},
                 "has_more": more, "next_cursor": str(nxt) if more else None}
+
+    def get_course(self, *, course_id: str) -> Envelope:
+        for row in self._courses:
+            if row.get("id") == course_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no course with id {course_id}")
 
 
 class V2Backend:
@@ -96,16 +113,24 @@ class V2Backend:
         self._creds = credentials; self._base = base_url.rstrip("/")
         self._http = http or httpx.Client(timeout=30.0)
 
-    def _get(self, path: str, params: dict[str, Any] | None = None) -> Envelope:
+    def _get(self, path: str, params: dict[str, Any] | None = None,
+             *, template: str | None = None) -> Envelope:
+        """GET `path`, looking up the required scope under `template`.
+
+        Scope lookup is by literal spec path, so an interpolated `/v2/courses/abc123`
+        never matches `/v2/courses/{id}`. Callers with an id in the path pass the
+        template separately rather than having the scope pre-check silently skipped.
+        """
+        spec_path = template or path
         # ZD-2: an unknown path must not look like "declared, needs no scope". Without
         # this, a typo silently disables the scope pre-check - a control failing open
         # and saying nothing.
-        if not is_known_operation("GET", path):
+        if not is_known_operation("GET", spec_path):
             raise exc.ApiError(
-                f"GET {path} is not a known v2 operation. This is a bug in csa-skilljar: "
-                f"the path is absent from the generated scope table. Regenerate with "
-                f"scripts/gen_scopes.py if specs/ was refreshed.")
-        needed = scopes_for("GET", path)
+                f"GET {spec_path} is not a known v2 operation. This is a bug in "
+                f"csa-skilljar: the path is absent from the generated scope table. "
+                f"Regenerate with scripts/gen_scopes.py if specs/ was refreshed.")
+        needed = scopes_for("GET", spec_path)
         if needed:
             granted = set(self._creds.granted_scopes())
             if not granted & set(needed):        # any-of semantics
@@ -147,3 +172,6 @@ class V2Backend:
             "filter[title]": title,
             "page[cursor]": cursor,
             "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_course(self, *, course_id: str) -> Envelope:
+        return self._get(f"/v2/courses/{course_id}", template="/v2/courses/{id}")

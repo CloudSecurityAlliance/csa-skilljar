@@ -33,6 +33,7 @@ REQUIREMENTS = {
     "describe_capabilities": ["not enabled", "cannot be changed"],
     "report_a_problem": ["what_happened", "no credential"],
     "list_courses": ["one page", "has_more", "next_cursor", "courses:read", "filter_title"],
+    "get_course": ["courses:read", "does not return", "list_lessons"],
 }
 
 

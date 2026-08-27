@@ -17,9 +17,25 @@ def test_no_tool_name_carries_a_version_marker():
         assert "_v1_" not in name and "_v2_" not in name, name
 
 
-def test_all_four_block_one_tools_are_registered():
-    assert set(tools()) == {"check_access", "describe_capabilities",
-                            "report_a_problem", "list_courses"}
+# Tools that must never disappear, whatever a later block adds. Asserting the EXACT
+# registry here went stale the moment Block 2 added its first tool, and a test that
+# needs editing every block gets edited without being read.
+ALWAYS_PRESENT = {"check_access", "describe_capabilities", "report_a_problem", "list_courses"}
+
+
+def test_the_foundational_tools_remain_registered():
+    missing = ALWAYS_PRESENT - set(tools())
+    assert not missing, f"a later block removed: {sorted(missing)}"
+
+
+def test_every_registered_tool_is_exercised_by_the_protocol_suite():
+    """Coverage computed from the registry: a tool added without a protocol test shows
+    up here as a hole rather than being quietly untested."""
+    from tests.test_protocol import EXERCISE
+    assert set(tools()) == set(EXERCISE), (
+        f"registry and protocol exercise table disagree: "
+        f"{sorted(set(tools()) ^ set(EXERCISE))}"
+    )
 
 
 def test_the_server_carries_instructions_naming_the_untrusted_content_risk():

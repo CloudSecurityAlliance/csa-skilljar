@@ -26,6 +26,7 @@ EXERCISE = {
     "describe_capabilities": {},
     "report_a_problem": {"what_happened": "nothing, this is a test"},
     "list_courses": {},
+    "get_course": {"id": "c1"},
 }
 
 

@@ -49,3 +49,16 @@ class CourseListOut(TypedDict):
     has_more: bool
     next_cursor: NotRequired[str]
     note: str
+
+
+class CourseDetailOut(TypedDict):
+    id: str
+    title: str
+    short_description: NotRequired[str]
+    long_description_html: NotRequired[str]
+    enforce_sequential_navigation: NotRequired[bool]
+    external_id: NotRequired[str]
+    is_published: NotRequired[bool]
+    lesson_count: NotRequired[int]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
