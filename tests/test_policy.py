@@ -43,20 +43,61 @@ def test_refusal_names_the_setting_the_operator_would_change():
     assert "CSA_SKILLJAR_PROFILE" in str(e.value)
 
 
+# Hand-written. NEVER derive this from _GATES: deriving it tests the table against
+# itself and passes no matter what the table says. A gate wired to the WRONG capability
+# is invisible to any test that reads _GATES, and that is the bug this exists to catch.
+EXPECTED_BY_CAPABILITY = {
+    "content.read": {"list_courses", "get_course", "list_lessons", "get_lesson"},
+    "content.write": {"create_courses", "update_courses",
+                      "create_lessons", "update_lessons"},
+}
+
+# Arguments good enough to reach the gate. A NotFound from the fake means the gate
+# OPENED, which is what is being asserted.
+CALL_ARGS = {
+    "list_courses": {}, "get_course": {"course_id": "c1"},
+    "list_lessons": {}, "get_lesson": {"lesson_id": "l1"},
+    "create_courses": {"items": []}, "update_courses": {"items": []},
+    "create_lessons": {"items": []}, "update_lessons": {"items": []},
+}
+
+
+def test_the_matrix_covers_every_gated_method():
+    """If a block adds a Backend method and forgets the matrix, that is a hole."""
+    covered = set().union(*EXPECTED_BY_CAPABILITY.values())
+    assert covered == set(P._GATES), (
+        f"matrix and _GATES disagree: {sorted(covered ^ set(P._GATES))}"
+    )
+
+
 def test_one_capability_at_a_time_matrix():
-    """Hand-written, NEVER derived from _GATES. Deriving it tests the table against
-    itself and passes no matter what the table says."""
-    expected = {"content.read": {"list_courses"}}
-    every_method = {"list_courses"}
+    """Enable exactly one capability; assert precisely which operations become possible."""
+    every_method = set().union(*EXPECTED_BY_CAPABILITY.values())
     for cap in P.ALL_CAPABILITIES:
-        allowed = expected.get(cap, set())
+        allowed = EXPECTED_BY_CAPABILITY.get(cap, set())
         pb = P.PolicyBackend(FakeBackend(courses=ROWS), P.Policy(frozenset({cap})))
-        for name in every_method:
+        for name in sorted(every_method):
             if name in allowed:
-                getattr(pb, name)()
+                try:
+                    getattr(pb, name)(**CALL_ARGS[name])
+                except exc.PolicyError:
+                    pytest.fail(f"{cap} should permit {name} but it was refused")
+                except exc.SkilljarError:
+                    pass          # not-found from the fake: the GATE opened, which is the point
             else:
                 with pytest.raises(exc.PolicyError):
-                    getattr(pb, name)()
+                    getattr(pb, name)(**CALL_ARGS[name])
+
+
+def test_no_capability_is_an_accidental_superset_of_another():
+    read_only = P.PolicyBackend(FakeBackend(courses=ROWS),
+                                P.Policy(frozenset({P.READ_CONTENT})))
+    with pytest.raises(exc.PolicyError):
+        read_only.create_courses(items=[])
+    write_only = P.PolicyBackend(FakeBackend(courses=ROWS),
+                                 P.Policy(frozenset({P.WRITE_CONTENT})))
+    with pytest.raises(exc.PolicyError):
+        write_only.list_courses()
 
 
 def test_unknown_profile_is_a_loud_error_not_a_silent_default():
