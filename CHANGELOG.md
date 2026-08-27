@@ -7,6 +7,49 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 9 — web packages and client registration. PARITY COMPLETE.** Six tools, and
+  the last of the official server's 73. `tests/test_parity.py` now asserts the diff:
+  73 of 73 present, zero missing, three declared extras of our own.
+- Web packages are the only ASYNCHRONOUS family. `create_web_packages` queues an
+  outbound fetch and returns rows in state PROCESSING; a malformed archive surfaces
+  later as state ERROR and never as a failure on the create call. The description says
+  so explicitly, because a model that reports "uploaded" here is reporting on a job that
+  has not run.
+- `create_web_packages` deliberately does NOT deduplicate on `content_url` — every other
+  create tool here does, and two identical URLs are a legitimate request for two
+  packages.
+- `update_web_packages` refuses `type`, `state`, `base_path` and `display_name`. Skilljar
+  accepts them and silently ignores them, which is unusual for this API and exactly
+  ADR-008's case.
+- `update_web_packages` warns that a rename can look like it did nothing: `display_name`
+  is derived and only tracks `title` once the package reaches READY.
+- `delete_web_package` takes one id rather than a batch, because its conflict outcome
+  has no home in a per-row result: deleting a package a live lesson still uses is
+  refused outright.
+- `register_oauth_client` is the only UNAUTHENTICATED call in the server and the only one
+  that returns a credential. It is routed through a dedicated `_register` path rather
+  than `_send`, so the organization's bearer token is never sent to a registration
+  endpoint that does not want it — and so the call works when no credential is
+  configured, which is the situation someone registering a client is in. RFC 7591's
+  `{error, error_description}` shape is surfaced rather than collapsed to a status code.
+  It is off unless the `admin` profile is named, though Skilljar's own server ships it
+  enabled.
+- New `webpackages.read` / `webpackages.write` capabilities; the `authoring` profile
+  grants both, since packages are authoring material.
+
+### Fixed
+- `get_certificate` returned only status and timestamps, dropping `code` — the public
+  verification code, which is the thing a learner or employer actually quotes — and
+  `score_as_percent`. Both are now returned, and the description explains that a null
+  score means "not recorded", not zero. Found by the new parity test's
+  minimum-description check rather than by anyone reading it.
+- A new `ConflictError` would have reached the MCP client as `UnexpectedToolError` with
+  its **message discarded** (CLAUDE.md invariant 2). Added its translation clause, a
+  base-class backstop so a future subclass degrades to readable rather than silent, and
+  `tests/test_error_translation.py`, which walks `SkilljarError.__subclasses__()` so a
+  new error type is covered the moment it is defined.
+
+### Added
 - **Block 8 — publishing and catalog.** Twelve tools, and the first whose effects are
   visible to the anonymous public: publishing puts a course on a customer-facing domain,
   `open_access` allows anonymous access, and `visible_on_catalog` lists it publicly.

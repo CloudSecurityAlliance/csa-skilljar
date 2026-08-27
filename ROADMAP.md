@@ -190,7 +190,7 @@ Gating by the scope the credential actually needs keeps the local gate and the r
 disagreeing.
 **Ships:** v0.7.0
 
-### Block 9 — Web packages & OAuth client · Next · 6 tools
+### Block 9 — Web packages & OAuth client · Done · 6 tools
 
 `list_web_packages` `get_web_package` `create_web_packages` `update_web_packages`
 `delete_web_package` · `register_oauth_client`
@@ -199,7 +199,12 @@ Small closing block. `register_oauth_client` mints a credential, so it goes behi
 profile even though the official server ships it on.
 
 **Done when:** the registry diff against the live official server shows **zero missing tools** —
-parity is a passing test, not a claim (ADR-006).
+parity is a passing test, not a claim (ADR-006). — **met.** `tests/test_parity.py` diffs the
+registered surface against the captured `specs/official-mcp/tool-names.json`: 73 of 73 present,
+zero missing, and the only three extras are our own server-management tools, listed explicitly so
+"extra" cannot become a dumping ground. The diff runs against the artifact rather than the network
+because reaching the live server needs an interactive login (FRICTION-001), and a test that needs
+a login is a test that does not run.
 **Ships:** v0.8.0 — **parity complete**
 
 ---

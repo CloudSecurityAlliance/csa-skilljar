@@ -10,9 +10,11 @@ from .questions import register_question_tools
 from .quizzes import register_quiz_tools
 from .signup_fields import register_signup_field_tools
 from .students import register_student_tools
+from .web_packages import register_web_package_tools
 
 __all__ = ["register_access_tools", "register_course_tools", "register_enrolment_tools",
            "register_feedback_tools", "register_group_tools", "register_lesson_tools",
            "register_publishing_tools", "register_question_bank_tools", "register_question_tools",
            "register_quiz_tools", "register_signup_field_tools",
-           "register_student_tools"]
+           "register_student_tools",
+           "register_web_package_tools"]

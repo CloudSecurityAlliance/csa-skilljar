@@ -136,6 +136,19 @@ REQUIREMENTS = {
                                  "blocklist", "idempotent", "published_course_id"],
     "remove_visibility_overrides": ["batch", "student-groups:write", "revoke access",
                                     "grant access", "echo"],
+    # Web packages - the asynchronous family, where "succeeded" means "queued".
+    "list_web_packages": ["web-packages:read", "not paginated", "ready"],
+    "get_web_package": ["web-packages:read", "polling tool", "processing", "error",
+                        "display_name"],
+    "create_web_packages": ["asynchronous", "web-packages:write", "content_url",
+                            "does not mean the package works", "no deduplication",
+                            "rate limited"],
+    "update_web_packages": ["batch", "web-packages:write", "only writable field",
+                            "silently ignores", "look like it did nothing"],
+    "delete_web_package": ["web-packages:write", "refused", "live", "soft"],
+    "register_oauth_client": ["mints a credential", "unauthenticated", "client_name",
+                              "cannot be retrieved again", "no organization is bound",
+                              "admin"],
 }
 
 

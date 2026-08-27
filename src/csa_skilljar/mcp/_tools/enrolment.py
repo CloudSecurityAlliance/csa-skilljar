@@ -196,13 +196,29 @@ def register_enrolment_tools(app: MCPServer,
     @app.tool(annotations=READ)
     @translate_errors
     def get_certificate(id: str) -> CertificateOut:
-        """Fetch one issued certificate by its Skilljar id.
+        """Fetch one issued certificate, including its public verification code.
 
-        Returns its status, when it was issued and when it expires. Requires the
-        `certificates:read` OAuth scope.
+        `id` is the obfuscated certificate id, which is what `list_certificates`
+        returns - it is NOT the `code`.
+
+        `code` is the certificate's unique public identifier: the string a learner or
+        their employer quotes to verify the certificate. Treat it as the answer to "how
+        do I prove I completed this", and note that anyone holding it can look the
+        certificate up.
+
+        `expires_at` is null for a certificate that does not expire, which is not the
+        same as one whose expiry is unknown. `score_as_percent` is null when no score
+        was recorded rather than zero - do not report a missing score as a failure.
+
+        `status` reflects the certificate itself, not the enrolment; a revoked or
+        expired certificate can belong to a completed course. Use `get_enrollment` for
+        the learner's progress.
+
+        Requires the `certificates:read` OAuth scope.
         """
         row = get_client().get_certificate(certificate_id=id).get("data", {})
-        return _flatten(row, ("status", "issued_at", "expires_at"))  # type: ignore[return-value]
+        return _flatten(row, ("status", "issued_at", "expires_at", "code",  # type: ignore[return-value]
+                              "score_as_percent"))
 
     @app.tool(annotations=READ)
     @translate_errors

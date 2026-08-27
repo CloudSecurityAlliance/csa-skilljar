@@ -291,3 +291,29 @@ class SkilljarClient:
 
     def get_domain(self, *, domain_id: str) -> dict[str, Any]:
         return self._backend.get_domain(domain_id=domain_id)
+
+    def list_web_packages(self) -> dict[str, Any]:
+        return self._backend.list_web_packages()
+
+    def get_web_package(self, *, web_package_id: str) -> dict[str, Any]:
+        return self._backend.get_web_package(web_package_id=web_package_id)
+
+    def create_web_packages(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_web_packages(items=items)
+
+    def update_web_packages(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_web_packages(items=items)
+
+    def delete_web_package(self, *, web_package_id: str) -> dict[str, Any]:
+        return self._backend.delete_web_package(web_package_id=web_package_id)
+
+    def register_oauth_client(self, *, client_name: str,
+                              redirect_uris: list[str] | None = None,
+                              grant_types: list[str] | None = None,
+                              scope: str | None = None,
+                              token_endpoint_auth_method: str = "client_secret_post",
+                              resource: str = "") -> dict[str, Any]:
+        return self._backend.register_oauth_client(
+            client_name=client_name, redirect_uris=redirect_uris,
+            grant_types=grant_types, scope=scope,
+            token_endpoint_auth_method=token_endpoint_auth_method, resource=resource)
