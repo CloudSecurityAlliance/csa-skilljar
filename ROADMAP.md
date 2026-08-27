@@ -121,7 +121,7 @@ capability a widely-repeated published claim said did not exist in v2 (`FRICTION
 unbound — the full TAISE item-reuse pattern, executed end to end.
 **Ships:** v0.3.0
 
-### Block 5 — Enrolment & reporting · Next · 9 tools
+### Block 5 — Enrolment & reporting · Implemented, awaiting release · 9 tools
 
 `list_enrollments` `get_enrollment` `update_enrollments` `complete_enrollments`
 `bulk_enroll_students` `list_certificates` `get_certificate` `get_course_analytics`
@@ -134,7 +134,7 @@ arrives in Block 11.
 per-item results; the description says plainly that per-lesson detail is not available here.
 **Ships:** v0.4.0
 
-### Block 6 — Students · Planned · 8 tools
+### Block 6 — Students · Next · 8 tools
 
 `list_students` `get_student` `create_students` `update_students` `anonymize_student`
 `deactivate_student` `set_password` `send_password_reset`

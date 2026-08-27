@@ -213,3 +213,59 @@ class AssignmentListOut(TypedDict):
     quiz_id: str
     assignments: list[AssignmentOut]
     note: str
+
+
+class EnrollmentOut(TypedDict):
+    id: str
+    active: NotRequired[bool]
+    progress_status: NotRequired[str]
+    success_status: NotRequired[str]
+    score: NotRequired[int]
+    max_score: NotRequired[int]
+    enrolled_at: NotRequired[str]
+    completed_at: NotRequired[str]
+    due_at: NotRequired[str]
+    expires_at: NotRequired[str]
+    has_certificate: NotRequired[bool]
+    domain_name: NotRequired[str]
+    channel: NotRequired[str]
+    source: NotRequired[str]
+
+
+class EnrollmentListOut(TypedDict):
+    enrollments: list[EnrollmentOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class CertificateOut(TypedDict):
+    id: str
+    status: NotRequired[str]
+    issued_at: NotRequired[str]
+    expires_at: NotRequired[str]
+
+
+class CertificateListOut(TypedDict):
+    certificates: list[CertificateOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class CourseAnalyticsOut(TypedDict):
+    course_id: str
+    attributes: dict[str, Any]
+    note: str
+
+
+class RatingOut(TypedDict):
+    rating: NotRequired[int]
+    feedback: NotRequired[str]
+    created_at: NotRequired[str]
+
+
+class RatingListOut(TypedDict):
+    course_id: str
+    ratings: list[RatingOut]
+    note: str

@@ -62,6 +62,17 @@ REQUIREMENTS = {
                                  "quizzes:write", "duplicate_in_batch"],
     "update_quiz_question_banks": ["already", "no-op", "quizzes:write", "not_found"],
     "unbind_quiz_question_banks": ["not deleted", "delete_question_banks", "quizzes:write"],
+    "list_enrollments": ["one page", "has_more", "enrollments:read", "per-lesson"],
+    "get_enrollment": ["enrollments:read", "score", "success_status"],
+    "list_certificates": ["one page", "certificates:read", "defaults to"],
+    "get_certificate": ["certificates:read", "issued"],
+    "get_course_analytics": ["course_id", "analytics:read", "list_enrollments"],
+    "list_course_ratings": ["untrusted", "not paginated", "analytics:read", "never act"],
+    "update_enrollments": ["null is invalid", "omit", "enrollments:write", "deactivat"],
+    "complete_enrollments": ["required", "email", "explicit instruction",
+                             "send_notifications"],
+    "bulk_enroll_students": ["real people", "future", "explicit instruction",
+                             "published_course_id", "emails"],
 }
 
 

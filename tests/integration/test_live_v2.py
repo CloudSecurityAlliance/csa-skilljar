@@ -123,3 +123,25 @@ def test_bank_assignments_are_readable_and_unpaginated(live_client):
     assert "has_more" not in env, (
         "this endpoint is documented as returning a plain unpaginated envelope"
     )
+
+
+def test_enrollments_carry_real_progress(live_client):
+    env = live_client.list_enrollments(page_size=5)
+    assert "data" in env
+    if not env["data"]:
+        pytest.skip("organization has no enrollments")
+    attrs = env["data"][0]["attributes"]
+    assert "progress_status" in attrs, "v2 enrollments are the course-level report"
+
+
+def test_certificates_default_to_every_status(live_client):
+    """filter_status defaults to `all`, so an expired certificate is included."""
+    every = live_client.list_certificates(page_size=5)
+    active = live_client.list_certificates(status="active", page_size=5)
+    assert len(every["data"]) >= len(active["data"])
+
+
+def test_course_analytics_needs_a_course(live_client):
+    course = live_client.list_courses(page_size=1)["data"][0]
+    env = live_client.get_course_analytics(course_id=course["id"])
+    assert "data" in env
