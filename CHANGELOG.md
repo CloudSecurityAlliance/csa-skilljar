@@ -6,6 +6,30 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Five list tools never paginated.** `list_groups`, `list_visibility_overrides`,
+  `list_signup_field_values`, `list_published_courses` and `list_domains` read `has_more`
+  and `next_cursor` out of `meta`. Real Skilljar — and `FakeBackend`, which matches it —
+  put both at the **top level** of the envelope; `meta` carries only `page_size`. So all
+  five always reported `has_more: false` and never emitted a cursor: a caller was told
+  "that is everything" after one page. Confirmed against live Skilljar, where
+  `list_domains` returned one row and claimed there were no more.
+- Introduced in Blocks 7–9. The eight earlier list tools read the envelope correctly,
+  which is why it looked like a working pattern.
+- **Nothing caught it because the per-block tests asserted `has_more is False` on
+  single-page fixtures** — an assertion that passes whether the code works or not. A test
+  that can only observe the value the bug produces is not a test of it.
+
+### Added
+- **`tests/test_pagination.py`** — one fixture deep enough to force a second page, driven
+  through the real tools, for every paginated tool at once: first page reports more and
+  offers a cursor, the cursor advances, the last page says so. Plus the inverse for the
+  three tools Skilljar does not paginate, which must not grow paging arguments they
+  cannot honour.
+- It is **fail-closed**: a list tool that appears in neither the paginated nor the
+  unpaginated set fails the classification test, so the next one is covered without
+  anyone remembering.
+
 ### Added
 - **The integration suite can no longer write to a real organization.** Its conftest
   claimed "everything here is READ-ONLY" for several blocks and nothing enforced it —

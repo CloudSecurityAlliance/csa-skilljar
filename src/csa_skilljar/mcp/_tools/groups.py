@@ -159,11 +159,10 @@ def register_group_tools(app: MCPServer,
             name=filter_name, category_id=filter_category_id,
             cursor=page_cursor, page_size=page_size)
         rows = envelope.get("data", [])
-        meta = envelope.get("meta", {})
         out: GroupListOut = {"groups": [_flatten(r) for r in rows],
-                             "has_more": bool(meta.get("has_more")), "note": _NOTE}
-        if meta.get("next_cursor"):
-            out["next_cursor"] = str(meta["next_cursor"])
+                             "has_more": bool(envelope.get("has_more")), "note": _NOTE}
+        if envelope.get("next_cursor"):
+            out["next_cursor"] = str(envelope["next_cursor"])
         return out
 
     @app.tool(annotations=READ)
@@ -357,13 +356,12 @@ def register_group_tools(app: MCPServer,
             published_course_id=filter_published_course_id,
             cursor=page_cursor, page_size=page_size)
         rows = envelope.get("data", [])
-        meta = envelope.get("meta", {})
         out: VisibilityOverrideListOut = {
             "group_id": id, "overrides": [_flatten_override(r) for r in rows],
-            "has_more": bool(meta.get("has_more")),
+            "has_more": bool(envelope.get("has_more")),
             "note": f"{_NOTE} {_COEXIST_NOTE}"}
-        if meta.get("next_cursor"):
-            out["next_cursor"] = str(meta["next_cursor"])
+        if envelope.get("next_cursor"):
+            out["next_cursor"] = str(envelope["next_cursor"])
         return out
 
     @app.tool(annotations=WRITE)

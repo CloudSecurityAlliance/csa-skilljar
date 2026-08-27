@@ -110,13 +110,12 @@ def register_signup_field_tools(app: MCPServer,
             student_id=filter_student_id, signup_field_id=filter_signup_field_id,
             domains=filter_domains, cursor=page_cursor, page_size=page_size)
         rows = envelope.get("data", [])
-        meta = envelope.get("meta", {})
         out: SignupFieldValueListOut = {
             "values": [_flatten(r) for r in rows],
-            "has_more": bool(meta.get("has_more")),
+            "has_more": bool(envelope.get("has_more")),
             "note": f"{_NOTE} {_UNTRUSTED}"}
-        if meta.get("next_cursor"):
-            out["next_cursor"] = str(meta["next_cursor"])
+        if envelope.get("next_cursor"):
+            out["next_cursor"] = str(envelope["next_cursor"])
         return out
 
     @app.tool(annotations=READ)

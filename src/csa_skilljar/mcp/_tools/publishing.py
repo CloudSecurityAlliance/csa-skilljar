@@ -129,12 +129,11 @@ def register_publishing_tools(app: MCPServer,
             course_id=filter_course, domain_id=filter_domain, live=filter_live,
             include=include, cursor=page_cursor, page_size=page_size)
         rows = envelope.get("data", [])
-        meta = envelope.get("meta", {})
         out: PublishedCourseListOut = {
             "published_courses": [_flatten_pc(r) for r in rows],
-            "has_more": bool(meta.get("has_more")), "note": f"{_NOTE} {_SLUG_NOTE}"}
-        if meta.get("next_cursor"):
-            out["next_cursor"] = str(meta["next_cursor"])
+            "has_more": bool(envelope.get("has_more")), "note": f"{_NOTE} {_SLUG_NOTE}"}
+        if envelope.get("next_cursor"):
+            out["next_cursor"] = str(envelope["next_cursor"])
         return out
 
     @app.tool(annotations=READ)
@@ -339,11 +338,10 @@ def register_publishing_tools(app: MCPServer,
             access=filter_access, name=filter_name, include=include,
             cursor=page_cursor, page_size=page_size)
         rows = envelope.get("data", [])
-        meta = envelope.get("meta", {})
         out: DomainListOut = {"domains": [_flatten_domain(r) for r in rows],
-                              "has_more": bool(meta.get("has_more")), "note": _NOTE}
-        if meta.get("next_cursor"):
-            out["next_cursor"] = str(meta["next_cursor"])
+                              "has_more": bool(envelope.get("has_more")), "note": _NOTE}
+        if envelope.get("next_cursor"):
+            out["next_cursor"] = str(envelope["next_cursor"])
         return out
 
     @app.tool(annotations=READ)
