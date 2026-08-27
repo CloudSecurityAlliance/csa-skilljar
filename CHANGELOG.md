@@ -6,6 +6,28 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.8.0] — 2026-08-27
+
+**First release. Full parity with Skilljar's official MCP server — all 73 of its tools,
+asserted by `tests/test_parity.py` rather than claimed — plus pagination on every listing
+that supports it, capability gating, and a local scope pre-check.**
+
+Collapses the six versions the roadmap had assigned to Blocks 2–9 (v0.1.0–v0.8.0) into
+one, because none of them was ever published: the release was blocked on a v2 credential
+(`WAITING-FOR-002`, closed 2026-08-27) while the blocks landed behind it. The number is
+the one the roadmap gave to parity-complete, which is the honest description of what this
+is — a working, complete, pre-1.0 surface.
+
+**Writes are implemented but unproven against Skilljar.** No write tool has ever run
+against a real organization, and `tests/integration/` is enforced read-only until
+`WAITING-FOR-003` closes. That blocks confidence, not delivery, and is stated here so the
+absence is not mistaken for an absence of testing.
+
+What follows is the per-block detail, newest first.
+
+
 ### Fixed
 - **Five list tools never paginated.** `list_groups`, `list_visibility_overrides`,
   `list_signup_field_values`, `list_published_courses` and `list_domains` read `has_more`

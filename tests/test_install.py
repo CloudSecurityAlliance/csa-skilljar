@@ -16,6 +16,8 @@ import sys
 
 import pytest
 
+import csa_skilljar
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
@@ -88,7 +90,7 @@ def test_a_built_wheel_installs_and_the_console_script_runs(tmp_path):
     script = venv / ("Scripts" if sys.platform == "win32" else "bin") / "csa-skilljar-mcp"
     done = subprocess.run([str(script), "--version"], capture_output=True, text=True)
     assert done.returncode == 0, f"console script failed: {done.stderr}"
-    assert "0.0.1" in done.stderr
+    assert csa_skilljar.__version__ in done.stderr
 
 
 def test_the_integration_gate_skips_for_the_right_reason():
