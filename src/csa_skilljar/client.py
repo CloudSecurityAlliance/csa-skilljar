@@ -160,3 +160,27 @@ class SkilljarClient:
     def list_course_ratings(self, *, course_id: str,
                             student_id: str | None = None) -> dict[str, Any]:
         return self._backend.list_course_ratings(course_id=course_id, student_id=student_id)
+
+    def list_students(self, **kw: Any) -> dict[str, Any]:
+        return self._backend.list_students(**kw)
+
+    def get_student(self, *, student_id: str) -> dict[str, Any]:
+        return self._backend.get_student(student_id=student_id)
+
+    def create_students(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_students(items=items)
+
+    def update_students(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_students(items=items)
+
+    def anonymize_student(self, *, student_id: str) -> dict[str, Any]:
+        return self._backend.anonymize_student(student_id=student_id)
+
+    def deactivate_student(self, *, student_id: str) -> dict[str, Any]:
+        return self._backend.deactivate_student(student_id=student_id)
+
+    def set_student_password(self, *, student_id: str, password: str) -> dict[str, Any]:
+        return self._backend.set_student_password(student_id=student_id, password=password)
+
+    def send_password_reset(self, *, student_id: str, domain: str) -> dict[str, Any]:
+        return self._backend.send_password_reset(student_id=student_id, domain=domain)

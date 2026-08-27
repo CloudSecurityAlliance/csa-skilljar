@@ -13,6 +13,7 @@ from ._tools import (
     register_question_bank_tools,
     register_question_tools,
     register_quiz_tools,
+    register_student_tools,
 )
 
 __all__ = ["INSTRUCTIONS", "create_server"]
@@ -62,4 +63,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_question_tools(app, get_client)
     register_question_bank_tools(app, get_client)
     register_enrolment_tools(app, get_client)
+    register_student_tools(app, get_client)
     return app

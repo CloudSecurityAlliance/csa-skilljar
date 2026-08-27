@@ -269,3 +269,44 @@ class RatingListOut(TypedDict):
     course_id: str
     ratings: list[RatingOut]
     note: str
+
+
+class StudentOut(TypedDict):
+    id: str
+    email: NotRequired[str]
+    first_name: NotRequired[str]
+    last_name: NotRequired[str]
+    is_inactive: NotRequired[bool]
+    external_id: NotRequired[str]
+    date_joined: NotRequired[str]
+
+
+class StudentListOut(TypedDict):
+    students: list[StudentOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class AnonymizeOut(TypedDict):
+    id: str
+    anonymized: bool
+    note: str
+
+
+class DeactivateOut(TypedDict):
+    id: str
+    deactivated: bool
+    note: str
+
+
+class PasswordOut(TypedDict):
+    id: str
+    note: str
+
+
+class PasswordResetOut(TypedDict):
+    id: str
+    sent: bool
+    domain: str
+    note: str

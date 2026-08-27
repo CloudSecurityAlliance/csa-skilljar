@@ -73,6 +73,16 @@ REQUIREMENTS = {
                              "send_notifications"],
     "bulk_enroll_students": ["real people", "future", "explicit instruction",
                              "published_course_id", "emails"],
+    "list_students": ["one page", "has_more", "students:read", "exact"],
+    "get_student": ["students:read", "list_enrollments"],
+    "create_students": ["batch", "students:write", "does not enrol", "students"],
+    "update_students": ["read-only", "confirmation", "two separate calls", "students"],
+    "anonymize_student": ["cannot be undone", "confirm=true", "deactivate_student",
+                          "people.destructive"],
+    "deactivate_student": ["reversible", "people.destructive", "enrolments are"],
+    "set_student_password": ["account takeover", "confirm=true", "send_password_reset",
+                             "never appears"],
+    "send_password_reset": ["required", "list_domains", "people.destructive", "domain"],
 }
 
 

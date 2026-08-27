@@ -134,20 +134,23 @@ arrives in Block 11.
 per-item results; the description says plainly that per-lesson detail is not available here.
 **Ships:** v0.4.0
 
-### Block 6 — Students · Next · 8 tools
+### Block 6 — Students · Done · 8 tools
 
 `list_students` `get_student` `create_students` `update_students` `anonymize_student`
-`deactivate_student` `set_password` `send_password_reset`
+`deactivate_student` `set_student_password` `send_password_reset`
 
 **The dangerous block.** Irreversible PII erasure and an account-takeover primitive. Deliberately
 placed after the gating machinery has been exercised three times.
 
 **Done when:** all four sensitive tools are present and **off** under the default profile; each is
 individually enablable; the scope pre-check produces the exact-missing-scope message without a
-network call; `SECURITY-RESOURCES.md` is re-reviewed.
+network call; `SECURITY-RESOURCES.md` is re-reviewed. — **all met.** The four sensitive tools sit
+behind `people.destructive`, which turned out to be reachable only via `full` or by naming the
+capability outright; not even the `people` profile grants it. `SECURITY-RESOURCES.md` carries a
+dated Block 6 review.
 **Ships:** v0.5.0
 
-### Block 7 — Groups & signup fields · Planned · 11 tools
+### Block 7 — Groups & signup fields · Next · 11 tools
 
 `list_groups` `get_group` `create_groups` `update_groups` `delete_groups`
 `add_group_memberships` `remove_group_memberships`

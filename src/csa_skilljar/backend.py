@@ -149,6 +149,24 @@ class Backend(Protocol):
     def list_course_ratings(self, *, course_id: str,
                             student_id: str | None = None) -> Envelope: ...
 
+    def list_students(self, *, email: str | None = None, first_name: str | None = None,
+                      last_name: str | None = None, is_inactive: bool | None = None,
+                      cursor: str | None = None, page_size: int | None = None) -> Envelope: ...
+
+    def get_student(self, *, student_id: str) -> Envelope: ...
+
+    def create_students(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_students(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def anonymize_student(self, *, student_id: str) -> Envelope: ...
+
+    def deactivate_student(self, *, student_id: str) -> Envelope: ...
+
+    def set_student_password(self, *, student_id: str, password: str) -> Envelope: ...
+
+    def send_password_reset(self, *, student_id: str, domain: str) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -165,7 +183,8 @@ class FakeBackend:
                  question_banks: list[dict[str, Any]] | None = None,
                  enrollments: list[dict[str, Any]] | None = None,
                  certificates: list[dict[str, Any]] | None = None,
-                 course_ratings: list[dict[str, Any]] | None = None) -> None:
+                 course_ratings: list[dict[str, Any]] | None = None,
+                 students: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -181,6 +200,7 @@ class FakeBackend:
         self._enrollments = copy.deepcopy(list(enrollments or []))
         self._certificates = copy.deepcopy(list(certificates or []))
         self._ratings = copy.deepcopy(list(course_ratings or []))
+        self._students = copy.deepcopy(list(students or []))
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -736,6 +756,97 @@ class FakeBackend:
                             student_id: str | None = None) -> Envelope:
         return {"data": list(self._ratings)}
 
+    # --- students --------------------------------------------------------------------
+
+    def list_students(self, *, email: str | None = None, first_name: str | None = None,
+                      last_name: str | None = None, is_inactive: bool | None = None,
+                      cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        rows = self._students
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        if email is not None:
+            rows = [r for r in rows if str(attr(r, "email") or "").lower() == email.lower()]
+        if first_name is not None:
+            rows = [r for r in rows if attr(r, "first_name") == first_name]
+        if last_name is not None:
+            rows = [r for r in rows if attr(r, "last_name") == last_name]
+        if is_inactive is not None:
+            rows = [r for r in rows if bool(attr(r, "is_inactive")) is is_inactive]
+        return self._page(rows, cursor, page_size, "/v2/students/")
+
+    def get_student(self, *, student_id: str) -> Envelope:
+        for row in self._students:
+            if row.get("id") == student_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no student with id {student_id}")
+
+    def create_students(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, attrs in enumerate(items):
+            email = str(attrs.get("email", "")).lower()      # normalised on save
+            if email in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{email} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/attributes/email"}})
+                continue
+            seen.add(email)
+            new_id = f"s{len(self._students) + 1}"
+            self._students.append({"type": "students", "id": new_id,
+                                   "attributes": {**attrs, "email": email,
+                                                  "is_inactive": False}})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_students(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            sid, email = item.get("id"), item.get("email")
+            if sid:
+                row = next((r for r in self._students if r.get("id") == sid), None)
+            else:
+                row = next((r for r in self._students
+                            if str(r.get("attributes", {}).get("email", "")).lower()
+                            == str(email).lower()), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": "no such student in this organization",
+                             "source": {"pointer": f"/data/{i}"}})
+                continue
+            # With an id present, email is a CONFIRMATION, not a value to write.
+            if sid and email is not None:
+                stored = str(row.get("attributes", {}).get("email", "")).lower()
+                if stored != str(email).lower():
+                    data.append({"status": "error", "code": "validation_error",
+                                 "detail": f"id {sid} is {stored}, not {email}",
+                                 "source": {"pointer": f"/data/{i}/attributes/email"}})
+                    continue
+            row["attributes"].update(
+                {k: v for k, v in item.items() if k not in ("id", "email")})
+            data.append({"status": "updated", "id": row.get("id")})
+        return self._batch(data)
+
+    def anonymize_student(self, *, student_id: str) -> Envelope:
+        row = self.get_student(student_id=student_id)["data"]
+        row["attributes"] = {"email": f"anonymized-{student_id}@example.invalid",
+                             "first_name": "", "last_name": "", "is_inactive": True,
+                             "anonymized": True}
+        return {"data": row}
+
+    def deactivate_student(self, *, student_id: str) -> Envelope:
+        row = self.get_student(student_id=student_id)["data"]
+        row["attributes"]["is_inactive"] = True
+        return {"data": row}
+
+    def set_student_password(self, *, student_id: str, password: str) -> Envelope:
+        self.get_student(student_id=student_id)     # 404s for an unknown id
+        return {"data": {"type": "password-sets", "id": student_id}}
+
+    def send_password_reset(self, *, student_id: str, domain: str) -> Envelope:
+        self.get_student(student_id=student_id)
+        return {"data": {"type": "password-resets", "id": student_id,
+                         "attributes": {"domain": domain}}}
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -751,8 +862,9 @@ class V2Backend:
         self._creds = credentials; self._base = base_url.rstrip("/")
         self._http = http or httpx.Client(timeout=30.0)
 
-    def _send(self, method: str, path: str, body: dict[str, Any],
-              *, template: str | None = None) -> Envelope:
+    def _send(self, method: str, path: str, body: dict[str, Any] | None = None,
+              *, template: str | None = None,
+              headers: dict[str, str] | None = None) -> Envelope:
         """POST/PATCH/DELETE with the same guarantees as `_get`.
 
         Deliberately shares `_check_scope` and `_receive` rather than duplicating them:
@@ -762,10 +874,13 @@ class V2Backend:
         spec_path = template or path
         self._check_scope(method, spec_path)
         try:
-            r = self._http.request(
-                method, f"{self._base}{path}", json=body,
-                headers={"Authorization": f"Bearer {self._creds.token()}",
-                         "Accept": "application/json", "Content-Type": "application/json"})
+            sent = {"Authorization": f"Bearer {self._creds.token()}",
+                    "Accept": "application/json", "Content-Type": "application/json"}
+            # Extra headers are per-call by design. X-Confirm-Destructive is Skilljar's
+            # own gate on irreversible operations; sending it globally because it is
+            # easier to thread would silently disarm it for every future one.
+            sent.update(headers or {})
+            r = self._http.request(method, f"{self._base}{path}", json=body, headers=sent)
         except httpx.HTTPError as e:
             raise exc.ApiError(f"could not reach Skilljar: {e}") from e
         return self._receive(r, spec_path)
@@ -1043,3 +1158,51 @@ class V2Backend:
         return self._get(f"/v2/analytics/courses/{course_id}/ratings/",
                          {"filter[student.id]": student_id},
                          template="/v2/analytics/courses/{course_id}/ratings/")
+
+    def list_students(self, *, email: str | None = None, first_name: str | None = None,
+                      last_name: str | None = None, is_inactive: bool | None = None,
+                      cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        return self._get("/v2/students/", {
+            "filter[email]": email, "filter[first_name]": first_name,
+            "filter[last_name]": last_name,
+            "filter[is_inactive]": None if is_inactive is None else str(is_inactive).lower(),
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_student(self, *, student_id: str) -> Envelope:
+        return self._get(f"/v2/students/{student_id}", template="/v2/students/{id}")
+
+    def create_students(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/students/", {
+            "data": [{"type": "students", "attributes": a} for a in items]})
+
+    def update_students(self, *, items: list[dict[str, Any]]) -> Envelope:
+        rows = []
+        for a in items:
+            entry: dict[str, Any] = {"type": "students",
+                                     "attributes": {k: v for k, v in a.items() if k != "id"}}
+            if a.get("id"):
+                entry["id"] = a["id"]
+            rows.append(entry)
+        return self._send("PATCH", "/v2/students/", {"data": rows})
+
+    def anonymize_student(self, *, student_id: str) -> Envelope:
+        """The ONLY call that sends X-Confirm-Destructive. See `_send`."""
+        return self._send("POST", f"/v2/students/{student_id}/anonymize/", {},
+                          template="/v2/students/{id}/anonymize/",
+                          headers={"X-Confirm-Destructive": "true"})
+
+    def deactivate_student(self, *, student_id: str) -> Envelope:
+        return self._send("DELETE", f"/v2/students/{student_id}", {},
+                          template="/v2/students/{id}")
+
+    def set_student_password(self, *, student_id: str, password: str) -> Envelope:
+        return self._send("POST", f"/v2/students/{student_id}/set-password/",
+                          {"data": {"type": "password-sets",
+                                    "attributes": {"password": password}}},
+                          template="/v2/students/{id}/set-password/")
+
+    def send_password_reset(self, *, student_id: str, domain: str) -> Envelope:
+        return self._send("POST",
+                          f"/v2/students/{student_id}/send-password-reset/?domain={domain}",
+                          {}, template="/v2/students/{id}/send-password-reset/")
