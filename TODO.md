@@ -75,7 +75,15 @@ work landed, and leaving them would make the sweep lie.
 - Block 10 — remaining v2 credential administration, behind an `admin` profile, off by default
 - Block 11 — v1 foundation + learner progress
 - Blocks 12–17 — assets · commerce (read-biased) · paths · webhooks · vILT/ILT · labels & tags
-- The demonstration-as-end-to-end-test, once there are enough tools for a tour to be worth taking (after Block 5)
+- **`demonstration_plan` — the end-to-end tour.** 76 tools now, so the "after Block 5"
+  condition is long met. Two constraints it must carry, both decided 2026-08-27:
+  - **Reads only.** Writes are off → `WAITING-FOR-003`. The plan should say up front
+    which steps it is skipping and why, rather than quietly omitting them.
+  - **Named accounts only** — `@cloudsecurityalliance.org` and `kurt@seifried.org`, per
+    `DATA-RESOURCES.md`. A transcript persists, and the org holds 42,669 real learners.
+    Note `filter[email]` is EXACT — Skilljar cannot filter by domain, so the plan has to
+    start from specific addresses and scope every learner read by the resolved student
+    id. It cannot narrow a broad listing after the fact.
 
 ## Consideration pile
 
