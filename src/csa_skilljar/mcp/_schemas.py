@@ -184,3 +184,32 @@ class QuestionDetailOut(TypedDict):
     external_id: NotRequired[str]
     created_at: NotRequired[str]
     modified_at: NotRequired[str]
+
+
+class QuestionBankOut(TypedDict):
+    id: str
+    name: str
+    question_count: NotRequired[int]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class QuestionBankListOut(TypedDict):
+    question_banks: list[QuestionBankOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class AssignmentOut(TypedDict):
+    question_bank_id: str
+    order: NotRequired[int]
+    randomize_questions: NotRequired[bool]
+    limit_question_count: NotRequired[int]
+
+
+class AssignmentListOut(TypedDict):
+    quiz_id: str
+    assignments: list[AssignmentOut]
+    note: str

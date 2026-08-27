@@ -70,6 +70,15 @@ _GATES: dict[str, str | None] = {
     "create_questions": WRITE_CONTENT,
     "update_questions": WRITE_CONTENT,
     "delete_questions": DELETE_CONTENT,
+    "list_question_banks": READ_CONTENT,
+    "get_question_bank": READ_CONTENT,
+    "create_question_banks": WRITE_CONTENT,
+    "update_question_banks": WRITE_CONTENT,
+    "delete_question_banks": DELETE_CONTENT,
+    "list_bank_assignments": READ_CONTENT,
+    "bind_banks": WRITE_CONTENT,
+    "update_bank_assignments": WRITE_CONTENT,
+    "unbind_banks": WRITE_CONTENT,
 }
 
 

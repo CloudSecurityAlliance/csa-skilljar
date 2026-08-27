@@ -49,14 +49,19 @@ def test_refusal_names_the_setting_the_operator_would_change():
 EXPECTED_BY_CAPABILITY = {
     "content.read": {"list_courses", "get_course", "list_lessons", "get_lesson",
                      "list_quizzes", "get_quiz",
-                     "list_questions", "get_question"},
+                     "list_questions", "get_question",
+                     "list_question_banks", "get_question_bank",
+                     "list_bank_assignments"},
     "content.write": {"create_courses", "update_courses",
                       "create_lessons", "update_lessons",
                       "create_quizzes", "update_quizzes",
-                      "create_questions", "update_questions"},
+                      "create_questions", "update_questions",
+                      "create_question_banks", "update_question_banks",
+                      "bind_banks", "update_bank_assignments", "unbind_banks"},
     # Deliberately NOT in content.write: an authoring credential must not be able to
     # destroy what it can create.
-    "content.delete": {"delete_quizzes", "delete_questions"},
+    "content.delete": {"delete_quizzes", "delete_questions",
+                       "delete_question_banks"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -72,6 +77,13 @@ CALL_ARGS = {
     "list_questions": {}, "get_question": {"question_id": "qu1"},
     "create_questions": {"items": []}, "update_questions": {"items": []},
     "delete_questions": {"question_ids": []},
+    "list_question_banks": {}, "get_question_bank": {"bank_id": "b1"},
+    "create_question_banks": {"items": []}, "update_question_banks": {"items": []},
+    "delete_question_banks": {"bank_ids": []},
+    "list_bank_assignments": {"quiz_id": "q1"},
+    "bind_banks": {"quiz_id": "q1", "items": []},
+    "update_bank_assignments": {"quiz_id": "q1", "items": []},
+    "unbind_banks": {"quiz_id": "q1", "items": []},
 }
 
 
