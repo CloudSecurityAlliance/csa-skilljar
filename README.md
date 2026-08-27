@@ -11,9 +11,9 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–7 implemented, not yet released.**
+> **Status: Blocks 1–8 implemented, not yet released.**
 >
-> **58 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
+> **70 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
 > `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > | | |
 > |---|---|
@@ -29,10 +29,14 @@ tools.
 > | **Students** | `list_students` · `get_student` · `create_students` · `update_students` |
 > | **Groups** | `list_groups` · `get_group` · `create_groups` · `update_groups` · `add_group_memberships` · `remove_group_memberships` |
 > | **Signup fields** | `list_signup_field_values` · `get_signup_field_value` · `create_signup_field_values` · `update_signup_field_values` |
+> | **Publishing** | `list_published_courses` · `get_published_course` · `publish_courses` · `update_published_courses` |
+> | **Catalog** | `list_domains` · `get_domain` |
+> | **Course visibility** | `list_visibility_overrides` · `add_visibility_overrides` · `remove_visibility_overrides` |
 > | **Students (destructive)** | `anonymize_student` · `deactivate_student` · `set_student_password` · `send_password_reset` — gated on `people.destructive`, which no profile but `full` grants |
 > | **Groups (destructive)** | `delete_groups` — a hard delete that cascades to memberships and course visibility; gated on `groups.delete` |
+> | **Publishing (public-facing)** | `unpublish_published_course` · `republish_published_course` · `delete_published_course` — gated on `publishing.write`, which `authoring` does not grant |
 >
-> The full 73-tool parity surface arrives over Blocks 8–9; see [ROADMAP.md](ROADMAP.md).
+> The last three parity tools arrive in Block 9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 

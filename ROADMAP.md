@@ -170,7 +170,7 @@ regression test naming it. — **all met**, and mutation-verified: renaming the 
 `modified_at` fails `test_groups_expose_updated_at_not_modified_at`.
 **Ships:** v0.6.0
 
-### Block 8 — Publishing & catalog · Next · 12 tools
+### Block 8 — Publishing & catalog · Done · 12 tools
 
 `list_published_courses` `get_published_course` `publish_courses` `update_published_courses`
 `delete_published_course` `unpublish_published_course` `republish_published_course`
@@ -182,10 +182,15 @@ Note the inversion: v1 hangs visibility off the content object, v2 hangs it off 
 `VisibilityOverrideAttributes` uses `updated_at`, not `modified_at` — see the Block 7
 correction above.
 
-**Done when:** a course publishes to a domain, becomes visible to a group, and unpublishes.
+**Done when:** a course publishes to a domain, becomes visible to a group, and unpublishes. —
+**all met.** Note the capability split that fell out of it: the three visibility-override tools
+are gated by `groups.*`, not `publishing.*`, because upstream hangs them off
+`/v2/groups/{id}/relationships/published-course-visibility/` and requires `student-groups:write`.
+Gating by the scope the credential actually needs keeps the local gate and the remote one from
+disagreeing.
 **Ships:** v0.7.0
 
-### Block 9 — Web packages & OAuth client · Planned · 6 tools
+### Block 9 — Web packages & OAuth client · Next · 6 tools
 
 `list_web_packages` `get_web_package` `create_web_packages` `update_web_packages`
 `delete_web_package` · `register_oauth_client`

@@ -24,8 +24,13 @@ STUDENTS = [{"type": "students", "id": "s1", "attributes": {"email": "a@example.
             {"type": "students", "id": "s2", "attributes": {"email": "b@example.org"}}]
 
 
+PUBLISHED = [{"type": "published-courses", "id": "pc1",
+              "attributes": {"slug": "zero-trust", "live": True}}]
+
+
 def build(profile="full"):
-    fake = FakeBackend(groups=list(GROUPS), students=list(STUDENTS))
+    fake = FakeBackend(groups=list(GROUPS), students=list(STUDENTS),
+                       published_courses=list(PUBLISHED))
     client = SkilljarClient(PolicyBackend(fake, Policy.from_profile(profile)))
     app = MCPServer(name="t")
     register_group_tools(app, lambda: client)
@@ -221,3 +226,120 @@ def test_membership_tools_are_annotated_idempotent():
     register_group_tools(app, lambda: None)
     for name in ("add_group_memberships", "remove_group_memberships"):
         assert app._tool_manager._tools[name].annotations.idempotent_hint is True
+
+
+# --- visibility overrides ------------------------------------------------------------
+# These hang off the GROUP and take student-groups:* scopes, so they live with the group
+# family rather than with publishing.
+
+def test_visibility_overrides_expose_updated_at():
+    """Visibility overrides are the OTHER v2 resource that spells the timestamp
+    `updated_at`. The ROADMAP originally claimed groups were the only one; they are a
+    pair, and this is the second half."""
+    tools, _ = build()
+    tools["add_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1"}])
+    row = tools["list_visibility_overrides"](id="g1")["overrides"][0]
+    assert row["updated_at"] == "2026-01-01T00:00:00Z"
+    assert "modified_at" not in row
+
+
+def test_is_visible_defaults_to_true_an_allowlist_entry():
+    tools, _ = build()
+    tools["add_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1"}])
+    assert tools["list_visibility_overrides"](id="g1")["overrides"][0]["is_visible"] is True
+
+
+def test_allow_and_block_rows_can_coexist():
+    """The unique key includes is_visible, so `false` does NOT replace `true` - it adds
+    a second, contradictory row. A caller expecting replacement silently ends up with
+    both."""
+    tools, _ = build()
+    tools["add_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1", "is_visible": True}])
+    tools["add_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1", "is_visible": False}])
+    out = tools["list_visibility_overrides"](id="g1")
+    assert len(out["overrides"]) == 2
+    assert "can both exist" in out["note"]
+
+
+def test_filter_overrides_by_is_visible():
+    tools, _ = build()
+    tools["add_visibility_overrides"](id="g1", overrides=[
+        {"published_course_id": "pc1", "is_visible": True},
+        {"published_course_id": "pc1", "is_visible": False}])
+    got = tools["list_visibility_overrides"](id="g1", filter_is_visible=False)
+    assert [o["is_visible"] for o in got["overrides"]] == [False]
+
+
+def test_remove_echoes_the_published_course_id():
+    """BatchDeletedItem.id echoes the request's published_course_id, NOT the override's
+    own obfuscated id, so results correlate to inputs without a lookup table. Upstream
+    does this deliberately."""
+    tools, _ = build()
+    added = tools["add_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1"}])
+    override_id = added["ids"][0]
+    removed = tools["remove_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1"}])
+    assert removed["ids"] == ["pc1"]
+    assert override_id not in removed["ids"]
+
+
+def test_removing_the_wrong_polarity_leaves_the_other_row():
+    """is_visible selects WHICH row to remove. It defaults to true, so an unqualified
+    removal takes the allowlist entry and leaves a blocklist entry standing."""
+    tools, _ = build()
+    tools["add_visibility_overrides"](id="g1", overrides=[
+        {"published_course_id": "pc1", "is_visible": True},
+        {"published_course_id": "pc1", "is_visible": False}])
+    tools["remove_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "pc1"}])
+    remaining = tools["list_visibility_overrides"](id="g1")["overrides"]
+    assert [o["is_visible"] for o in remaining] == [False]
+
+
+def test_removing_an_absent_override_succeeds():
+    tools, _ = build()
+    out = tools["remove_visibility_overrides"](
+        id="g1", overrides=[{"published_course_id": "never-added"}])
+    assert out["succeeded"] == 1
+    assert out["failed"] == []
+
+
+def test_missing_group_is_a_document_level_404():
+    """Distinct from a per-item not_found inside a 207: "no such group" and "this group
+    has no overrides" are different answers and must not look alike."""
+    tools, _ = build()
+    with pytest.raises(ToolError) as e:
+        tools["list_visibility_overrides"](id="nope")
+    assert "no group with id nope" in str(e.value)
+    assert tools["list_visibility_overrides"](id="g2")["overrides"] == []
+
+
+def test_override_items_reject_unknown_keys():
+    tools, _ = build()
+    with pytest.raises(ToolError) as e:
+        tools["add_visibility_overrides"](
+            id="g1", overrides=[{"published_course_id": "pc1", "course_id": "c1"}])
+    assert "course_id" in str(e.value)
+
+
+def test_override_needs_a_published_course_id():
+    tools, _ = build()
+    with pytest.raises(ToolError) as e:
+        tools["add_visibility_overrides"](id="g1", overrides=[{"is_visible": True}])
+    assert "not the course id" in str(e.value)
+
+
+def test_visibility_overrides_are_gated_by_groups_not_publishing():
+    """Upstream requires student-groups:write for these. Gating them under
+    publishing.write would make the local gate disagree with the remote scope."""
+    tools, _ = build(profile="parity")          # groups.read, no groups.write
+    tools["list_visibility_overrides"](id="g1")
+    with pytest.raises(ToolError) as e:
+        tools["add_visibility_overrides"](
+            id="g1", overrides=[{"published_course_id": "pc1"}])
+    assert "groups.write" in str(e.value)

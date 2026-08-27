@@ -196,6 +196,40 @@ class Backend(Protocol):
 
     def update_signup_field_values(self, *, items: list[dict[str, Any]]) -> Envelope: ...
 
+    def list_published_courses(self, *, course_id: str | None = None,
+                               domain_id: str | None = None, live: bool | None = None,
+                               include: str | None = None, cursor: str | None = None,
+                               page_size: int | None = None) -> Envelope: ...
+
+    def get_published_course(self, *, published_course_id: str) -> Envelope: ...
+
+    def publish_courses(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_published_courses(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_published_course(self, *, published_course_id: str) -> Envelope: ...
+
+    def unpublish_published_course(self, *, published_course_id: str) -> Envelope: ...
+
+    def republish_published_course(self, *, published_course_id: str) -> Envelope: ...
+
+    def list_visibility_overrides(self, *, group_id: str, is_visible: bool | None = None,
+                                  published_course_id: str | None = None,
+                                  cursor: str | None = None,
+                                  page_size: int | None = None) -> Envelope: ...
+
+    def add_visibility_overrides(self, *, group_id: str,
+                                 items: list[dict[str, Any]]) -> Envelope: ...
+
+    def remove_visibility_overrides(self, *, group_id: str,
+                                    items: list[dict[str, Any]]) -> Envelope: ...
+
+    def list_domains(self, *, access: str | None = None, name: str | None = None,
+                     include: str | None = None, cursor: str | None = None,
+                     page_size: int | None = None) -> Envelope: ...
+
+    def get_domain(self, *, domain_id: str) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -215,7 +249,9 @@ class FakeBackend:
                  course_ratings: list[dict[str, Any]] | None = None,
                  students: list[dict[str, Any]] | None = None,
                  groups: list[dict[str, Any]] | None = None,
-                 signup_field_values: list[dict[str, Any]] | None = None) -> None:
+                 signup_field_values: list[dict[str, Any]] | None = None,
+                 published_courses: list[dict[str, Any]] | None = None,
+                 domains: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -237,6 +273,11 @@ class FakeBackend:
         # resource of its own, which is why it gets a side table rather than rows.
         self._memberships: dict[str, list[str]] = {}
         self._signup_values = copy.deepcopy(list(signup_field_values or []))
+        self._published = copy.deepcopy(list(published_courses or []))
+        self._domains = copy.deepcopy(list(domains or []))
+        # (group_id, published_course_id, is_visible) -> row. The unique key really does
+        # include is_visible, so an allow row and a block row for the same pair coexist.
+        self._overrides: dict[tuple[str, str, bool], dict[str, Any]] = {}
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -1079,6 +1120,186 @@ class FakeBackend:
             data.append({"status": "updated", "id": vid})
         return self._batch(data)
 
+    # --- published courses, domains, visibility --------------------------------------
+
+    def list_published_courses(self, *, course_id: str | None = None,
+                               domain_id: str | None = None, live: bool | None = None,
+                               include: str | None = None, cursor: str | None = None,
+                               page_size: int | None = None) -> Envelope:
+        rows = self._published
+        def rel(r: dict[str, Any], k: str) -> Any:
+            return r.get("relationships", {}).get(k, {}).get("data", {}).get("id")
+        if course_id is not None:
+            rows = [r for r in rows if rel(r, "course") == course_id]
+        if domain_id is not None:
+            rows = [r for r in rows if rel(r, "domain") == domain_id]
+        if live is not None:
+            rows = [r for r in rows
+                    if bool(r.get("attributes", {}).get("live")) is live]
+        return self._page(rows, cursor, page_size, "/v2/published-courses/")
+
+    def get_published_course(self, *, published_course_id: str) -> Envelope:
+        for row in self._published:
+            if row.get("id") == published_course_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no published course with id {published_course_id}")
+
+    def publish_courses(self, *, items: list[dict[str, Any]]) -> Envelope:
+        def rel(r: dict[str, Any], k: str) -> Any:
+            return r.get("relationships", {}).get(k, {}).get("data", {}).get("id")
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            course_id = str(item.get("course_id", ""))
+            domain_id = str(item.get("domain_id", ""))
+            clash = next((r for r in self._published
+                          if rel(r, "course") == course_id
+                          and rel(r, "domain") == domain_id), None)
+            if clash is not None:
+                # A PER-ITEM conflict. The rest of the batch still lands, which is why
+                # a caller must read `failed` rather than treating 207 as failure.
+                data.append({"status": "error", "code": "already_published",
+                             "detail": f"course {course_id} is already published to "
+                                       f"domain {domain_id}",
+                             "source": {"pointer": f"/data/{i}"}})
+                continue
+            attrs = {k: v for k, v in item.items()
+                     if k not in ("course_id", "domain_id")}
+            new_id = f"pc{len(self._published) + 1}"
+            self._published.append({
+                "type": "published-courses", "id": new_id,
+                "attributes": {"live": True, "slug": attrs.get("slug") or f"auto-{new_id}",
+                               **attrs},
+                "relationships": {
+                    "course": {"data": {"type": "courses", "id": course_id}},
+                    "domain": {"data": {"type": "domains", "id": domain_id}}}})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_published_courses(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            pid = str(item.get("id", ""))
+            row = next((r for r in self._published if r.get("id") == pid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no published course with id {pid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            # A plain merge, so an explicitly-null access_period_* clears the date.
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": pid})
+        return self._batch(data)
+
+    def delete_published_course(self, *, published_course_id: str) -> Envelope:
+        """A SOFT unpublish, matching v1's DELETE. The row survives; live goes false."""
+        row = self.get_published_course(
+            published_course_id=published_course_id)["data"]
+        row["attributes"]["live"] = False
+        row["attributes"]["slug"] = None          # the slug is freed
+        return {"data": row}
+
+    def unpublish_published_course(self, *, published_course_id: str) -> Envelope:
+        row = self.get_published_course(
+            published_course_id=published_course_id)["data"]
+        row["attributes"]["live"] = False
+        row["attributes"]["slug"] = None          # FREED - the URL stops resolving
+        return {"data": row}
+
+    def republish_published_course(self, *, published_course_id: str) -> Envelope:
+        row = self.get_published_course(
+            published_course_id=published_course_id)["data"]
+        row["attributes"]["live"] = True
+        # REASSIGNED, not restored. The new slug need not equal the old one, which is
+        # how a republish silently changes a public URL.
+        row["attributes"]["slug"] = f"re-{published_course_id}"
+        return {"data": row}
+
+    def list_visibility_overrides(self, *, group_id: str, is_visible: bool | None = None,
+                                  published_course_id: str | None = None,
+                                  cursor: str | None = None,
+                                  page_size: int | None = None) -> Envelope:
+        # Document-level 404 for a missing group, which is a different thing from an
+        # empty list of overrides. A caller must be able to tell them apart.
+        self.get_group(group_id=group_id)
+        rows = [r for (g, _pc, _v), r in self._overrides.items() if g == group_id]
+        if is_visible is not None:
+            rows = [r for r in rows
+                    if bool(r.get("attributes", {}).get("is_visible")) is is_visible]
+        if published_course_id is not None:
+            rows = [r for r in rows
+                    if r.get("attributes", {}).get("published_course_id")
+                    == published_course_id]
+        return self._page(rows, cursor, page_size,
+                          f"/v2/groups/{group_id}/relationships/"
+                          "published-course-visibility/")
+
+    def add_visibility_overrides(self, *, group_id: str,
+                                 items: list[dict[str, Any]]) -> Envelope:
+        self.get_group(group_id=group_id)     # BEFORE the envelope guard
+        data: list[dict[str, Any]] = []
+        seen: set[tuple[str, bool]] = set()
+        for i, item in enumerate(items):
+            pcid = str(item.get("published_course_id", ""))
+            visible = bool(item.get("is_visible", True))
+            if (pcid, visible) in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{pcid} appears earlier in this batch",
+                             "source": {"pointer":
+                                        f"/data/{i}/attributes/published_course_id"}})
+                continue
+            seen.add((pcid, visible))
+            key = (group_id, pcid, visible)
+            # Idempotent on the whole tuple. Note the tuple INCLUDES is_visible, so an
+            # allow row and a block row for the same course coexist rather than
+            # replacing each other.
+            row = self._overrides.setdefault(key, {
+                "type": "visibility-overrides", "id": f"vo{len(self._overrides) + 1}",
+                "attributes": {"published_course_id": pcid, "is_visible": visible,
+                               "created_at": "2026-01-01T00:00:00Z",
+                               "updated_at": "2026-01-01T00:00:00Z"}})
+            data.append({"status": "created", "id": row["id"]})
+        return self._batch(data)
+
+    def remove_visibility_overrides(self, *, group_id: str,
+                                    items: list[dict[str, Any]]) -> Envelope:
+        self.get_group(group_id=group_id)
+        data: list[dict[str, Any]] = []
+        seen: set[tuple[str, bool]] = set()
+        for i, item in enumerate(items):
+            pcid = str(item.get("published_course_id", ""))
+            visible = bool(item.get("is_visible", True))
+            if (pcid, visible) in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{pcid} appears earlier in this batch",
+                             "source": {"pointer":
+                                        f"/data/{i}/attributes/published_course_id"}})
+                continue
+            seen.add((pcid, visible))
+            self._overrides.pop((group_id, pcid, visible), None)
+            # The echoed id is the PUBLISHED COURSE id from the request, not the
+            # override's own obfuscated id, so a caller can correlate without a lookup
+            # table. Upstream does this deliberately; reproduce it.
+            data.append({"status": "deleted", "id": pcid})
+        return self._batch(data)
+
+    def list_domains(self, *, access: str | None = None, name: str | None = None,
+                     include: str | None = None, cursor: str | None = None,
+                     page_size: int | None = None) -> Envelope:
+        rows = self._domains
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        if access is not None:
+            rows = [r for r in rows if attr(r, "access") == access]
+        if name is not None:
+            rows = [r for r in rows if attr(r, "name") == name]   # EXACT hostname
+        return self._page(rows, cursor, page_size, "/v2/domains/")
+
+    def get_domain(self, *, domain_id: str) -> Envelope:
+        for row in self._domains:
+            if row.get("id") == domain_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no domain with id {domain_id}")
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -1514,3 +1735,93 @@ class V2Backend:
         return self._send("PATCH", "/v2/signup-field-values/", {
             "data": [{"type": "signup-field-values", "id": i.get("id"),
                       "attributes": {"value": i.get("value")}} for i in items]})
+
+    # --- published courses, domains, visibility --------------------------------------
+
+    def list_published_courses(self, *, course_id: str | None = None,
+                               domain_id: str | None = None, live: bool | None = None,
+                               include: str | None = None, cursor: str | None = None,
+                               page_size: int | None = None) -> Envelope:
+        return self._get("/v2/published-courses/", {
+            "filter[course]": course_id, "filter[domain]": domain_id,
+            "filter[live]": None if live is None else str(live).lower(),
+            "include": include, "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_published_course(self, *, published_course_id: str) -> Envelope:
+        return self._get(f"/v2/published-courses/{published_course_id}",
+                         template="/v2/published-courses/{id}")
+
+    def publish_courses(self, *, items: list[dict[str, Any]]) -> Envelope:
+        rows = []
+        for item in items:
+            attrs = {k: v for k, v in item.items()
+                     if k not in ("course_id", "domain_id")}
+            rows.append({
+                "type": "published-courses", "attributes": attrs,
+                "relationships": {
+                    "course": {"data": {"type": "courses",
+                                        "id": item.get("course_id")}},
+                    "domain": {"data": {"type": "domains",
+                                        "id": item.get("domain_id")}}}})
+        return self._send("POST", "/v2/published-courses/", {"data": rows})
+
+    def update_published_courses(self, *, items: list[dict[str, Any]]) -> Envelope:
+        # course, domain and slug are create-only upstream. They are rejected at the
+        # tool boundary (ADR-008) rather than filtered here, so a caller who sends one
+        # is told instead of watching it vanish.
+        return self._send("PATCH", "/v2/published-courses/", {
+            "data": [{"type": "published-courses", "id": a.get("id"),
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def delete_published_course(self, *, published_course_id: str) -> Envelope:
+        return self._send("DELETE", f"/v2/published-courses/{published_course_id}", {},
+                          template="/v2/published-courses/{id}")
+
+    def unpublish_published_course(self, *, published_course_id: str) -> Envelope:
+        return self._send("POST",
+                          f"/v2/published-courses/{published_course_id}/unpublish/", {},
+                          template="/v2/published-courses/{id}/unpublish/")
+
+    def republish_published_course(self, *, published_course_id: str) -> Envelope:
+        return self._send("POST",
+                          f"/v2/published-courses/{published_course_id}/publish/", {},
+                          template="/v2/published-courses/{id}/publish/")
+
+    def list_visibility_overrides(self, *, group_id: str, is_visible: bool | None = None,
+                                  published_course_id: str | None = None,
+                                  cursor: str | None = None,
+                                  page_size: int | None = None) -> Envelope:
+        return self._get(
+            f"/v2/groups/{group_id}/relationships/published-course-visibility/",
+            {"filter[is_visible]": None if is_visible is None else str(is_visible).lower(),
+             "filter[published_course_id]": published_course_id,
+             "page[cursor]": cursor,
+             "page[size]": page_size if page_size is None else str(page_size)},
+            template="/v2/groups/{id}/relationships/published-course-visibility/")
+
+    def add_visibility_overrides(self, *, group_id: str,
+                                 items: list[dict[str, Any]]) -> Envelope:
+        return self._send(
+            "POST", f"/v2/groups/{group_id}/relationships/published-course-visibility/",
+            {"data": [{"type": "visibility-overrides", "attributes": i} for i in items]},
+            template="/v2/groups/{id}/relationships/published-course-visibility/")
+
+    def remove_visibility_overrides(self, *, group_id: str,
+                                    items: list[dict[str, Any]]) -> Envelope:
+        return self._send(
+            "DELETE", f"/v2/groups/{group_id}/relationships/published-course-visibility/",
+            {"data": [{"type": "visibility-overrides", "attributes": i} for i in items]},
+            template="/v2/groups/{id}/relationships/published-course-visibility/")
+
+    def list_domains(self, *, access: str | None = None, name: str | None = None,
+                     include: str | None = None, cursor: str | None = None,
+                     page_size: int | None = None) -> Envelope:
+        return self._get("/v2/domains/", {
+            "filter[access]": access, "filter[name]": name, "include": include,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_domain(self, *, domain_id: str) -> Envelope:
+        return self._get(f"/v2/domains/{domain_id}", template="/v2/domains/{id}")

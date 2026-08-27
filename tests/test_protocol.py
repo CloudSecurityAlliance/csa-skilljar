@@ -90,6 +90,21 @@ EXERCISE = {
     "create_signup_field_values": {"student_id": "s1",
                                    "values": [{"id": "f1", "value": "Analyst"}]},
     "update_signup_field_values": {"values": [{"id": "v1", "value": "Analyst"}]},
+    "list_published_courses": {},
+    "get_published_course": {"id": "pc1"},
+    "publish_courses": {"published_courses": [{"course_id": "c1", "domain_id": "d2"}]},
+    "update_published_courses": {"published_courses": [{"id": "pc1",
+                                                        "open_access": True}]},
+    "delete_published_course": {"id": "pc1"},
+    "unpublish_published_course": {"id": "pc1"},
+    "republish_published_course": {"id": "pc1"},
+    "list_visibility_overrides": {"id": "g1"},
+    "add_visibility_overrides": {"id": "g1",
+                                 "overrides": [{"published_course_id": "pc1"}]},
+    "remove_visibility_overrides": {"id": "g1",
+                                    "overrides": [{"published_course_id": "pc1"}]},
+    "list_domains": {},
+    "get_domain": {"id": "d1"},
 }
 
 
@@ -105,6 +120,13 @@ STUDENT_ROWS = [{"type": "students", "id": "s1",
 # this way. See tests/test_groups.py.
 GROUP_ROWS = [{"type": "groups", "id": "g1", "attributes": {
     "name": "Partners", "rule_email_domains": [], "updated_at": "2026-02-01T00:00:00Z"}}]
+PUBLISHED_ROWS = [{"type": "published-courses", "id": "pc1",
+                   "attributes": {"slug": "zero-trust", "live": True},
+                   "relationships": {
+                       "course": {"data": {"type": "courses", "id": "c1"}},
+                       "domain": {"data": {"type": "domains", "id": "d1"}}}}]
+DOMAIN_ROWS = [{"type": "domains", "id": "d1",
+                "attributes": {"name": "learn.example.org", "access": "PUBLIC"}}]
 SIGNUP_VALUE_ROWS = [{"type": "signup-field-values", "id": "v1",
                       "attributes": {"label": "Job title", "value": "Analyst"},
                       "relationships": {
@@ -123,7 +145,8 @@ def build(profile="full", env=None):
                     questions=QUESTION_ROWS, question_banks=BANK_ROWS,
                     enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS,
                     students=STUDENT_ROWS, groups=GROUP_ROWS,
-                    signup_field_values=SIGNUP_VALUE_ROWS),
+                    signup_field_values=SIGNUP_VALUE_ROWS,
+                    published_courses=PUBLISHED_ROWS, domains=DOMAIN_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 
