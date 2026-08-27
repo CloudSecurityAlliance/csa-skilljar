@@ -1388,7 +1388,7 @@ class FakeBackend:
                               scope: str | None = None,
                               token_endpoint_auth_method: str = "client_secret_post",
                               resource: str = "") -> Envelope:
-        public = token_endpoint_auth_method == "none"
+        public = token_endpoint_auth_method == "none"  # nosec B105 - an RFC 7591 enum value, not a password
         return {"data": {
             "client_id": "fake-client-id",
             # A public/PKCE client gets NO secret. A confidential one gets a ONE-TIME

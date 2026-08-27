@@ -143,3 +143,66 @@ def test_no_credential_value_can_reach_the_cli_output(monkeypatch):
         assert out.getvalue() == "", "stdout is the JSON-RPC channel"
         for value in secrets.values():
             assert value not in combined, f"credential value leaked into output: {value}"
+
+
+# --- counter-evidence for the bandit B105/B107 dismissals ----------------------------
+# A dismissed finding needs something that fails if the dismissal was wrong. These are
+# that. See the "Dismissed static-analysis findings" table in SECURITY-RESOURCES.md.
+
+def test_every_nosec_carries_a_reason():
+    """A bare `# nosec` is an unreviewable suppression: it silences the scanner and
+    records nothing about why. Requiring a rule id and a reason keeps each one
+    auditable, and keeps the count small enough to read."""
+    import pathlib
+    import re
+    src = pathlib.Path(__file__).resolve().parent.parent / "src"
+    bare = []
+    for path in src.rglob("*.py"):
+        for n, line in enumerate(path.read_text().splitlines(), 1):
+            if "nosec" not in line:
+                continue
+            # Expect: `# nosec B105 - <reason>`
+            if not re.search(r"#\s*nosec\s+B\d{3}\s+-\s+\S", line):
+                bare.append(f"{path.name}:{n}")
+    assert not bare, f"nosec without a rule id and reason: {bare}"
+
+
+def test_the_dismissed_literals_are_what_they_claim_to_be():
+    """The three B105/B107 hits are RFC 7591 vocabulary and one warning message, not
+    credentials. If any of them is ever changed into something that IS a secret, this
+    fails and the dismissal must be revisited."""
+    from csa_skilljar.mcp._tools import web_packages as wp
+
+    # RFC 7591 section 2: token_endpoint_auth_method values.
+    assert wp._AUTH_METHODS == ("client_secret_post", "client_secret_basic", "none")
+    # The warning is prose for a human, and must not contain anything secret-shaped.
+    assert wp._SHOWN_ONCE_WARNING.startswith("If a client_secret is present")
+    assert "=" not in wp._SHOWN_ONCE_WARNING
+
+
+def test_a_registered_client_secret_is_never_logged_or_repeated(caplog):
+    """The one place a real credential legitimately flows through this server. It must
+    reach the caller and go nowhere else - not into a log record, not into a repr."""
+    import logging
+
+    from mcp.server import MCPServer
+
+    from csa_skilljar.backend import FakeBackend
+    from csa_skilljar.client import SkilljarClient
+    from csa_skilljar.mcp._tools.web_packages import register_web_package_tools
+    from csa_skilljar.policy import Policy, PolicyBackend
+
+    client = SkilljarClient(PolicyBackend(FakeBackend(),
+                                          Policy.from_profile("admin")))
+    app = MCPServer(name="t")
+    register_web_package_tools(app, lambda: client)
+    tool = app._tool_manager._tools["register_oauth_client"].fn
+
+    with caplog.at_level(logging.DEBUG):
+        out = tool(client_name="c")
+
+    secret = out["client_secret"]
+    assert secret, "the fixture should return a secret, or this test proves nothing"
+    for record in caplog.get_records("call"):
+        assert secret not in record.getMessage()
+    assert secret not in repr(client)

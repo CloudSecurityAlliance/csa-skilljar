@@ -33,9 +33,18 @@ run_tests() {
   return 0
 }
 
+# CI runs bandit and pip-audit in a `security` job. They were absent here, so this
+# script passed while CI failed - a local gate that is weaker than the remote one is
+# worse than no local gate, because it teaches you to trust it.
+security() {
+  [ -x .venv/bin/bandit ] || { echo "!! bandit missing - .venv/bin/python -m pip install -e '.[dev]'"; return 1; }
+  .venv/bin/bandit -q -r src && .venv/bin/pip-audit --progress-spinner off
+}
+
 step "tests"        run_tests
 step "lint"         .venv/bin/ruff check src tests scripts
 step "types"        .venv/bin/mypy
+step "security"     security
 step "doc claims"   $PY scripts/check_docs.py
 
 printf '\n'

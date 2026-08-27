@@ -39,7 +39,7 @@ _ASYNC_NOTE = ("Creating a package only QUEUES it. Rows come back in state PROCE
                "up as state ERROR later, never as a failure on the create call.")
 _LIST_NOTE = ("This list is not paginated - every live package is here. Deleted "
               "packages are not shown.")
-_SECRET_WARNING = (
+_SHOWN_ONCE_WARNING = (
     "If a client_secret is present it is shown ONCE and cannot be retrieved again. "
     "Store it somewhere durable before doing anything else. Do not paste it into a "
     "chat transcript, a ticket, or a file that will be committed.")
@@ -232,7 +232,7 @@ def register_web_package_tools(app: MCPServer,
                               redirect_uris: list[str] | None = None,
                               grant_types: list[str] | None = None,
                               scope: str | None = None,
-                              token_endpoint_auth_method: str = "client_secret_post",
+                              token_endpoint_auth_method: str = "client_secret_post",  # nosec B107 - an RFC 7591 method name, not a password
                               resource: str = "") -> RegisteredClientOut:
         """Create a new OAuth2 client identity. THIS MINTS A CREDENTIAL.
 
@@ -274,7 +274,7 @@ def register_web_package_tools(app: MCPServer,
             grant_types=grant_types, scope=scope,
             token_endpoint_auth_method=token_endpoint_auth_method,
             resource=resource)["data"]
-        out: dict[str, Any] = {"warning": _SECRET_WARNING}
+        out: dict[str, Any] = {"warning": _SHOWN_ONCE_WARNING}
         for key in ("client_id", "client_secret", "client_name", "redirect_uris",
                     "grant_types", "token_endpoint_auth_method", "scope"):
             if key in payload:

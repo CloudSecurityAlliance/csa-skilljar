@@ -43,6 +43,17 @@ All notable changes to this project are documented here. Format follows
   `score_as_percent`. Both are now returned, and the description explains that a null
   score means "not recorded", not zero. Found by the new parity test's
   minimum-description check rather than by anyone reading it.
+- **`scripts/verify.sh` was weaker than CI.** CI runs `bandit` and `pip-audit` in a
+  `security` job; verify did not, so the pre-commit gate passed green while CI failed —
+  the same class of problem the script was written to prevent. Both now run locally, and
+  both tools moved into the `dev` extra so CI and verify use the same versions. Verified
+  by reintroducing a finding and watching verify fail.
+- Three `bandit` B105/B107 `hardcoded_password` hits, all name-heuristic false positives
+  on RFC 7591 vocabulary. One was fixed honestly by renaming `_SECRET_WARNING` to
+  `_SHOWN_ONCE_WARNING`; the other two are annotated, because `token_endpoint_auth_method`
+  is Skilljar's own parameter name and ADR-006 forbids renaming it. Recorded in
+  `SECURITY-RESOURCES.md` with counter-evidence tests, including one that refuses a bare
+  `# nosec` anywhere in `src`.
 - A new `ConflictError` would have reached the MCP client as `UnexpectedToolError` with
   its **message discarded** (CLAUDE.md invariant 2). Added its translation clause, a
   base-class backstop so a future subclass degrades to readable rather than silent, and
