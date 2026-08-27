@@ -310,3 +310,47 @@ class PasswordResetOut(TypedDict):
     sent: bool
     domain: str
     note: str
+
+
+class GroupOut(TypedDict):
+    id: str
+    name: str
+    rule_email_domains: NotRequired[list[str]]
+    send_course_enrollment_email: NotRequired[bool | None]
+    category_id: NotRequired[str | None]
+    created_at: NotRequired[str]
+    # `updated_at`, NOT `modified_at`. Groups and visibility overrides are the only two
+    # v2 resources that spell it this way; the other twelve use modified_at. Renaming
+    # this to match the majority makes the field vanish from output with no error.
+    updated_at: NotRequired[str]
+
+
+class GroupListOut(TypedDict):
+    groups: list[GroupOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class MembershipResultOut(TypedDict):
+    group_id: str
+    total: int
+    succeeded: int
+    failed: list[dict[str, Any]]
+    student_ids: list[str]
+    note: str
+
+
+class SignupFieldValueOut(TypedDict):
+    id: str
+    label: NotRequired[str]
+    value: NotRequired[str]
+    student_id: NotRequired[str]
+    signup_field_id: NotRequired[str]
+
+
+class SignupFieldValueListOut(TypedDict):
+    values: list[SignupFieldValueOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str

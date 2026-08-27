@@ -83,6 +83,31 @@ REQUIREMENTS = {
     "set_student_password": ["account takeover", "confirm=true", "send_password_reset",
                              "never appears"],
     "send_password_reset": ["required", "list_domains", "people.destructive", "domain"],
+    # Groups. Each phrase is a trap from the captured registry that a model would
+    # otherwise have to guess about.
+    "list_groups": ["one page", "has_more", "next_cursor", "student-groups:read",
+                    "case-insensitive", "zero results", "updated_at"],
+    "get_group": ["student-groups:read", "does not return", "updated_at"],
+    "create_groups": ["batch", "student-groups:write", "unique", "case-sensitive",
+                      "1 to 100"],
+    "update_groups": ["batch", "student-groups:write", "replaces the whole",
+                      "does not merge", "clears the category", "leaves it unchanged"],
+    "delete_groups": ["hard delete", "cascades", "visibility", "lose access",
+                      "no undo"],
+    "add_group_memberships": ["batch", "student-groups:write", "idempotent",
+                              "first-wins", "grant course access"],
+    "remove_group_memberships": ["batch", "student-groups:write", "idempotent",
+                                 "never a member", "revoke course access"],
+    # Signup fields. The two id meanings and the untrusted-text warning.
+    "list_signup_field_values": ["one page", "has_more", "next_cursor",
+                                 "signup-fields:read", "untrusted",
+                                 "signup-field-value id", "matches nothing"],
+    "get_signup_field_value": ["signup-fields:read", "untrusted",
+                               "signup_field_value_id", "not `id`"],
+    "create_signup_field_values": ["batch", "signup-fields:write", "upsert",
+                                   "overwritten", "signup-field id"],
+    "update_signup_field_values": ["batch", "signup-fields:write",
+                                   "signup-field-value id", "not the signup-field id"],
 }
 
 

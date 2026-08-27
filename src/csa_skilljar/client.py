@@ -184,3 +184,52 @@ class SkilljarClient:
 
     def send_password_reset(self, *, student_id: str, domain: str) -> dict[str, Any]:
         return self._backend.send_password_reset(student_id=student_id, domain=domain)
+
+    def list_groups(self, *, name: str | None = None, category_id: str | None = None,
+                    cursor: str | None = None,
+                    page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_groups(name=name, category_id=category_id,
+                                         cursor=cursor, page_size=page_size)
+
+    def get_group(self, *, group_id: str) -> dict[str, Any]:
+        return self._backend.get_group(group_id=group_id)
+
+    def create_groups(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_groups(items=items)
+
+    def update_groups(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_groups(items=items)
+
+    def delete_groups(self, *, group_ids: list[str]) -> dict[str, Any]:
+        return self._backend.delete_groups(group_ids=group_ids)
+
+    def add_group_memberships(self, *, group_id: str,
+                              student_ids: list[str]) -> dict[str, Any]:
+        return self._backend.add_group_memberships(group_id=group_id,
+                                                   student_ids=student_ids)
+
+    def remove_group_memberships(self, *, group_id: str,
+                                 student_ids: list[str]) -> dict[str, Any]:
+        return self._backend.remove_group_memberships(group_id=group_id,
+                                                      student_ids=student_ids)
+
+    def list_signup_field_values(self, *, student_id: str | None = None,
+                                 signup_field_id: str | None = None,
+                                 domains: str | None = None, cursor: str | None = None,
+                                 page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_signup_field_values(
+            student_id=student_id, signup_field_id=signup_field_id, domains=domains,
+            cursor=cursor, page_size=page_size)
+
+    def get_signup_field_value(self, *, signup_field_value_id: str) -> dict[str, Any]:
+        return self._backend.get_signup_field_value(
+            signup_field_value_id=signup_field_value_id)
+
+    def create_signup_field_values(self, *, student_id: str,
+                                   items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_signup_field_values(student_id=student_id,
+                                                        items=items)
+
+    def update_signup_field_values(self, *,
+                                   items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_signup_field_values(items=items)

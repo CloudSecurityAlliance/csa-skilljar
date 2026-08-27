@@ -15,6 +15,11 @@ F = TypeVar("F", bound=Callable[..., Any])
 READ = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True)
 WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False)
 DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, idempotent_hint=False)
+# Group membership add/remove really are idempotent per JSON:API to-many semantics -
+# adding an existing member succeeds, removing a non-member reports "deleted". Saying so
+# lets a client retry a timed-out call without asking whether it is safe.
+IDEMPOTENT_WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                   idempotent_hint=True)
 
 
 def translate_errors(fn: F) -> F:

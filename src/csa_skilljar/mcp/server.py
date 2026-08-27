@@ -9,10 +9,12 @@ from ._tools import (
     register_course_tools,
     register_enrolment_tools,
     register_feedback_tools,
+    register_group_tools,
     register_lesson_tools,
     register_question_bank_tools,
     register_question_tools,
     register_quiz_tools,
+    register_signup_field_tools,
     register_student_tools,
 )
 
@@ -64,4 +66,6 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_question_bank_tools(app, get_client)
     register_enrolment_tools(app, get_client)
     register_student_tools(app, get_client)
+    register_group_tools(app, get_client)
+    register_signup_field_tools(app, get_client)
     return app

@@ -78,6 +78,18 @@ EXERCISE = {
     "deactivate_student": {"id": "s1"},
     "set_student_password": {"id": "s1", "password": "hunter2hunter2", "confirm": True},
     "send_password_reset": {"id": "s1", "domain": "learn.example.org"},
+    "list_groups": {},
+    "get_group": {"id": "g1"},
+    "create_groups": {"groups": [{"name": "New"}]},
+    "update_groups": {"groups": [{"id": "g1", "name": "Renamed"}]},
+    "delete_groups": {"group_ids": ["g1"]},
+    "add_group_memberships": {"id": "g1", "student_ids": ["s1"]},
+    "remove_group_memberships": {"id": "g1", "student_ids": ["s1"]},
+    "list_signup_field_values": {},
+    "get_signup_field_value": {"signup_field_value_id": "v1"},
+    "create_signup_field_values": {"student_id": "s1",
+                                   "values": [{"id": "f1", "value": "Analyst"}]},
+    "update_signup_field_values": {"values": [{"id": "v1", "value": "Analyst"}]},
 }
 
 
@@ -89,6 +101,16 @@ ENROLMENT_ROWS = [{"type": "enrollments", "id": "e1", "attributes": {"active": T
 CERT_ROWS = [{"type": "certificates", "id": "cert1", "attributes": {"status": "active"}}]
 STUDENT_ROWS = [{"type": "students", "id": "s1",
                  "attributes": {"email": "ada@example.org", "is_inactive": False}}]
+# `updated_at`, not `modified_at` - groups are one of only two v2 resources spelled
+# this way. See tests/test_groups.py.
+GROUP_ROWS = [{"type": "groups", "id": "g1", "attributes": {
+    "name": "Partners", "rule_email_domains": [], "updated_at": "2026-02-01T00:00:00Z"}}]
+SIGNUP_VALUE_ROWS = [{"type": "signup-field-values", "id": "v1",
+                      "attributes": {"label": "Job title", "value": "Analyst"},
+                      "relationships": {
+                          "student": {"data": {"type": "students", "id": "s1"}},
+                          "signup-field": {"data": {"type": "signup-fields",
+                                                    "id": "f1"}}}}]
 QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
     "question_html": "<p>Q?</p>", "question_type": "FREEFORM", "quiz_id": "q1",
     "answers": []}}]
@@ -100,7 +122,8 @@ def build(profile="full", env=None):
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
                     questions=QUESTION_ROWS, question_banks=BANK_ROWS,
                     enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS,
-                    students=STUDENT_ROWS),
+                    students=STUDENT_ROWS, groups=GROUP_ROWS,
+                    signup_field_values=SIGNUP_VALUE_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 
