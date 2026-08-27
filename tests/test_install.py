@@ -15,18 +15,25 @@ import subprocess
 import sys
 
 import pytest
-import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
-def _pyproject() -> dict:
-    return tomllib.loads((ROOT / "pyproject.toml").read_text())
+def _runtime_dependencies() -> list[str]:
+    """The package's declared runtime dependencies, excluding extras.
+
+    Read from installed metadata rather than parsing pyproject.toml: `tomllib` is
+    stdlib only from 3.11 and this project's floor is 3.10, which the CI matrix caught
+    immediately. Metadata is also the better source - it is what actually got built and
+    installed, not what the source file intended.
+    """
+    from importlib.metadata import requires
+    return [r for r in (requires("csa-skilljar") or []) if "extra ==" not in r]
 
 
 def test_mcp_is_a_required_dependency_not_an_extra():
     """The console script is installed unconditionally, so its imports must be too."""
-    deps = " ".join(_pyproject()["project"]["dependencies"])
+    deps = " ".join(_runtime_dependencies())
     assert "mcp" in deps, (
         "csa-skilljar-mcp imports mcp at module scope. If mcp is optional, a plain "
         "`pip install csa-skilljar` puts a broken command on PATH."
@@ -41,8 +48,8 @@ def test_every_module_the_package_imports_is_a_runtime_dependency():
     and reported it as an undeclared dependency. A guard with false positives gets
     muted, and a muted guard is worse than none (ZD-2).
     """
-    declared = {d.split(">")[0].split("=")[0].split("[")[0].strip().replace("-", "_")
-                for d in _pyproject()["project"]["dependencies"]}
+    declared = {d.split(">")[0].split("=")[0].split("[")[0].split(";")[0].strip().replace("-", "_")
+                for d in _runtime_dependencies()}
     declared |= {"csa_skilljar"}
     stdlib = set(sys.stdlib_module_names)
     offenders: list[str] = []
