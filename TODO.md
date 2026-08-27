@@ -16,6 +16,13 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
+- **Writes to Skilljar are OFF** → `WAITING-FOR-003`. Enforced by `ReadOnlyClient` in
+  `tests/integration/conftest.py`, not by convention. Needs Hannah: is there a sandbox,
+  or a fixture convention for throwaway courses/students? Until then live tests read only.
+- Consider re-issuing the dev OAuth client **read-only**. It currently holds
+  `courses:write`, `lessons:write`, `quizzes:write`, `question-banks:write`, which nothing
+  needs yet — dropping them removes the last write path rather than guarding it.
+
 - Release v0.1.0 — **unblocked 2026-08-27**, `WAITING-FOR-002` closed. Six versions are stacked (v0.1.0–v0.8.0); collapse them into one release.
 - Phase 2 — the v2 capabilities the official server does not expose → `ROADMAP.md`.
   `/v2/clients/` (list, get, patch, delete, rotate-secret) is in the v2 spec and absent

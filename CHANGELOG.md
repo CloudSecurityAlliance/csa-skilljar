@@ -7,6 +7,24 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **The integration suite can no longer write to a real organization.** Its conftest
+  claimed "everything here is READ-ONLY" for several blocks and nothing enforced it —
+  the suite was read-only by habit, and a habit is not a control. `live_client` is now
+  wrapped in `ReadOnlyClient`, which is **fail-closed**: a method absent from a
+  hand-written allowlist raises before anything reaches the network, so a tool added
+  next block is refused by default.
+- The allowlist is hand-written rather than derived from `policy._GATES`, and two tests
+  assert the two AGREE without either being built from the other. Deriving it would make
+  the control agree with a mislabelled gate instead of checking it.
+- Verified by adding a rogue test calling `create_courses` against live Skilljar and
+  watching it refuse; and by three mutations — unwrapping the fixture, and sneaking a
+  write method onto the allowlist, both caught.
+- **`WAITING-FOR-003`** records the open question behind this: where may this project
+  write? The only organization these credentials reach is CSA's production one, with
+  42,669 real learners. It carries the questions for Hannah and notes that the dev
+  client still holds four authoring write scopes that nothing currently needs.
+
+### Added
 - **`scripts/mcp-launch.sh`** — reads `CSA_SKILLJAR_*` from a `.env` file and execs the
   server, so an MCP client can be pointed at it and the client configuration holds no
   secret. `claude mcp add -e KEY=value` writes the literal value into `~/.claude.json`,
