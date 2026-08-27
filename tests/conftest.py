@@ -41,3 +41,5 @@ def anyio_backend():
 def pytest_addoption(parser):
     parser.addoption("--cold-use", action="store_true", default=False,
                      help="run the model-in-the-loop description test")
+    parser.addoption("--install-test", action="store_true", default=False,
+                     help="build a wheel and install it into a clean venv")

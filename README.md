@@ -12,6 +12,9 @@ education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — 
 tools.
 
 > **Status: Block 1 implemented, not yet released.**
+>
+> Install from source until v0.0.1 is on PyPI:
+> `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > The server runs, authenticates and answers over stdio, with four tools: `check_access`,
 > `describe_capabilities`, `report_a_problem` and `list_courses`. It is **not on PyPI yet** —
 > v0.0.1 ships once it has been verified against a live Skilljar organization.
