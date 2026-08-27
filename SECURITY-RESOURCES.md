@@ -77,12 +77,31 @@ The server **transits** learner PII — names, email addresses, enrolment and pr
 are public, non-sensitive artefacts: vendor OpenAPI documents and derived analysis. Row counts
 appear in the docs; rows never do.
 
+## Demonstrations are a PII egress path
+
+Recorded because the rest of this file is about what the *server* does, and a demo is about
+what a *transcript* keeps.
+
+The server writes nothing to disk, which is most of the reason the data posture is defensible.
+A demonstration breaks that symmetry: the MCP client persists the conversation, and it then gets
+scrolled back, pasted into tickets, quoted in pull requests and screenshotted into slides. The
+data is the same; the retention is not.
+
+The control is on the input. Demos read learner data for **`@cloudsecurityalliance.org` and
+`kurt@seifried.org`** only — see `DATA-RESOURCES.md` for the mechanics and for why an unfiltered
+`list_students()` against a 42,669-learner organization is the specific thing being avoided.
+
+Note that this cannot be enforced by scoping the credential: `students:read` is all-or-nothing,
+and Skilljar's `filter[email]` is an exact match with no domain form. It is a procedural control
+today, and `demonstration_plan` should carry the allowlist as a default when it is built.
+
 ## Known gaps and accepted risks
 
 | Gap | Rationale | Owner |
 |---|---|---|
 | v1 API keys are organisation-wide and unscopeable | Skilljar offers no per-scope v1 credential. Accepted: v1 tools are used only where v2 has no equivalent, and the profile system still gates which of them an install exposes. | Kurt Seifried |
 | `CINO_READ_ONLY_TESTING_KEY` reaches all of v1 against production | Read-only, so the exposure is disclosure rather than damage. Open question in `TODO.md` on whether the integration suite should use something narrower. | Kurt Seifried |
+| Demo PII restriction is procedural, not enforced | `students:read` is all-or-nothing and Skilljar offers no domain filter, so nothing stops an unfiltered listing except the operator following `DATA-RESOURCES.md`. `demonstration_plan` should default to the allowlist when built. | Kurt Seifried |
 | Prompt-injection defence is configuration, not enforcement | An operator who grants every scope and enables `full` has the same exposure as the official server. Mitigation is documentation and a conservative default, which is a real but partial control. | Kurt Seifried |
 | ~~No `SECURITY.md`~~ | **Closed 2026-08-26.** `SECURITY.md` delegates reporting to CSA's org-wide policy in `csa-product-security` and adds the project-specific threat model. | Kurt Seifried |
 

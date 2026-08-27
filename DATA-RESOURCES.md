@@ -63,6 +63,59 @@ Skilljar v1/v2  ──HTTPS──▶  csa-skilljar (in memory only)  ──stdio
 - **Technical detail** — no persistence layer exists. Domain objects need hand-written redacting
   `__repr__`s, because embedders log objects and a default dataclass dump is a data leak.
 
+## Asset: demonstration and test transcripts
+
+- **What it is** — the conversation log produced when someone runs a demo, a tour, or a
+  manual check through an MCP client. It contains whatever the tools returned.
+- **Classification** — `sensitive` if it touched learner data, `internal` otherwise.
+- **PII / GDPR** — **potentially yes, and this is the one place the design's "nothing at rest"
+  promise does not hold.** Everything above is ephemeral because the server writes nothing. A
+  transcript is different: it is written by the *client*, it persists, it gets scrolled back,
+  pasted into a ticket, quoted in a pull request, and screenshotted into a slide. A demo is
+  therefore a **new destination for PII that the rest of this document does not cover.**
+- **Deletion model** — outside this project's control, which is exactly why the constraint below
+  is on the input rather than the output.
+
+### Demonstrations run against named accounts only
+
+**Decided 2026-08-27.** Any demo, tour, or manual walkthrough reads learner data for
+**`@cloudsecurityalliance.org` addresses and `kurt@seifried.org`** — nobody else. Never an
+unfiltered listing.
+
+The reference organization holds **42,669 real learners**. `list_students()` with no filter
+returns strangers' names and email addresses into a transcript that will outlive the demo, for
+no benefit: a tour proves the tools work, and it proves that just as well against five accounts
+as against forty thousand.
+
+**Skilljar cannot filter by domain, so this has to be done deliberately.** `filter[email]` is an
+**exact, case-insensitive match** — there is no `contains`, no `endswith`, no domain filter.
+"Everyone at cloudsecurityalliance.org" is not a question the API can answer, so a demo cannot
+narrow a broad listing after the fact. It must start from specific addresses.
+
+The workable pattern, given what the API actually offers:
+
+1. Resolve each named address once — `list_students(filter_email="someone@cloudsecurityalliance.org")`.
+2. Scope every learner-facing read by the resulting id. Each of these takes a student filter,
+   so no broad listing is needed at any point:
+
+   | Tool | Filter to use |
+   |---|---|
+   | `list_enrollments` | `filter_student_email` (takes the address directly) |
+   | `list_certificates` | `filter_student_id` |
+   | `list_course_ratings` | `filter_student_id` |
+   | `list_signup_field_values` | `filter_student_id` |
+
+3. Content tools — courses, lessons, quizzes, question banks, domains, published courses — carry
+   no learner PII and need no restriction.
+
+**Two specific hazards.** `list_course_ratings` returns learner-written free text and is **not
+paginated**, so an unscoped call returns every rating a course ever received in one response.
+`list_signup_field_values` returns whatever learners typed into registration fields, which is
+frequently employer and job title.
+
+When `demonstration_plan` is built it should carry this allowlist as a default, name the accounts
+it will touch before it touches them, and refuse to widen silently.
+
 ## Cross-system connections
 
 | From | To | Carries | Sensitivity |
@@ -70,6 +123,7 @@ Skilljar v1/v2  ──HTTPS──▶  csa-skilljar (in memory only)  ──stdio
 | `api.skilljar.com/v1` | server (memory) | learner records, content, commerce | sensitive |
 | `api.skilljar.com/v2` | server (memory) | learner records, content, analytics | sensitive |
 | server | MCP client (stdio) | tool results | sensitive |
+| MCP client | transcript (persisted by the client) | whatever was returned | sensitive — the one path that outlives the process |
 | `api.skilljar.com` (specs, unauthenticated) | `specs/` | API descriptions | public |
 | `specs/` | `analysis/` | derived inventory | public |
 
@@ -80,3 +134,6 @@ Skilljar v1/v2  ──HTTPS──▶  csa-skilljar (in memory only)  ──stdio
 - **Redacting `__repr__` on anything holding learner data.** Never let `@dataclass` regenerate one.
 - **No caching.** If a cache is ever proposed, it changes this file and the security posture, and
   it needs its own ADR.
+- **Demos read named accounts only** — `@cloudsecurityalliance.org` and `kurt@seifried.org`. A
+  transcript persists, so an unfiltered `list_students()` puts strangers' PII somewhere this
+  project cannot delete it from.
