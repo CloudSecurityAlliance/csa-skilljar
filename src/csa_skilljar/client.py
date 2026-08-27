@@ -233,3 +233,61 @@ class SkilljarClient:
     def update_signup_field_values(self, *,
                                    items: list[dict[str, Any]]) -> dict[str, Any]:
         return self._backend.update_signup_field_values(items=items)
+
+    def list_published_courses(self, *, course_id: str | None = None,
+                               domain_id: str | None = None, live: bool | None = None,
+                               include: str | None = None, cursor: str | None = None,
+                               page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_published_courses(
+            course_id=course_id, domain_id=domain_id, live=live, include=include,
+            cursor=cursor, page_size=page_size)
+
+    def get_published_course(self, *, published_course_id: str) -> dict[str, Any]:
+        return self._backend.get_published_course(
+            published_course_id=published_course_id)
+
+    def publish_courses(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.publish_courses(items=items)
+
+    def update_published_courses(self, *,
+                                 items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_published_courses(items=items)
+
+    def delete_published_course(self, *, published_course_id: str) -> dict[str, Any]:
+        return self._backend.delete_published_course(
+            published_course_id=published_course_id)
+
+    def unpublish_published_course(self, *,
+                                   published_course_id: str) -> dict[str, Any]:
+        return self._backend.unpublish_published_course(
+            published_course_id=published_course_id)
+
+    def republish_published_course(self, *,
+                                   published_course_id: str) -> dict[str, Any]:
+        return self._backend.republish_published_course(
+            published_course_id=published_course_id)
+
+    def list_visibility_overrides(self, *, group_id: str, is_visible: bool | None = None,
+                                  published_course_id: str | None = None,
+                                  cursor: str | None = None,
+                                  page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_visibility_overrides(
+            group_id=group_id, is_visible=is_visible,
+            published_course_id=published_course_id, cursor=cursor, page_size=page_size)
+
+    def add_visibility_overrides(self, *, group_id: str,
+                                 items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.add_visibility_overrides(group_id=group_id, items=items)
+
+    def remove_visibility_overrides(self, *, group_id: str,
+                                    items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.remove_visibility_overrides(group_id=group_id, items=items)
+
+    def list_domains(self, *, access: str | None = None, name: str | None = None,
+                     include: str | None = None, cursor: str | None = None,
+                     page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_domains(access=access, name=name, include=include,
+                                          cursor=cursor, page_size=page_size)
+
+    def get_domain(self, *, domain_id: str) -> dict[str, Any]:
+        return self._backend.get_domain(domain_id=domain_id)

@@ -17,7 +17,7 @@ file plus open GitHub Issues finds everything.
 ## Next
 
 - Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
-- Block 8 — publishing & catalog (12 tools) → `ROADMAP.md`. Note `VisibilityOverrideAttributes` uses `updated_at`, not `modified_at`.
+- Block 9 — web packages & OAuth client (6 tools) → `ROADMAP.md`. **Completes 73-tool parity.** `register_oauth_client` mints a credential and goes behind `admin`; `update_web_packages` needs ADR-008 applied to `type`, `state` and `base_path`.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -48,6 +48,9 @@ work landed, and leaving them would make the sweep lie.
   `SECURITY-RESOURCES.md` carries the dated review.
 - ~~Block 7 — groups & signup fields (11 tools), shipped to `main` 2026-08-27~~ — seven
   named traps, each with a regression test and a killed mutation.
+- ~~Block 8 — publishing & catalog (12 tools), shipped to `main` 2026-08-27~~ — new
+  `publishing.*` capability; visibility overrides routed to `groups.*` to match the
+  upstream scope.
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)

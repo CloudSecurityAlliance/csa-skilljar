@@ -21,7 +21,14 @@ from mcp.server import MCPServer
 
 from ...backend import parse_batch
 from ...client import SkilljarClient
-from .._schemas import BatchResultOut, GroupListOut, GroupOut, MembershipResultOut
+from .._schemas import (
+    BatchResultOut,
+    GroupListOut,
+    GroupOut,
+    MembershipResultOut,
+    VisibilityOverrideListOut,
+    VisibilityOverrideOut,
+)
 from ._base import DESTRUCTIVE, IDEMPOTENT_WRITE, READ, WRITE, translate_errors
 
 # `updated_at` is deliberate. See the module docstring; a "correction" to modified_at
@@ -38,6 +45,12 @@ _NOTE = ("Results are one page. When has_more is true, call again with next_curs
          "are extensions here.")
 _BATCH_NOTE = ("Rows are processed independently. A non-empty `failed` means some rows "
                "did not land - report that rather than reporting success.")
+# `updated_at`, not `modified_at` - the same spelling as GroupAttributes, and the only
+# other v2 resource that does it. See tests/test_groups.py.
+_OVERRIDE_KEYS = ("published_course_id", "is_visible", "created_at", "updated_at")
+_COEXIST_NOTE = ("The unique key includes is_visible, so an allow row and a block row "
+                 "for the SAME course can both exist. Skilljar's guidance is to pick "
+                 "one; if both are present the behaviour is not defined here.")
 _MEMBER_NOTE = ("This call is idempotent: success does NOT mean anything changed. "
                 "Adding an existing member succeeds, and removing someone who was never "
                 "a member also succeeds. The result cannot be used to test membership.")
@@ -81,6 +94,30 @@ def _check_group_attrs(attrs: dict[str, Any], where: str, allowed: frozenset[str
                 raise ValueError(
                     f"{where} rule_email_domains takes bare domains like example.com, "
                     f"not {d!r}")
+
+
+def _flatten_override(row: dict[str, Any]) -> VisibilityOverrideOut:
+    attrs = row.get("attributes", {})
+    out: dict[str, Any] = {"id": row.get("id", "")}
+    for key in _OVERRIDE_KEYS:
+        if key in attrs:
+            out[key] = attrs[key]
+    return cast(VisibilityOverrideOut, out)
+
+
+def _check_overrides(items: list[dict[str, Any]], where: str) -> None:
+    if not items:
+        raise ValueError(f"{where} must contain at least one item")
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"{where}[{i}] must be an object")
+        unknown = sorted(set(item) - {"published_course_id", "is_visible"})
+        if unknown:
+            raise ValueError(f"{where}[{i}] has unknown key(s) {', '.join(unknown)}. "
+                             f"Allowed: published_course_id, is_visible")
+        if not item.get("published_course_id"):
+            raise ValueError(f"{where}[{i}] needs a published_course_id - the "
+                             f"published-course id, not the course id")
 
 
 def _member_ids(where: str, student_ids: list[str]) -> None:
@@ -290,3 +327,101 @@ def register_group_tools(app: MCPServer,
                 "succeeded": len(parsed["succeeded"]), "failed": parsed["failed"],
                 "student_ids": [s.get("id", "") for s in parsed["succeeded"]],
                 "note": _MEMBER_NOTE}
+
+    @app.tool(annotations=READ)
+    @translate_errors
+    def list_visibility_overrides(id: str, filter_is_visible: bool | None = None,
+                                  filter_published_course_id: str | None = None,
+                                  page_cursor: str | None = None,
+                                  page_size: int | None = None
+                                  ) -> VisibilityOverrideListOut:
+        """List one group's course-visibility overrides, one page at a time.
+
+        `id` is the GROUP id. Overrides hang off the group, not off the course - which
+        is the opposite of Skilljar's v1 API, where visibility hangs off the content.
+        Results are one page: when has_more is true, call again with next_cursor.
+
+        Each row says: for this group, show (`is_visible` true, an allowlist entry) or
+        hide (`is_visible` false, a blocklist entry) one published course, overriding
+        that course's own default.
+
+        An unknown group is a not-found error, which is a different answer from an
+        empty list. An empty list means the group exists and has no overrides.
+
+        Rows carry `updated_at`, not `modified_at`.
+
+        Requires the `student-groups:read` OAuth scope.
+        """
+        envelope = get_client().list_visibility_overrides(
+            group_id=id, is_visible=filter_is_visible,
+            published_course_id=filter_published_course_id,
+            cursor=page_cursor, page_size=page_size)
+        rows = envelope.get("data", [])
+        meta = envelope.get("meta", {})
+        out: VisibilityOverrideListOut = {
+            "group_id": id, "overrides": [_flatten_override(r) for r in rows],
+            "has_more": bool(meta.get("has_more")),
+            "note": f"{_NOTE} {_COEXIST_NOTE}"}
+        if meta.get("next_cursor"):
+            out["next_cursor"] = str(meta["next_cursor"])
+        return out
+
+    @app.tool(annotations=WRITE)
+    @translate_errors
+    def add_visibility_overrides(id: str,
+                                 overrides: list[dict[str, Any]]) -> BatchResultOut:
+        """Grant or deny a group access to published courses. This is a BATCH operation.
+
+        `id` is the GROUP id. `overrides` is the batch: each item needs
+        `published_course_id` - the
+        published-course id, not the course id - and may set `is_visible`:
+
+          `is_visible: true`  (the DEFAULT) an ALLOWLIST entry: members see the course
+                              even though it is hidden by default
+          `is_visible: false` a BLOCKLIST entry: members do NOT see the course even
+                              though it is visible by default
+
+        THE UNIQUE KEY INCLUDES `is_visible`, so adding true and then false for the same
+        course creates TWO rows that contradict each other rather than the second
+        replacing the first. Remove the one you do not want; Skilljar's own guidance is
+        to keep only one.
+
+        Idempotent: re-adding an identical override succeeds and changes nothing, so a
+        success here does not mean access changed. Duplicates within one batch are
+        first-wins.
+
+        An unknown group is a not-found error whatever else is in the request.
+
+        Requires the `student-groups:write` OAuth scope.
+        """
+        _check_overrides(overrides, "overrides")
+        return _batch_out(get_client().add_visibility_overrides(
+            group_id=id, items=overrides))
+
+    @app.tool(annotations=WRITE)
+    @translate_errors
+    def remove_visibility_overrides(id: str,
+                                    overrides: list[dict[str, Any]]) -> BatchResultOut:
+        """Remove a group's course-visibility overrides. This is a BATCH operation.
+
+        `id` is the GROUP id. `overrides` is the batch, and each item identifies one by
+        `published_course_id` plus `is_visible` - because both an allow row and a block
+        row can exist for the same course, `is_visible` says WHICH ONE to remove. It
+        defaults to true, so an unqualified removal takes out the allowlist entry and
+        leaves any blocklist entry in place.
+
+        Removing an allowlist entry can REVOKE ACCESS the group currently has. Removing
+        a blocklist entry can GRANT access it currently lacks. Neither is announced
+        anywhere else.
+
+        The returned ids echo the `published_course_id` you sent, NOT the override's own
+        id, so results line up with the request without a second lookup.
+
+        Removing an override that does not exist succeeds - like the membership tools,
+        this cannot be used to test what is there.
+
+        Requires the `student-groups:write` OAuth scope.
+        """
+        _check_overrides(overrides, "overrides")
+        return _batch_out(get_client().remove_visibility_overrides(
+            group_id=id, items=overrides))

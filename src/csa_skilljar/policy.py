@@ -38,23 +38,29 @@ WRITE_GROUPS = "groups.write"
 # Split out for the same reason content.delete is: deleting a group is a HARD delete
 # and its memberships and visibility overrides cascade at the database.
 DELETE_GROUPS = "groups.delete"
+# Publishing is the only family whose effects are visible to the anonymous public: it
+# puts a course on a customer-facing domain and can open it to anonymous access. An
+# authoring credential that can write lesson HTML must not also be able to ship it.
+READ_PUBLISHING = "publishing.read"
+WRITE_PUBLISHING = "publishing.write"
 ADMIN_CREDENTIALS = "admin.credentials"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
-    READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS,
+    READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
 # pressure and everybody can pick a word. `parity` is the default.
 PROFILES: dict[str, tuple[str, ...]] = {
-    "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, READ_GROUPS),
+    "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, READ_GROUPS,
+               READ_PUBLISHING),
     "authoring": (READ_CONTENT, WRITE_CONTENT),
     "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
     "reporting": (READ_REPORTING, READ_CONTENT),
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
-                   READ_GROUPS),
+                   READ_GROUPS, READ_PUBLISHING),
     "admin": (ADMIN_CREDENTIALS,),
     "full": ALL_CAPABILITIES,
 }
@@ -117,6 +123,21 @@ _GATES: dict[str, str | None] = {
     "get_signup_field_value": READ_GROUPS,
     "create_signup_field_values": WRITE_GROUPS,
     "update_signup_field_values": WRITE_GROUPS,
+    "list_published_courses": READ_PUBLISHING,
+    "get_published_course": READ_PUBLISHING,
+    "publish_courses": WRITE_PUBLISHING,
+    "update_published_courses": WRITE_PUBLISHING,
+    "delete_published_course": WRITE_PUBLISHING,
+    "unpublish_published_course": WRITE_PUBLISHING,
+    "republish_published_course": WRITE_PUBLISHING,
+    "list_domains": READ_PUBLISHING,
+    "get_domain": READ_PUBLISHING,
+    # Visibility overrides are gated by groups.*, not publishing.*: upstream hangs them
+    # off /v2/groups/{id}/... and requires student-groups:write. Gating by the scope the
+    # credential actually needs keeps the local gate and the remote one in agreement.
+    "list_visibility_overrides": READ_GROUPS,
+    "add_visibility_overrides": WRITE_GROUPS,
+    "remove_visibility_overrides": WRITE_GROUPS,
 }
 
 

@@ -7,6 +7,36 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 8 — publishing and catalog.** Twelve tools, and the first whose effects are
+  visible to the anonymous public: publishing puts a course on a customer-facing domain,
+  `open_access` allows anonymous access, and `visible_on_catalog` lists it publicly.
+- A new `publishing.read` / `publishing.write` capability pair. `publishing.write` is in
+  no profile but `full` — notably not in `authoring`, so a credential that can write
+  lesson HTML cannot ship it to the internet.
+- The three visibility-override tools are gated by `groups.*`, not `publishing.*`.
+  Upstream hangs them off `/v2/groups/{id}/relationships/published-course-visibility/`
+  and requires `student-groups:write`; gating by the scope the credential actually needs
+  keeps the local gate and the remote one in agreement.
+- `update_published_courses` refuses `slug`, `course_id` and `domain_id` rather than
+  passing them on. Skilljar accepts all three and silently ignores them, which is
+  exactly the case ADR-008 exists for.
+- `unpublish_published_course` frees the slug and `republish_published_course`
+  reassigns it, so a course can return at a different public URL. Both descriptions say
+  so, and a regression test asserts the slug can change across the cycle.
+- `delete_published_course` is documented as what it is — a soft unpublish, near-identical
+  to `unpublish_published_course`, named after v1's DELETE verb rather than its effect.
+  Each tool points at the other so a model is not left guessing which was meant.
+- `add_visibility_overrides` documents that the unique key includes `is_visible`, so an
+  allow row and a block row for the same course coexist rather than replacing each other.
+- `remove_visibility_overrides` echoes the request's `published_course_id` rather than
+  the override's own id, reproducing upstream's deliberate choice so results correlate to
+  inputs without a second lookup.
+- `publish_courses` documents the two booleans that default TRUE
+  (`require_all_prerequisites`, `unique_progress_per_enrollment`) against ten that
+  default false, and that a duplicate publish is a per-item conflict rather than a
+  batch failure.
+
+### Added
 - **Block 7 — groups and signup fields.** Eleven tools. Groups decide which published
   courses a learner can see, so they are administered like content but grant access like
   people; they get their own `groups.read` / `groups.write` / `groups.delete`

@@ -354,3 +354,69 @@ class SignupFieldValueListOut(TypedDict):
     has_more: bool
     next_cursor: NotRequired[str]
     note: str
+
+
+class PublishedCourseOut(TypedDict):
+    id: str
+    course_id: NotRequired[str]
+    domain_id: NotRequired[str]
+    slug: NotRequired[str | None]
+    live: NotRequired[bool]
+    is_hidden: NotRequired[bool]
+    visible_on_catalog: NotRequired[bool]
+    open_access: NotRequired[bool]
+    strict_enforce_group_visibility: NotRequired[bool]
+    visibility_override_type: NotRequired[str]
+    access_period_starts_at: NotRequired[str | None]
+    access_period_ends_at: NotRequired[str | None]
+    restrict_access_start_end_dates: NotRequired[bool]
+    allow_self_service_reenroll: NotRequired[bool]
+    unique_progress_per_enrollment: NotRequired[bool]
+    require_all_prerequisites: NotRequired[bool]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class PublishedCourseListOut(TypedDict):
+    published_courses: list[PublishedCourseOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class DomainOut(TypedDict):
+    id: str
+    name: str
+    access: NotRequired[str]
+    access_message_html: NotRequired[str]
+    marketing_message: NotRequired[str]
+    require_https: NotRequired[bool]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class DomainListOut(TypedDict):
+    domains: list[DomainOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class VisibilityOverrideOut(TypedDict):
+    id: str
+    published_course_id: NotRequired[str]
+    is_visible: NotRequired[bool]
+    created_at: NotRequired[str]
+    # `updated_at`, NOT `modified_at`. Visibility overrides and groups are the only two
+    # v2 resources spelled this way. See tests/test_groups.py.
+    updated_at: NotRequired[str]
+
+
+class VisibilityOverrideListOut(TypedDict):
+    group_id: str
+    overrides: list[VisibilityOverrideOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str

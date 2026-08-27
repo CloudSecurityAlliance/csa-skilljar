@@ -74,13 +74,24 @@ EXPECTED_BY_CAPABILITY = {
     "content.delete": {"delete_quizzes", "delete_questions",
                        "delete_question_banks"},
     "groups.read": {"list_groups", "get_group",
-                    "list_signup_field_values", "get_signup_field_value"},
+                    "list_signup_field_values", "get_signup_field_value",
+                    # Visibility overrides live here, not under publishing.*: upstream
+                    # gates them with student-groups:* and hangs them off the group.
+                    "list_visibility_overrides"},
     "groups.write": {"create_groups", "update_groups",
                      "add_group_memberships", "remove_group_memberships",
-                     "create_signup_field_values", "update_signup_field_values"},
+                     "create_signup_field_values", "update_signup_field_values",
+                     "add_visibility_overrides", "remove_visibility_overrides"},
     # Deliberately NOT in groups.write: deleting a group is a HARD delete and takes its
     # memberships and course-visibility overrides with it at the database level.
     "groups.delete": {"delete_groups"},
+    "publishing.read": {"list_published_courses", "get_published_course",
+                        "list_domains", "get_domain"},
+    # Deliberately NOT reachable from `authoring`: these change what anonymous visitors
+    # to a customer-facing site can see.
+    "publishing.write": {"publish_courses", "update_published_courses",
+                         "delete_published_course", "unpublish_published_course",
+                         "republish_published_course"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -123,6 +134,15 @@ CALL_ARGS = {
     "list_signup_field_values": {}, "get_signup_field_value": {"signup_field_value_id": "v1"},
     "create_signup_field_values": {"student_id": "s1", "items": []},
     "update_signup_field_values": {"items": []},
+    "list_published_courses": {}, "get_published_course": {"published_course_id": "pc1"},
+    "publish_courses": {"items": []}, "update_published_courses": {"items": []},
+    "delete_published_course": {"published_course_id": "pc1"},
+    "unpublish_published_course": {"published_course_id": "pc1"},
+    "republish_published_course": {"published_course_id": "pc1"},
+    "list_visibility_overrides": {"group_id": "g1"},
+    "add_visibility_overrides": {"group_id": "g1", "items": []},
+    "remove_visibility_overrides": {"group_id": "g1", "items": []},
+    "list_domains": {}, "get_domain": {"domain_id": "d1"},
 }
 
 
