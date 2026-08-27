@@ -38,7 +38,12 @@ run_tests() {
 # worse than no local gate, because it teaches you to trust it.
 security() {
   [ -x .venv/bin/bandit ] || { echo "!! bandit missing - .venv/bin/python -m pip install -e '.[dev]'"; return 1; }
-  .venv/bin/bandit -q -r src && .venv/bin/pip-audit --progress-spinner off
+  # VIRTUAL_ENV is unset for pip-audit: if the developer has another venv active it
+  # warns that it may have audited the wrong one, and a warning nobody reads is where
+  # a real one goes to hide. CI has none set, so this is a no-op there.
+  .venv/bin/bandit -q -r src \
+    && env -u VIRTUAL_ENV PIPAPI_PYTHON_LOCATION="$PWD/.venv/bin/python" \
+       .venv/bin/pip-audit --progress-spinner off
 }
 
 step "tests"        run_tests

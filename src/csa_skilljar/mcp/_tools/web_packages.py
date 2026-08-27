@@ -232,7 +232,7 @@ def register_web_package_tools(app: MCPServer,
                               redirect_uris: list[str] | None = None,
                               grant_types: list[str] | None = None,
                               scope: str | None = None,
-                              token_endpoint_auth_method: str = "client_secret_post",  # nosec B107 - an RFC 7591 method name, not a password
+                              token_endpoint_auth_method: str = "client_secret_post",  # nosec B107 # RFC 7591 method name
                               resource: str = "") -> RegisteredClientOut:
         """Create a new OAuth2 client identity. THIS MINTS A CREDENTIAL.
 

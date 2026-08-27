@@ -19,7 +19,7 @@ from . import exceptions as exc
 
 log = logging.getLogger(__name__)
 
-TOKEN_PATH = "/v2/auth/token"          # nosec B105 - a URL path, not a secret
+TOKEN_PATH = "/v2/auth/token"          # nosec B105 # a URL path, not a secret
 _REFRESH_MARGIN_SECONDS = 60.0
 _FALLBACK_LIFETIME_SECONDS = 300.0     # used only when neither the JWT nor the server says
 

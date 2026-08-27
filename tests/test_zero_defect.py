@@ -152,7 +152,11 @@ def test_no_credential_value_can_reach_the_cli_output(monkeypatch):
 def test_every_nosec_carries_a_reason():
     """A bare `# nosec` is an unreviewable suppression: it silences the scanner and
     records nothing about why. Requiring a rule id and a reason keeps each one
-    auditable, and keeps the count small enough to read."""
+    auditable, and keeps the count small enough to read.
+
+    The reason goes after a SECOND `#`. Bandit parses everything following the rule id
+    as further rule ids, so `# nosec B105 - because ...` makes it warn once per word.
+    """
     import pathlib
     import re
     src = pathlib.Path(__file__).resolve().parent.parent / "src"
@@ -161,8 +165,8 @@ def test_every_nosec_carries_a_reason():
         for n, line in enumerate(path.read_text().splitlines(), 1):
             if "nosec" not in line:
                 continue
-            # Expect: `# nosec B105 - <reason>`
-            if not re.search(r"#\s*nosec\s+B\d{3}\s+-\s+\S", line):
+            # Expect: `# nosec B105 # <reason>`
+            if not re.search(r"#\s*nosec\s+B\d{3}(?:,B\d{3})*\s+#\s*\S", line):
                 bare.append(f"{path.name}:{n}")
     assert not bare, f"nosec without a rule id and reason: {bare}"
 
