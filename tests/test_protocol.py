@@ -26,12 +26,25 @@ EXERCISE = {
     "describe_capabilities": {},
     "report_a_problem": {"what_happened": "nothing, this is a test"},
     "list_courses": {},
+    "get_course": {"id": "c1"},
+    "list_lessons": {},
+    "get_lesson": {"id": "l1"},
+    "create_courses": {"courses": [{"title": "New"}]},
+    "update_courses": {"courses": [{"id": "c1", "title": "Renamed"}]},
+    "create_lessons": {"lessons": [{"course_id": "c1", "type": "HTML",
+                                    "title": "New", "content_html": "<p>x</p>"}]},
+    "update_lessons": {"lessons": [{"id": "l1", "title": "Renamed"}]},
 }
 
 
-def build(profile="parity", env=None):
+LESSON_ROWS = [{"type": "lessons", "id": "l1",
+                "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
+
+
+def build(profile="full", env=None):
     settings = settings_from_env(env or {})
-    client = SkilljarClient(PolicyBackend(FakeBackend(courses=ROWS), Policy.from_profile(profile)))
+    client = SkilljarClient(PolicyBackend(
+        FakeBackend(courses=ROWS, lessons=LESSON_ROWS), Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 
 

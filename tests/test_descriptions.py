@@ -33,6 +33,14 @@ REQUIREMENTS = {
     "describe_capabilities": ["not enabled", "cannot be changed"],
     "report_a_problem": ["what_happened", "no credential"],
     "list_courses": ["one page", "has_more", "next_cursor", "courses:read", "filter_title"],
+    "get_course": ["courses:read", "does not return", "list_lessons"],
+    "list_lessons": ["one page", "has_more", "next_cursor", "lessons:read", "exact"],
+    "get_lesson": ["lessons:read", "untrusted", "content_html"],
+    "create_courses": ["batch", "courses:write", "failed", "title"],
+    "update_courses": ["batch", "courses:write", "preserved", "id"],
+    "create_lessons": ["batch", "lessons:write", "content_html", "quiz_id"],
+    "update_lessons": ["deleted", "confirm_delete_all_content_items",
+                       "lessons:write", "preserved", "read-only"],
 }
 
 

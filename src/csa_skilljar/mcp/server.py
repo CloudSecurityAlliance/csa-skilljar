@@ -4,7 +4,12 @@ from __future__ import annotations
 from mcp.server import MCPServer
 
 from ._config import ClientProvider, Settings
-from ._tools import register_access_tools, register_course_tools, register_feedback_tools
+from ._tools import (
+    register_access_tools,
+    register_course_tools,
+    register_feedback_tools,
+    register_lesson_tools,
+)
 
 __all__ = ["INSTRUCTIONS", "create_server"]
 
@@ -48,4 +53,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_access_tools(app, get_client, settings)
     register_feedback_tools(app, settings)
     register_course_tools(app, get_client)
+    register_lesson_tools(app, get_client)
     return app

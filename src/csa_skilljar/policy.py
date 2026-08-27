@@ -49,6 +49,13 @@ PROFILES: dict[str, tuple[str, ...]] = {
 # read the policy does not gate); a string names the capability that gates it.
 _GATES: dict[str, str | None] = {
     "list_courses": READ_CONTENT,
+    "get_course": READ_CONTENT,
+    "list_lessons": READ_CONTENT,
+    "get_lesson": READ_CONTENT,
+    "create_courses": WRITE_CONTENT,
+    "update_courses": WRITE_CONTENT,
+    "create_lessons": WRITE_CONTENT,
+    "update_lessons": WRITE_CONTENT,
 }
 
 

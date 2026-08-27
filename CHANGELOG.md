@@ -7,6 +7,20 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 2 — courses and lessons.** Seven new tools: `get_course`, `create_courses`,
+  `update_courses`, `list_lessons`, `get_lesson`, `create_lessons`, `update_lessons`.
+- Batch writes over v2's `207` envelope, with per-item results preserved rather than
+  collapsed into one status.
+- Local validation that mirrors the API's document-level `422`: an invalid item rejects
+  the whole call rather than writing part of it.
+- The lesson type XOR rules (`HTML`/`MODULAR`/`QUIZ`), and a confirmation flag guarding
+  the `content_items` tri-state where an empty list deletes every child.
+- `tests/integration/` — the first live-Skilljar suite, gated on
+  `CSA_SKILLJAR_INTEGRATION=1`, with a guard asserting the gate skips *for the right
+  reason*.
+- ADR-008: reject read-only fields the official server silently ignores.
+
+### Added (Block 1)
 - **Block 1 — a working server.** A local stdio MCP server over Skilljar's v2 API with four
   tools: `check_access` (which credentials work and what each unlocks),
   `describe_capabilities` (what exists but is not enabled), `report_a_problem` (a filable

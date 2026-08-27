@@ -89,3 +89,33 @@ def test_a_built_wheel_installs_and_the_console_script_runs(tmp_path):
     done = subprocess.run([str(script), "--version"], capture_output=True, text=True)
     assert done.returncode == 0, f"console script failed: {done.stderr}"
     assert "0.0.1" in done.stderr
+
+
+def test_the_integration_gate_skips_for_the_right_reason():
+    """A skip count of zero means the gate leaked and those tests ran against a real
+    learner database. But counting skips is not enough: without credentials the
+    `live_client` fixture skips for its OWN reason, which masks a broken gate on any
+    machine that has no credentials - and hides nothing on the machine that does.
+
+    So assert the REASON. The first version of this test asserted only the count and
+    could not fail when the gate was deliberately disabled.
+    """
+    import os
+    import subprocess
+
+    env = {k: v for k, v in os.environ.items() if k != "CSA_SKILLJAR_INTEGRATION"}
+    # Credentials present or not, the gate must be what stops these running.
+    env.setdefault("CSA_SKILLJAR_V2_CLIENT_ID", "probe-id")
+    env.setdefault("CSA_SKILLJAR_V2_CLIENT_SECRET", "probe-secret")   # nosec B105 - fake
+    done = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-rs", "tests/integration/", "--no-header"],
+        cwd=ROOT, capture_output=True, text=True, env=env,
+    )
+    assert done.returncode == 0, done.stdout
+    assert " passed" not in done.stdout, (
+        "integration tests RAN without CSA_SKILLJAR_INTEGRATION=1 - the gate leaked"
+    )
+    assert "CSA_SKILLJAR_INTEGRATION=1" in done.stdout, (
+        "integration tests were skipped, but NOT by the integration gate. Something "
+        "else stopped them, so the gate itself is unproven:\n" + done.stdout
+    )

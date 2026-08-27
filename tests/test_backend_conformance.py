@@ -50,3 +50,13 @@ def test_fake_paginates_and_reports_more():
     assert page["next_cursor"] == "2"
     rest = b.list_courses(page_size=2, cursor=page["next_cursor"])
     assert [c["id"] for c in rest["data"]] == ["c2", "c3"]
+
+
+def test_the_fake_never_mutates_the_rows_it_was_given():
+    """A double that rewrites its caller's fixture is a trap. This happened: a
+    module-level ROWS constant was renamed by one test and broke another."""
+    rows = [{"type": "courses", "id": "c1", "attributes": {"title": "Original"}}]
+    fake = FakeBackend(courses=rows)
+    fake.update_courses(items=[{"id": "c1", "title": "Changed"}])
+    assert rows[0]["attributes"]["title"] == "Original"
+    assert fake.get_course(course_id="c1")["data"]["attributes"]["title"] == "Changed"
