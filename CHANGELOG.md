@@ -7,6 +7,14 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 4 — question banks and bindings.** Nine tools. Reusable exam item pools, and
+  the quiz-to-bank binding that makes them reusable — neither of which v1 can do.
+- Re-binding an already-attached bank is an idempotent **partial** update: omitted fields
+  keep their stored values and an omitted `order` is not re-derived.
+- `delete_question_banks` states in its description that deleting a bank silently unbinds
+  every quiz using it, while leaving those quizzes alive.
+
+### Added
 - **Block 3 — quizzes and questions.** Ten tools, and the project's first destructive
   operations (`delete_quizzes`, `delete_questions`).
 - A new `content.delete` capability, deliberately separate from `content.write`: an

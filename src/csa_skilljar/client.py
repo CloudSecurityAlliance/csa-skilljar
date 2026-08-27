@@ -95,3 +95,34 @@ class SkilljarClient:
 
     def delete_questions(self, *, question_ids: list[str]) -> dict[str, Any]:
         return self._backend.delete_questions(question_ids=question_ids)
+
+    def list_question_banks(self, *, name: str | None = None,
+                            updated_since: str | None = None, cursor: str | None = None,
+                            page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_question_banks(
+            name=name, updated_since=updated_since, cursor=cursor, page_size=page_size)
+
+    def get_question_bank(self, *, bank_id: str) -> dict[str, Any]:
+        return self._backend.get_question_bank(bank_id=bank_id)
+
+    def create_question_banks(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_question_banks(items=items)
+
+    def update_question_banks(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_question_banks(items=items)
+
+    def delete_question_banks(self, *, bank_ids: list[str]) -> dict[str, Any]:
+        return self._backend.delete_question_banks(bank_ids=bank_ids)
+
+    def list_bank_assignments(self, *, quiz_id: str) -> dict[str, Any]:
+        return self._backend.list_bank_assignments(quiz_id=quiz_id)
+
+    def bind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.bind_banks(quiz_id=quiz_id, items=items)
+
+    def update_bank_assignments(self, *, quiz_id: str,
+                                items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_bank_assignments(quiz_id=quiz_id, items=items)
+
+    def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.unbind_banks(quiz_id=quiz_id, items=items)

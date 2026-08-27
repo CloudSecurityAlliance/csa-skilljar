@@ -51,6 +51,17 @@ REQUIREMENTS = {
     "create_questions": ["batch", "exactly one", "freeform", "1000"],
     "update_questions": ["immutable", "read-only", "delete_questions", "that row"],
     "delete_questions": ["destructive", "untouched", "content.delete", "question_ids"],
+    "list_question_banks": ["one page", "has_more", "question-banks:read", "reusable"],
+    "get_question_bank": ["question-banks:read", "not its questions", "list_questions"],
+    "create_question_banks": ["batch", "question-banks:write", "empty", "name"],
+    "update_question_banks": ["batch", "only writable field", "question-banks:write"],
+    "delete_question_banks": ["destructive", "unbound", "untouched", "content.delete"],
+    "list_quiz_question_bank_assignments": ["not paginated", "quizzes:read",
+                                            "limit_question_count"],
+    "bind_quiz_question_banks": ["partial update, not a reset", "keeps its current value",
+                                 "quizzes:write", "duplicate_in_batch"],
+    "update_quiz_question_banks": ["already", "no-op", "quizzes:write", "not_found"],
+    "unbind_quiz_question_banks": ["not deleted", "delete_question_banks", "quizzes:write"],
 }
 
 

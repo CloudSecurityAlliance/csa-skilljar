@@ -11,9 +11,9 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–3 implemented, not yet released.**
+> **Status: Blocks 1–4 implemented, not yet released.**
 >
-> Twenty-one tools over Skilljar's v2 API. Install from source until the first PyPI release:
+> Thirty tools over Skilljar's v2 API. Install from source until the first PyPI release:
 > `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > | | |
 > |---|---|
@@ -22,8 +22,10 @@ tools.
 > | **Lessons** | `list_lessons` · `get_lesson` · `create_lessons` · `update_lessons` |
 > | **Quizzes** | `list_quizzes` · `get_quiz` · `create_quizzes` · `update_quizzes` · `delete_quizzes` |
 > | **Questions** | `list_questions` · `get_question` · `create_questions` · `update_questions` · `delete_questions` |
+> | **Question banks** | `list_question_banks` · `get_question_bank` · `create_question_banks` · `update_question_banks` · `delete_question_banks` |
+> | **Bank bindings** | `list_quiz_question_bank_assignments` · `bind_quiz_question_banks` · `update_quiz_question_banks` · `unbind_quiz_question_banks` |
 >
-> The full 73-tool parity surface arrives over Blocks 4–9; see [ROADMAP.md](ROADMAP.md).
+> The full 73-tool parity surface arrives over Blocks 5–9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 

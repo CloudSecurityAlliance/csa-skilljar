@@ -46,12 +46,25 @@ EXERCISE = {
                                         "quiz_id": "q1", "answers": []}]},
     "update_questions": {"questions": [{"id": "qu1", "question_html": "<p>Changed</p>"}]},
     "delete_questions": {"question_ids": ["qu1"]},
+    "list_question_banks": {},
+    "get_question_bank": {"id": "b1"},
+    "create_question_banks": {"question_banks": [{"name": "New Bank"}]},
+    "update_question_banks": {"question_banks": [{"id": "b1", "name": "Renamed"}]},
+    "delete_question_banks": {"question_bank_ids": ["b1"]},
+    "list_quiz_question_bank_assignments": {"quiz_id": "q1"},
+    "bind_quiz_question_banks": {"quiz_id": "q1",
+                                 "question_banks": [{"question_bank_id": "b1"}]},
+    "update_quiz_question_banks": {"quiz_id": "q1",
+                                   "question_banks": [{"question_bank_id": "b1"}]},
+    "unbind_quiz_question_banks": {"quiz_id": "q1",
+                                   "question_banks": [{"question_bank_id": "b1"}]},
 }
 
 
 LESSON_ROWS = [{"type": "lessons", "id": "l1",
                 "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
 QUIZ_ROWS = [{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}]
+BANK_ROWS = [{"type": "question-banks", "id": "b1", "attributes": {"name": "Bank"}}]
 QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
     "question_html": "<p>Q?</p>", "question_type": "FREEFORM", "quiz_id": "q1",
     "answers": []}}]
@@ -61,7 +74,7 @@ def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
-                    questions=QUESTION_ROWS),
+                    questions=QUESTION_ROWS, question_banks=BANK_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 

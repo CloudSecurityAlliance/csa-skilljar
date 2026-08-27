@@ -94,6 +94,27 @@ class Backend(Protocol):
 
     def delete_questions(self, *, question_ids: list[str]) -> Envelope: ...
 
+    def list_question_banks(self, *, name: str | None = None,
+                            updated_since: str | None = None, cursor: str | None = None,
+                            page_size: int | None = None) -> Envelope: ...
+
+    def get_question_bank(self, *, bank_id: str) -> Envelope: ...
+
+    def create_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_question_banks(self, *, bank_ids: list[str]) -> Envelope: ...
+
+    def list_bank_assignments(self, *, quiz_id: str) -> Envelope: ...
+
+    def bind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_bank_assignments(self, *, quiz_id: str,
+                                items: list[dict[str, Any]]) -> Envelope: ...
+
+    def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -106,7 +127,8 @@ class FakeBackend:
     def __init__(self, courses: list[dict[str, Any]] | None = None,
                  lessons: list[dict[str, Any]] | None = None,
                  quizzes: list[dict[str, Any]] | None = None,
-                 questions: list[dict[str, Any]] | None = None) -> None:
+                 questions: list[dict[str, Any]] | None = None,
+                 question_banks: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -115,6 +137,10 @@ class FakeBackend:
         self._lessons = copy.deepcopy(list(lessons or []))
         self._quizzes = copy.deepcopy(list(quizzes or []))
         self._questions = copy.deepcopy(list(questions or []))
+        self._banks = copy.deepcopy(list(question_banks or []))
+        # (quiz_id, question_bank_id) -> assignment attributes. A join row keyed by a
+        # natural key, not by an id of its own.
+        self._assignments: dict[tuple[str, str], dict[str, Any]] = {}
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -394,6 +420,165 @@ class FakeBackend:
             data.append({"status": "deleted", "id": qid})
         return self._batch(data)
 
+    # --- question banks ------------------------------------------------------------
+
+    def list_question_banks(self, *, name: str | None = None,
+                            updated_since: str | None = None, cursor: str | None = None,
+                            page_size: int | None = None) -> Envelope:
+        rows = self._banks
+        if name is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("name", "").lower() == name.lower()]
+        if updated_since is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("modified_at", "") >= updated_since]
+        return self._page(rows, cursor, page_size, "/v2/question-banks/")
+
+    def get_question_bank(self, *, bank_id: str) -> Envelope:
+        for row in self._banks:
+            if row.get("id") == bank_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no question bank with id {bank_id}")
+
+    def create_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, attrs in enumerate(items):
+            if not attrs.get("name"):
+                data.append({"status": "error", "code": "validation_error",
+                             "detail": "name is required",
+                             "source": {"pointer": f"/data/{i}/attributes/name"}})
+                continue
+            new_id = f"b{len(self._banks) + 1}"
+            self._banks.append({"type": "question-banks", "id": new_id,
+                                "attributes": dict(attrs)})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            bid = item.get("id")
+            row = next((r for r in self._banks if r.get("id") == bid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no question bank with id {bid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": bid})
+        return self._batch(data)
+
+    def delete_question_banks(self, *, bank_ids: list[str]) -> Envelope:
+        """Soft-deletes the bank's questions, HARD-removes its assignments, then the
+        bank. Quizzes that referenced it stay alive - only their assignment rows go."""
+        data: list[dict[str, Any]] = []
+        for i, bid in enumerate(bank_ids):
+            row = next((r for r in self._banks if r.get("id") == bid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no question bank with id {bid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            self._banks.remove(row)
+            self._questions = [q for q in self._questions
+                               if q.get("attributes", {}).get("question_bank_id") != bid]
+            self._assignments = {k: v for k, v in self._assignments.items() if k[1] != bid}
+            data.append({"status": "deleted", "id": bid})
+        return self._batch(data)
+
+    # --- quiz <-> bank assignments ---------------------------------------------------
+
+    def _require_quiz(self, quiz_id: str) -> None:
+        """Resolved once up front: a bad quiz is a document-level 404, not per-item."""
+        if not any(q.get("id") == quiz_id for q in self._quizzes):
+            raise exc.NotFoundError(f"no quiz with id {quiz_id}")
+
+    def list_bank_assignments(self, *, quiz_id: str) -> Envelope:
+        self._require_quiz(quiz_id)
+        rows: list[dict[str, Any]] = [
+            {"type": "question-bank-assignments",
+             "attributes": {"question_bank_id": bank, **attrs}}
+            for (q, bank), attrs in self._assignments.items() if q == quiz_id]
+        rows.sort(key=lambda r: int(r["attributes"].get("order", 0)))
+        return {"data": rows}
+
+    def bind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope:
+        """update_or_create on the natural key.
+
+        Re-binding is an IDEMPOTENT PARTIAL UPDATE: only supplied fields are written, an
+        omitted field keeps its stored value, and an omitted `order` is NOT re-derived.
+        A create-or-replace here silently reorders someone's exam.
+        """
+        self._require_quiz(quiz_id)
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, attrs in enumerate(items):
+            bank = str(attrs.get("question_bank_id"))
+            if bank in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{bank} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/attributes/question_bank_id"}})
+                continue
+            seen.add(bank)
+            if not any(b.get("id") == bank for b in self._banks):
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no question bank with id {bank}",
+                             "source": {"pointer": f"/data/{i}/attributes/question_bank_id"}})
+                continue
+            key = (quiz_id, bank)
+            supplied = {k: v for k, v in attrs.items() if k != "question_bank_id"}
+            if key in self._assignments:
+                self._assignments[key].update(supplied)      # PARTIAL: merge, never replace
+            else:
+                existing = [a.get("order", 0) for (q, _), a in self._assignments.items()
+                            if q == quiz_id]
+                defaults = {"order": max(existing, default=0) + 10,
+                            "randomize_questions": False, "limit_question_count": 0}
+                self._assignments[key] = {**defaults, **supplied}
+            data.append({"status": "bound", "id": bank})
+        return self._batch(data)
+
+    def update_bank_assignments(self, *, quiz_id: str,
+                                items: list[dict[str, Any]]) -> Envelope:
+        self._require_quiz(quiz_id)
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, attrs in enumerate(items):
+            bank = str(attrs.get("question_bank_id"))
+            if bank in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{bank} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/attributes/question_bank_id"}})
+                continue
+            seen.add(bank)
+            key = (quiz_id, bank)
+            if key not in self._assignments:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"{bank} is not assigned to this quiz",
+                             "source": {"pointer": f"/data/{i}/attributes/question_bank_id"}})
+                continue
+            # An empty attribute set is a NO-OP SUCCESS, not an error.
+            self._assignments[key].update(
+                {k: v for k, v in attrs.items() if k != "question_bank_id"})
+            data.append({"status": "updated", "id": bank})
+        return self._batch(data)
+
+    def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope:
+        """HARD delete - QuestionBankAssignment is not a soft-deletion model."""
+        self._require_quiz(quiz_id)
+        data: list[dict[str, Any]] = []
+        for i, attrs in enumerate(items):
+            bank = str(attrs.get("question_bank_id"))
+            key = (quiz_id, bank)
+            if key not in self._assignments:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"{bank} is not assigned to this quiz",
+                             "source": {"pointer": f"/data/{i}/attributes/question_bank_id"}})
+                continue
+            del self._assignments[key]
+            data.append({"status": "deleted", "id": bank})
+        return self._batch(data)
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -578,3 +763,52 @@ class V2Backend:
     def delete_questions(self, *, question_ids: list[str]) -> Envelope:
         return self._send("DELETE", "/v2/questions/", {
             "data": [{"type": "questions", "id": qid} for qid in question_ids]})
+
+    def list_question_banks(self, *, name: str | None = None,
+                            updated_since: str | None = None, cursor: str | None = None,
+                            page_size: int | None = None) -> Envelope:
+        return self._get("/v2/question-banks/", {
+            "filter[name]": name, "filter[updated_since]": updated_since,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_question_bank(self, *, bank_id: str) -> Envelope:
+        return self._get(f"/v2/question-banks/{bank_id}",
+                         template="/v2/question-banks/{id}")
+
+    def create_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/question-banks/", {
+            "data": [{"type": "question-banks", "attributes": a} for a in items]})
+
+    def update_question_banks(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/question-banks/", {
+            "data": [{"type": "question-banks", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def delete_question_banks(self, *, bank_ids: list[str]) -> Envelope:
+        return self._send("DELETE", "/v2/question-banks/", {
+            "data": [{"type": "question-banks", "id": b} for b in bank_ids]})
+
+    def list_bank_assignments(self, *, quiz_id: str) -> Envelope:
+        return self._get(f"/v2/quizzes/{quiz_id}/question-banks/",
+                         template="/v2/quizzes/{quiz_id}/question-banks/")
+
+    def bind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", f"/v2/quizzes/{quiz_id}/question-banks/",
+                          {"data": [{"type": "question-bank-assignments", "attributes": a}
+                                    for a in items]},
+                          template="/v2/quizzes/{quiz_id}/question-banks/")
+
+    def update_bank_assignments(self, *, quiz_id: str,
+                                items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", f"/v2/quizzes/{quiz_id}/question-banks/",
+                          {"data": [{"type": "question-bank-assignments", "attributes": a}
+                                    for a in items]},
+                          template="/v2/quizzes/{quiz_id}/question-banks/")
+
+    def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("DELETE", f"/v2/quizzes/{quiz_id}/question-banks/",
+                          {"data": [{"type": "question-bank-assignments", "attributes": a}
+                                    for a in items]},
+                          template="/v2/quizzes/{quiz_id}/question-banks/")

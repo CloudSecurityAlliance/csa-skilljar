@@ -108,7 +108,7 @@ First block with `delete_*`, so the first real exercise of capability gating.
 permitted under an explicit one, proven by the one-capability-at-a-time matrix.
 **Ships:** v0.2.0
 
-### Block 4 — Question banks & bindings · Next · 9 tools
+### Block 4 — Question banks & bindings · Implemented, awaiting release · 9 tools
 
 `list_question_banks` `get_question_bank` `create_question_banks` `update_question_banks`
 `delete_question_banks` `bind_quiz_question_banks` `unbind_quiz_question_banks`
@@ -121,7 +121,7 @@ capability a widely-repeated published claim said did not exist in v2 (`FRICTION
 unbound — the full TAISE item-reuse pattern, executed end to end.
 **Ships:** v0.3.0
 
-### Block 5 — Enrolment & reporting · Planned · 9 tools
+### Block 5 — Enrolment & reporting · Next · 9 tools
 
 `list_enrollments` `get_enrollment` `update_enrollments` `complete_enrollments`
 `bulk_enroll_students` `list_certificates` `get_certificate` `get_course_analytics`

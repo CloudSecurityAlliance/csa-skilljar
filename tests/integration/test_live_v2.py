@@ -100,3 +100,26 @@ def test_a_question_carries_its_answers_inline(live_client):
             )
             return
     pytest.skip("organization has no quiz with questions")
+
+
+def test_question_banks_are_readable(live_client):
+    """The capability a published claim said v2 lacked. CSA's reference org has one."""
+    env = live_client.list_question_banks(page_size=5)
+    assert "data" in env
+    if not env["data"]:
+        pytest.skip("organization has no question banks")
+    bank = env["data"][0]
+    assert live_client.get_question_bank(bank_id=bank["id"])["data"]["id"] == bank["id"]
+    items = live_client.list_questions(question_bank_id=bank["id"], page_size=3)
+    assert "data" in items
+
+
+def test_bank_assignments_are_readable_and_unpaginated(live_client):
+    quizzes = live_client.list_quizzes(page_size=3)["data"]
+    if not quizzes:
+        pytest.skip("organization has no quizzes")
+    env = live_client.list_bank_assignments(quiz_id=quizzes[0]["id"])
+    assert "data" in env
+    assert "has_more" not in env, (
+        "this endpoint is documented as returning a plain unpaginated envelope"
+    )
