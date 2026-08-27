@@ -105,6 +105,13 @@ EXERCISE = {
                                     "overrides": [{"published_course_id": "pc1"}]},
     "list_domains": {},
     "get_domain": {"id": "d1"},
+    "list_web_packages": {},
+    "get_web_package": {"id": "wp1"},
+    "create_web_packages": {"web_packages": [{"content_url": "https://e.org/p.zip",
+                                              "title": "New"}]},
+    "update_web_packages": {"web_packages": [{"id": "wp1", "title": "Renamed"}]},
+    "delete_web_package": {"id": "wp1"},
+    "register_oauth_client": {"client_name": "a client"},
 }
 
 
@@ -125,6 +132,9 @@ PUBLISHED_ROWS = [{"type": "published-courses", "id": "pc1",
                    "relationships": {
                        "course": {"data": {"type": "courses", "id": "c1"}},
                        "domain": {"data": {"type": "domains", "id": "d1"}}}}]
+WEB_PACKAGE_ROWS = [{"type": "web-packages", "id": "wp1", "attributes": {
+    "title": "Zero Trust SCORM", "display_name": "Zero Trust SCORM",
+    "state": "READY", "type": "SCORM", "base_path": "/pkg/wp1/"}}]
 DOMAIN_ROWS = [{"type": "domains", "id": "d1",
                 "attributes": {"name": "learn.example.org", "access": "PUBLIC"}}]
 SIGNUP_VALUE_ROWS = [{"type": "signup-field-values", "id": "v1",
@@ -146,7 +156,8 @@ def build(profile="full", env=None):
                     enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS,
                     students=STUDENT_ROWS, groups=GROUP_ROWS,
                     signup_field_values=SIGNUP_VALUE_ROWS,
-                    published_courses=PUBLISHED_ROWS, domains=DOMAIN_ROWS),
+                    published_courses=PUBLISHED_ROWS, domains=DOMAIN_ROWS,
+                    web_packages=WEB_PACKAGE_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 

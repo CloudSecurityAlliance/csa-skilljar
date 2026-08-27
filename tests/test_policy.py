@@ -92,6 +92,12 @@ EXPECTED_BY_CAPABILITY = {
     "publishing.write": {"publish_courses", "update_published_courses",
                          "delete_published_course", "unpublish_published_course",
                          "republish_published_course"},
+    "webpackages.read": {"list_web_packages", "get_web_package"},
+    "webpackages.write": {"create_web_packages", "update_web_packages",
+                          "delete_web_package"},
+    # Mints a credential, so it needs `admin` named explicitly - the official server
+    # ships it enabled.
+    "admin.credentials": {"register_oauth_client"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -143,6 +149,10 @@ CALL_ARGS = {
     "add_visibility_overrides": {"group_id": "g1", "items": []},
     "remove_visibility_overrides": {"group_id": "g1", "items": []},
     "list_domains": {}, "get_domain": {"domain_id": "d1"},
+    "list_web_packages": {}, "get_web_package": {"web_package_id": "wp1"},
+    "create_web_packages": {"items": []}, "update_web_packages": {"items": []},
+    "delete_web_package": {"web_package_id": "wp1"},
+    "register_oauth_client": {"client_name": "c"},
 }
 
 

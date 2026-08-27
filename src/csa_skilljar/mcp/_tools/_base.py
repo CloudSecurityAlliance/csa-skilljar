@@ -41,8 +41,20 @@ def translate_errors(fn: F) -> F:
             raise ToolError(str(e)) from e
         except exc.NotFoundError as e:
             raise ToolError(f"not found: {e}") from e
+        except exc.ConflictError as e:
+            # A relationship refusal, not a permission one. The message names what still
+            # references the thing and how to release it, so it must survive.
+            raise ToolError(f"refused: {e}") from e
         except exc.ApiError as e:
             raise ToolError(f"Skilljar rejected the request: {e}") from e
+        except exc.SkilljarError as e:
+            # Backstop. A new SkilljarError subclass with no clause of its own would
+            # otherwise become an UnexpectedToolError with the message DISCARDED, and
+            # the user would see "Error executing tool X" and nothing else. Catching the
+            # base class here means a missed subclass degrades to a readable message
+            # rather than to silence. test_error_translation.py asserts every subclass
+            # is reachable, so this should never be the clause that fires.
+            raise ToolError(str(e)) from e
         except ValueError as e:
             # The library raises plain ValueError for a bad argument value. Without this
             # clause each becomes an UnexpectedToolError with the message dropped, so the

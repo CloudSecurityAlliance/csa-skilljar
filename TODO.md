@@ -17,7 +17,9 @@ file plus open GitHub Issues finds everything.
 ## Next
 
 - Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
-- Block 9 — web packages & OAuth client (6 tools) → `ROADMAP.md`. **Completes 73-tool parity.** `register_oauth_client` mints a credential and goes behind `admin`; `update_web_packages` needs ADR-008 applied to `type`, `state` and `base_path`.
+- Phase 2 — the v2 capabilities the official server does not expose → `ROADMAP.md`.
+  `/v2/clients/` (list, get, patch, delete, rotate-secret) is in the v2 spec and absent
+  from the official 73; it is the first candidate.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -51,6 +53,8 @@ work landed, and leaving them would make the sweep lie.
 - ~~Block 8 — publishing & catalog (12 tools), shipped to `main` 2026-08-27~~ — new
   `publishing.*` capability; visibility overrides routed to `groups.*` to match the
   upstream scope.
+- ~~Block 9 — web packages & OAuth client (6 tools), shipped to `main` 2026-08-27~~ —
+  **73-tool parity complete and asserted by `tests/test_parity.py`.**
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)

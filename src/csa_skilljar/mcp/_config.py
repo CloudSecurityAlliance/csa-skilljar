@@ -22,8 +22,8 @@ from ..client import SkilljarClient
 from ..policy import Policy, PolicyBackend
 
 V2_ID_VAR = "CSA_SKILLJAR_V2_CLIENT_ID"
-V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 - a variable name, not a secret
-V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"               # nosec B105 - a variable name, not a secret
+V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable name, not a secret
+V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"
 PROFILE_VAR = "CSA_SKILLJAR_PROFILE"
 
 # Module constants, not f-strings built at call time. The startup-warning path must have

@@ -43,24 +43,28 @@ DELETE_GROUPS = "groups.delete"
 # authoring credential that can write lesson HTML must not also be able to ship it.
 READ_PUBLISHING = "publishing.read"
 WRITE_PUBLISHING = "publishing.write"
+READ_WEB_PACKAGES = "webpackages.read"
+WRITE_WEB_PACKAGES = "webpackages.write"
 ADMIN_CREDENTIALS = "admin.credentials"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
+    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
 # pressure and everybody can pick a word. `parity` is the default.
 PROFILES: dict[str, tuple[str, ...]] = {
     "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, READ_GROUPS,
-               READ_PUBLISHING),
-    "authoring": (READ_CONTENT, WRITE_CONTENT),
+               READ_PUBLISHING, READ_WEB_PACKAGES),
+    "authoring": (READ_CONTENT, WRITE_CONTENT, READ_WEB_PACKAGES,
+                  WRITE_WEB_PACKAGES),
     "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
     "reporting": (READ_REPORTING, READ_CONTENT),
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
-                   READ_GROUPS, READ_PUBLISHING),
+                   READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES),
     "admin": (ADMIN_CREDENTIALS,),
     "full": ALL_CAPABILITIES,
 }
@@ -138,6 +142,15 @@ _GATES: dict[str, str | None] = {
     "list_visibility_overrides": READ_GROUPS,
     "add_visibility_overrides": WRITE_GROUPS,
     "remove_visibility_overrides": WRITE_GROUPS,
+    "list_web_packages": READ_WEB_PACKAGES,
+    "get_web_package": READ_WEB_PACKAGES,
+    "create_web_packages": WRITE_WEB_PACKAGES,
+    "update_web_packages": WRITE_WEB_PACKAGES,
+    "delete_web_package": WRITE_WEB_PACKAGES,
+    # Mints a credential. The official server ships it enabled; here it needs the
+    # `admin` profile named explicitly (ADR-005), and RACI puts credential issuance
+    # outside what an AI decides on its own.
+    "register_oauth_client": ADMIN_CREDENTIALS,
 }
 
 

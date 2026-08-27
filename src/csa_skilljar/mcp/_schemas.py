@@ -244,6 +244,8 @@ class CertificateOut(TypedDict):
     status: NotRequired[str]
     issued_at: NotRequired[str]
     expires_at: NotRequired[str]
+    code: NotRequired[str]
+    score_as_percent: NotRequired[float | None]
 
 
 class CertificateListOut(TypedDict):
@@ -420,3 +422,31 @@ class VisibilityOverrideListOut(TypedDict):
     has_more: bool
     next_cursor: NotRequired[str]
     note: str
+
+
+class WebPackageOut(TypedDict):
+    id: str
+    title: NotRequired[str]
+    # NOT the same as `title` until `state` is READY. See _tools/web_packages.py.
+    display_name: NotRequired[str]
+    state: NotRequired[str]
+    package_type: NotRequired[str]
+    base_path: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class WebPackageListOut(TypedDict):
+    web_packages: list[WebPackageOut]
+    note: str
+
+
+class RegisteredClientOut(TypedDict):
+    client_id: str
+    client_secret: NotRequired[str | None]
+    client_name: NotRequired[str]
+    redirect_uris: NotRequired[list[str]]
+    grant_types: NotRequired[list[str]]
+    token_endpoint_auth_method: NotRequired[str]
+    scope: NotRequired[str]
+    warning: str

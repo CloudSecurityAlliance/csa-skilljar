@@ -33,6 +33,15 @@ class NotFoundError(SkilljarError):
     """The resource does not exist, or is not in the caller's organization."""
 
 
+class ConflictError(SkilljarError):
+    """The request is refused because of a relationship, not a permission.
+
+    Distinct from ApiError(status=409) so callers can branch on the meaning rather than
+    on a number: deleting a web package a live lesson still uses is a conflict the caller
+    can resolve, not an outage and not a bad request.
+    """
+
+
 class PolicyError(SkilljarError):
     """The local policy refused this operation. Not an upstream failure."""
 

@@ -230,6 +230,23 @@ class Backend(Protocol):
 
     def get_domain(self, *, domain_id: str) -> Envelope: ...
 
+    def list_web_packages(self) -> Envelope: ...
+
+    def get_web_package(self, *, web_package_id: str) -> Envelope: ...
+
+    def create_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_web_package(self, *, web_package_id: str) -> Envelope: ...
+
+    def register_oauth_client(self, *, client_name: str,
+                              redirect_uris: list[str] | None = None,
+                              grant_types: list[str] | None = None,
+                              scope: str | None = None,
+                              token_endpoint_auth_method: str = "client_secret_post",
+                              resource: str = "") -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -251,7 +268,8 @@ class FakeBackend:
                  groups: list[dict[str, Any]] | None = None,
                  signup_field_values: list[dict[str, Any]] | None = None,
                  published_courses: list[dict[str, Any]] | None = None,
-                 domains: list[dict[str, Any]] | None = None) -> None:
+                 domains: list[dict[str, Any]] | None = None,
+                 web_packages: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -278,6 +296,10 @@ class FakeBackend:
         # (group_id, published_course_id, is_visible) -> row. The unique key really does
         # include is_visible, so an allow row and a block row for the same pair coexist.
         self._overrides: dict[tuple[str, str, bool], dict[str, Any]] = {}
+        self._web_packages = copy.deepcopy(list(web_packages or []))
+        # Lesson content_url values that reference a package in a LIVE course. Deleting
+        # a referenced package is a 409, so the double needs somewhere to model it.
+        self.live_package_refs: set[str] = set()
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -1300,6 +1322,84 @@ class FakeBackend:
                 return {"data": row}
         raise exc.NotFoundError(f"no domain with id {domain_id}")
 
+    # --- web packages and client registration ----------------------------------------
+
+    def list_web_packages(self) -> Envelope:
+        # Not paginated upstream, and LIVE packages only.
+        return {"data": [r for r in self._web_packages
+                         if r.get("attributes", {}).get("state") != "DELETED"]}
+
+    def get_web_package(self, *, web_package_id: str) -> Envelope:
+        for row in self._web_packages:
+            if row.get("id") == web_package_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no web package with id {web_package_id}")
+
+    def create_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope:
+        """Rows come back PROCESSING. Ingestion happens later, in a worker."""
+        data: list[dict[str, Any]] = []
+        for item in items:
+            # NO dedup on content_url: two identical URLs are a legitimate request for
+            # two distinct packages, unlike every other create in this API.
+            new_id = f"wp{len(self._web_packages) + 1}"
+            title = item.get("title", "")
+            self._web_packages.append({
+                "type": "web-packages", "id": new_id,
+                "attributes": {"title": title, "state": "PROCESSING",
+                               # display_name is derived and does NOT track title until
+                               # the package reaches READY.
+                               "display_name": f"PROCESSING {item.get('content_url')}",
+                               "type": "SCORM", "base_path": ""}})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            wid = str(item.get("id", ""))
+            row = next((r for r in self._web_packages if r.get("id") == wid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no web package with id {wid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"]["title"] = item.get("title")
+            # display_name only catches up at READY. Until then a title change looks
+            # like it did nothing, which is the whole of trap 4.
+            if row["attributes"].get("state") == "READY":
+                row["attributes"]["display_name"] = item.get("title")
+            data.append({"status": "updated", "id": wid})
+        return self._batch(data)
+
+    def delete_web_package(self, *, web_package_id: str) -> Envelope:
+        row = self.get_web_package(web_package_id=web_package_id)["data"]
+        if web_package_id in self.live_package_refs:
+            # 409, not a per-row failure: deleting this would leave a live lesson with
+            # no content at all.
+            raise exc.ConflictError(
+                f"web package {web_package_id} is still used by a lesson in a live "
+                f"course. Unpublish the course or repoint the lesson first.")
+        row["attributes"]["state"] = "DELETED"
+        return {"data": row}
+
+    def register_oauth_client(self, *, client_name: str,
+                              redirect_uris: list[str] | None = None,
+                              grant_types: list[str] | None = None,
+                              scope: str | None = None,
+                              token_endpoint_auth_method: str = "client_secret_post",
+                              resource: str = "") -> Envelope:
+        public = token_endpoint_auth_method == "none"  # nosec B105 # RFC 7591 enum value, not a password
+        return {"data": {
+            "client_id": "fake-client-id",
+            # A public/PKCE client gets NO secret. A confidential one gets a ONE-TIME
+            # secret that cannot be retrieved again.
+            "client_secret": None if public else "fake-one-time-secret",
+            "client_name": client_name,
+            "redirect_uris": list(redirect_uris or []),
+            "grant_types": list(grant_types or ["authorization_code"]),
+            "token_endpoint_auth_method": token_endpoint_auth_method,
+            "scope": scope or ""}}
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -1825,3 +1925,84 @@ class V2Backend:
 
     def get_domain(self, *, domain_id: str) -> Envelope:
         return self._get(f"/v2/domains/{domain_id}", template="/v2/domains/{id}")
+
+    # --- web packages and client registration ----------------------------------------
+
+    def list_web_packages(self) -> Envelope:
+        # No pagination parameters upstream; the whole list comes back.
+        return self._get("/v2/web-packages/")
+
+    def get_web_package(self, *, web_package_id: str) -> Envelope:
+        return self._get(f"/v2/web-packages/{web_package_id}",
+                         template="/v2/web-packages/{id}")
+
+    def create_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/web-packages/", {
+            "data": [{"type": "web-packages", "attributes": a} for a in items]})
+
+    def update_web_packages(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/web-packages/", {
+            "data": [{"type": "web-packages", "id": a.get("id"),
+                      "attributes": {"title": a.get("title")}} for a in items]})
+
+    def delete_web_package(self, *, web_package_id: str) -> Envelope:
+        return self._send("DELETE", f"/v2/web-packages/{web_package_id}", {},
+                          template="/v2/web-packages/{id}")
+
+    def register_oauth_client(self, *, client_name: str,
+                              redirect_uris: list[str] | None = None,
+                              grant_types: list[str] | None = None,
+                              scope: str | None = None,
+                              token_endpoint_auth_method: str = "client_secret_post",
+                              resource: str = "") -> Envelope:
+        """The ONLY unauthenticated call. See `_register`."""
+        body: dict[str, Any] = {"client_name": client_name,
+                                "redirect_uris": list(redirect_uris or []),
+                                "token_endpoint_auth_method":
+                                    token_endpoint_auth_method,
+                                "resource": resource}
+        if grant_types is not None:
+            body["grant_types"] = grant_types
+        if scope is not None:
+            body["scope"] = scope
+        return self._register(body)
+
+    def _register(self, body: dict[str, Any]) -> Envelope:
+        """RFC 7591 Dynamic Client Registration. Unauthenticated, by design.
+
+        Deliberately NOT routed through `_send`, for two independent reasons:
+
+        1. `_send` attaches `Authorization: Bearer <our token>`. Sending the
+           organization's access token to a registration endpoint that does not want it
+           leaks a live credential into a request that has no need of it - and would
+           make the call fail outright when no credential is configured, which is
+           exactly the situation someone registering a client is in.
+        2. RFC 7591 errors are `{error, error_description}`, not api_v2's JSON:API
+           envelope. `_receive` would report the status code and throw the description
+           away.
+        """
+        spec_path = "/v2/oauth/register"
+        self._check_scope("POST", spec_path)      # known-operation check still applies
+        try:
+            r = self._http.post(f"{self._base}{spec_path}", json=body,
+                                headers={"Accept": "application/json",
+                                         "Content-Type": "application/json"})
+        except httpx.HTTPError as e:
+            raise exc.ApiError(f"could not reach Skilljar: {e}") from e
+        try:
+            payload = r.json()
+        except ValueError as e:
+            raise exc.ApiError(
+                f"client registration returned HTTP {r.status_code} with a "
+                f"non-JSON body", status=r.status_code) from e
+        if not isinstance(payload, dict):
+            raise exc.ApiError(
+                f"client registration returned HTTP {r.status_code} with a "
+                f"{type(payload).__name__}, not an object", status=r.status_code)
+        if r.status_code >= 400 or "error" in payload:
+            # RFC 7591 shape. error_description is the only useful part, so surface it
+            # rather than the status code alone.
+            detail = payload.get("error_description") or payload.get("error") or "no detail"
+            raise exc.ApiError(f"client registration refused: {detail}",
+                               status=r.status_code)
+        return {"data": payload}

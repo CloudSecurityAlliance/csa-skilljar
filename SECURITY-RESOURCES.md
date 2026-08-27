@@ -92,6 +92,7 @@ Recorded here so a dismissal is reviewable rather than invisible.
 
 | Rule | Where | Why dismissed |
 |---|---|---|
+| `B105` / `B107` `hardcoded_password` (bandit, low × 3) | `backend.py` `_register`, `_tools/web_packages.py` | **False positives, name-heuristic.** All three are RFC 7591 vocabulary or prose: the `token_endpoint_auth_method` values `"none"` and `"client_secret_post"`, and a warning message whose *variable name* contained "SECRET". None is a credential. The variable was renamed to `_SHOWN_ONCE_WARNING`, which removed one hit honestly rather than suppressing it; the other two are annotated `# nosec` with a reason, because `token_endpoint_auth_method` is Skilljar's own parameter name and ADR-006 forbids renaming it. Counter-evidence: `tests/test_zero_defect.py::test_the_dismissed_literals_are_what_they_claim_to_be` pins the three literals, and `::test_every_nosec_carries_a_reason` refuses a bare suppression anywhere in `src`. **If either fails, this dismissal is wrong.** |
 | `py/clear-text-logging-sensitive-data` (CodeQL, high) | `src/csa_skilljar/mcp/cli.py` startup warning | **False positive.** `os.environ` is a taint source, and CodeQL does not distinguish a value *read from* the environment from a module constant *selected because of* it. The printed strings are module-level constants naming environment **variables**, never their values. Three structural rewrites were attempted first - narrowing `Settings` to two booleans, deriving presence from env keys rather than values, and making the messages module constants so only control flow depends on env - and none shifted the alert. The counter-evidence is `tests/test_zero_defect.py::test_no_credential_value_can_reach_the_cli_output`, which runs the real CLI with distinctive credential values and asserts none reach stdout or stderr. **If that test fails, this dismissal is wrong and the alert must be reopened.** |
 
 ## Destructive-tool review — Block 6 (students), 2026-08-27
@@ -127,9 +128,43 @@ Three findings worth carrying forward:
 No change to the risk table below is warranted: the "prompt-injection defence is configuration,
 not enforcement" row still describes the position exactly, and Block 6 did not widen it.
 
+## Credential-returning tools — Block 9 review, 2026-08-27
+
+`register_oauth_client` is the first and only tool in this server that RETURNS a
+credential, and the only unauthenticated call. Both properties needed checking.
+
+1. **It does not send our credential.** `_send` attaches
+   `Authorization: Bearer <token>` to every call. Routing registration through it would
+   put a live organization token into a request that has no need of it — and would make
+   the call fail when no credential is configured, which is exactly the state someone
+   registering a client is in. It goes through a dedicated `_register` instead.
+   `tests/test_web_packages.py::test_registration_never_sends_our_bearer_token` asserts
+   the absence of the header;
+   `::test_no_other_call_reaches_the_unauthenticated_path` enumerates the backend so a
+   later refactor cannot quietly route an authenticated call through it.
+2. **The returned secret goes to the caller and nowhere else.**
+   `tests/test_zero_defect.py::test_a_registered_client_secret_is_never_logged_or_repeated`
+   runs the real tool and asserts the secret appears in no log record and in no `repr`.
+3. **It is off by default.** Gated by `admin.credentials`, which no other profile
+   grants, though Skilljar's own server ships this tool enabled. `RACI.md` puts
+   credential issuance outside what an AI decides alone, and this keeps the code
+   consistent with that.
+
+One thing the tool cannot control: the secret reaches the model, because that is what
+returning it means. The mitigation is the `warning` field, which says it is shown once
+and must not be pasted into a transcript or a ticket — and the `admin` gate, which means
+an operator chose to expose it.
+
+**A dynamically registered client is not an org credential.** Skilljar binds no
+organization at registration and does not audit it, so this tool does not resolve
+`WAITING-FOR-002`. The description says so; it would otherwise look like an escape hatch
+from the blocked release.
+
 ## Review schedule
 
-- **Last reviewed:** 2026-08-27 (Block 6 — first destructive tools; see section above)
+- **Last reviewed:** 2026-08-27 (Block 9 — credential-returning tools; see section above)
+- **Previously:** 2026-08-27 (Block 6 — first destructive tools)
 - **Previously:** 2026-08-26 (initial, pre-implementation)
-- **Next review:** when Block 9 lands `register_oauth_client` (credential minting, the one tool
-  gated by `admin`) — and thereafter whenever a block adds destructive tools.
+- **Next review:** at the first release — `WAITING-FOR-002` — when a real v2 credential exists
+  and the integration suite runs against production for the first time. And thereafter whenever
+  a block adds destructive or credential-handling tools.

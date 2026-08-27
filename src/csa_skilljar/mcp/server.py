@@ -17,6 +17,7 @@ from ._tools import (
     register_quiz_tools,
     register_signup_field_tools,
     register_student_tools,
+    register_web_package_tools,
 )
 
 __all__ = ["INSTRUCTIONS", "create_server"]
@@ -70,4 +71,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_group_tools(app, get_client)
     register_signup_field_tools(app, get_client)
     register_publishing_tools(app, get_client)
+    register_web_package_tools(app, get_client)
     return app

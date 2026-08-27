@@ -33,9 +33,23 @@ run_tests() {
   return 0
 }
 
+# CI runs bandit and pip-audit in a `security` job. They were absent here, so this
+# script passed while CI failed - a local gate that is weaker than the remote one is
+# worse than no local gate, because it teaches you to trust it.
+security() {
+  [ -x .venv/bin/bandit ] || { echo "!! bandit missing - .venv/bin/python -m pip install -e '.[dev]'"; return 1; }
+  # VIRTUAL_ENV is unset for pip-audit: if the developer has another venv active it
+  # warns that it may have audited the wrong one, and a warning nobody reads is where
+  # a real one goes to hide. CI has none set, so this is a no-op there.
+  .venv/bin/bandit -q -r src \
+    && env -u VIRTUAL_ENV PIPAPI_PYTHON_LOCATION="$PWD/.venv/bin/python" \
+       .venv/bin/pip-audit --progress-spinner off
+}
+
 step "tests"        run_tests
 step "lint"         .venv/bin/ruff check src tests scripts
 step "types"        .venv/bin/mypy
+step "security"     security
 step "doc claims"   $PY scripts/check_docs.py
 
 printf '\n'
