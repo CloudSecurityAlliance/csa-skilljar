@@ -55,6 +55,9 @@ work landed, and leaving them would make the sweep lie.
   upstream scope.
 - ~~Block 9 — web packages & OAuth client (6 tools), shipped to `main` 2026-08-27~~ —
   **73-tool parity complete and asserted by `tests/test_parity.py`.**
+- ~~End-to-end stdio suite (`tests/e2e/`), shipped to `main` 2026-08-27~~ — found an
+  empty `serverInfo.version`, and a stale pipx install that the first draft of the
+  suite was happily testing instead of this checkout.
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)

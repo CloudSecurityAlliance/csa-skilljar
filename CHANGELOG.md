@@ -6,6 +6,36 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **`serverInfo.version` was an empty string** in the MCP initialize handshake — the
+  field a client shows when someone asks which build they are talking to. `MCPServer`
+  was constructed without `version`. No in-process test reads the handshake, so nothing
+  caught it until a stdio smoke test looked.
+
+### Added
+- **`tests/e2e/` — the first tests that drive the installed console script as a
+  subprocess over stdio**, the way a real MCP client does. Everything else builds the
+  server in-process, which cannot see the initialize handshake, what reaches stdout, or
+  whether the console script is wired up at all. Three real defects have hidden in that
+  gap.
+- The stdout-purity check (CLAUDE.md invariant 1) runs in the fixture teardown, so every
+  e2e test asserts it regardless of what it was written to exercise. Getting it to work
+  took three attempts, each failing silently:
+  1. Reading stdout only up to the last response missed a stray `print()`, because
+     `print()` to a pipe is BLOCK-buffered and the bytes sit in the buffer past every
+     response the test read.
+  2. Reading the buffer at exit still missed it, because `terminate()` sends SIGTERM and
+     tears the process down WITHOUT flushing. The test now closes stdin and waits for a
+     graceful exit, which is what flushes.
+  3. `shutil.which` resolved the console script through PATH and found a **stale pipx
+     install from an earlier release** — eight tools missing, wrong version, every
+     assertion reporting on software that is not this checkout. The script is now
+     resolved next to the test interpreter, and one test asserts the subprocess imports
+     `csa_skilljar` from this repository.
+- A missing console script is a loud collection error rather than a quiet skip, because
+  any editable or wheel install provides it and a suite that skips itself reports green
+  while testing nothing (ZD-17). `CSA_SKILLJAR_NO_E2E=1` opts out deliberately.
+
 ### Added
 - **Block 9 — web packages and client registration. PARITY COMPLETE.** Six tools, and
   the last of the official server's 73. `tests/test_parity.py` now asserts the diff:
