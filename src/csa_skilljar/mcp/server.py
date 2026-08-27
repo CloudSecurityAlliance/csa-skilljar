@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from mcp.server import MCPServer
 
+from .. import __version__
 from ._config import ClientProvider, Settings
 from ._tools import (
     register_access_tools,
@@ -58,7 +59,11 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     with an opaque "server failed to start". And mcp 2.x runs sync handlers on worker
     threads, so the provider hands each thread its own client.
     """
-    app = MCPServer(name=name, instructions=INSTRUCTIONS)
+    # `version` is not optional in practice: without it the SDK reports an EMPTY
+    # string in the initialize handshake's serverInfo, which is what a client shows
+    # when someone asks which build they are talking to. It was empty until a stdio
+    # smoke test looked at the handshake - no in-process test reads serverInfo.
+    app = MCPServer(name=name, instructions=INSTRUCTIONS, version=__version__)
     register_access_tools(app, get_client, settings)
     register_feedback_tools(app, settings)
     register_course_tools(app, get_client)
