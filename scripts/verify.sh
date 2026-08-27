@@ -16,7 +16,24 @@ step() {
   if "$@"; then printf '   \033[32mOK\033[0m\n'; else printf '   \033[31mFAILED\033[0m\n'; fail=1; fi
 }
 
-step "tests"        $PY -m pytest -q
+# ZD-17: "no failures" and "the tests ran" are two facts. An all-skipped run reports
+# 0 failures, and did once - a subdirectory conftest skipped the entire suite while
+# every gate still said OK.
+run_tests() {
+  $PY -m pytest -q --no-header | tee /tmp/csa-skilljar-tests.$$
+  local rc=${PIPESTATUS[0]}
+  local passed
+  passed=$(grep -oE '[0-9]+ passed' /tmp/csa-skilljar-tests.$$ | head -1 | grep -oE '[0-9]+')
+  rm -f /tmp/csa-skilljar-tests.$$
+  [ "$rc" -ne 0 ] && return 1
+  if [ -z "${passed:-}" ] || [ "$passed" -lt 100 ]; then
+    printf '   \033[31monly %s tests passed - expected 100+. Did something skip the suite?\033[0m\n' "${passed:-0}"
+    return 1
+  fi
+  return 0
+}
+
+step "tests"        run_tests
 step "lint"         .venv/bin/ruff check src tests scripts
 step "types"        .venv/bin/mypy
 step "doc claims"   $PY scripts/check_docs.py
