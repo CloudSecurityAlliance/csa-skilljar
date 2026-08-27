@@ -1,5 +1,6 @@
 from mcp.server import MCPServer
 
+import csa_skilljar
 from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp._tools.feedback import register_feedback_tools
 
@@ -13,7 +14,7 @@ def build(env):
 
 def test_report_includes_version_platform_and_profile():
     out = build({"CSA_SKILLJAR_PROFILE": "authoring"})(what_happened="list_courses returned nothing")
-    assert "0.0.1" in out["report"]
+    assert csa_skilljar.__version__ in out["report"]
     assert "authoring" in out["report"]
     assert "list_courses returned nothing" in out["report"]
     assert "github.com/CloudSecurityAlliance/csa-skilljar/issues" in out["where_to_file"]

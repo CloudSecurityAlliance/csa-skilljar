@@ -216,6 +216,54 @@ is on `PATH`, which is how a suite passes against the wrong dependency versions.
 Contributions follow [CSA's public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
 branch and PR for every change, required CI gates, no direct pushes to `main`.
 
+## Releasing
+
+Publishing uses **PyPI Trusted Publishing** — GitHub Actions authenticates over OIDC and
+proves its identity with the repository, workflow and environment it is running in.
+**There is no API token anywhere**: not in the repository, not in a GitHub secret, not in
+a `.pypirc`. Nothing to leak, rotate, or accidentally commit.
+
+The identity PyPI checks is exactly this:
+
+| Field | Value |
+|---|---|
+| PyPI project | `csa-skilljar` |
+| Owner | `CloudSecurityAlliance` |
+| Repository | `csa-skilljar` |
+| Workflow | `release.yml` |
+| Environment | `pypi` |
+
+**One-time setup** (a person with the PyPI account, per `RACI.md` — credential and
+publishing identity are not delegated): at
+<https://pypi.org/manage/account/publishing/>, add a **pending publisher** with the five
+values above. "Pending" is the form used when the project does not exist on PyPI yet; it
+becomes a normal trusted publisher on first upload.
+
+**Each release:**
+
+```bash
+# 1. Bump the single source of truth and refresh the editable install.
+#    src/csa_skilljar/__init__.py  __version__ = "X.Y.Z"
+.venv/bin/python -m pip install -e ".[dev]"
+./scripts/verify.sh
+
+# 2. Merge, then tag from main. The tag MUST equal the packaged version - the
+#    workflow refuses to publish when they disagree, rather than shipping a
+#    mislabelled artifact.
+git tag vX.Y.Z && git push origin vX.Y.Z
+gh release create vX.Y.Z --notes-from-tag
+```
+
+Publishing the GitHub release starts `release.yml`, which reruns the tests, `pip-audit`
+and `bandit`, checks the tag against the packaged version, builds, and refuses to upload
+an artifact containing anything matching `.env`, `token`, `secret`, `credential`,
+`analysis/` or `docs-html/`, or missing `py.typed`.
+
+It then waits: the `pypi` environment has a **required reviewer**, so the upload does not
+happen until a human approves it in the Actions run. Worth knowing that GitHub creates a
+missing environment *unprotected* on first use — so `environment: pypi` in a workflow is
+a claim, not a control, until the environment actually exists with rules on it.
+
 ## Licence
 
 [Apache-2.0](LICENSE).

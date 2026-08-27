@@ -4,7 +4,7 @@ Index of **all** open work on this project. One line per item; detail lives in G
 design spec, or the logs this file points at. Per the CINO todo-index convention, sweeping this
 file plus open GitHub Issues finds everything.
 
-**Status: Block 1 shipped to `main`. Not yet released — v0.0.1 needs `WAITING-FOR-002`.**
+**Status: Blocks 1–9 on `main`. v0.8.0 prepared — full 73-tool parity. `WAITING-FOR-002` closed; the remaining step is a PyPI Trusted Publisher, which only Kurt can register.**
 
 ## Blocked / waiting
 
@@ -23,7 +23,7 @@ file plus open GitHub Issues finds everything.
   `courses:write`, `lessons:write`, `quizzes:write`, `question-banks:write`, which nothing
   needs yet — dropping them removes the last write path rather than guarding it.
 
-- Release v0.1.0 — **unblocked 2026-08-27**, `WAITING-FOR-002` closed. Six versions are stacked (v0.1.0–v0.8.0); collapse them into one release.
+- **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
 - Phase 2 — the v2 capabilities the official server does not expose → `ROADMAP.md`.
   `/v2/clients/` (list, get, patch, delete, rotate-secret) is in the v2 spec and absent
   from the official 73; it is the first candidate.

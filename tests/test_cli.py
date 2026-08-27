@@ -2,6 +2,7 @@ import contextlib
 import io
 import sys
 
+import csa_skilljar
 from csa_skilljar.mcp.cli import main
 
 
@@ -19,7 +20,7 @@ def test_version_prints_to_stderr_and_exits_zero():
     code, out, err = run(["--version"])
     assert code == 0
     assert out == ""
-    assert "0.0.1" in err
+    assert csa_skilljar.__version__ in err
 
 
 def test_help_goes_to_stderr():

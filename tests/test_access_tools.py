@@ -1,5 +1,6 @@
 from mcp.server import MCPServer
 
+import csa_skilljar
 from csa_skilljar.mcp._config import ClientProvider, settings_from_env
 from csa_skilljar.mcp._tools.access import register_access_tools
 
@@ -19,7 +20,7 @@ def test_check_access_answers_with_no_credentials_at_all():
     out = fn(build({}), "check_access")()
     assert out["v2"]["configured"] is False
     assert "CSA_SKILLJAR_V2_CLIENT_ID" in out["v2"]["detail"]
-    assert out["version"] == "0.0.1"
+    assert out["version"] == csa_skilljar.__version__
 
 
 def test_check_access_reports_the_active_profile():

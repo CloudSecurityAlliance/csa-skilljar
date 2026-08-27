@@ -75,7 +75,7 @@ all seven auth states produce distinct messages, tested; `--version` works with 
 the loop; the stdout test exists and passes; a hand-written capability expectation matrix exists
 (never derived from the gate table); branch protection is on with required checks.
 **Blocked by:** `WAITING-FOR-002` — a v2 client credential.
-**Ships:** v0.0.1
+**Ships:** ~~v0.0.1~~ — folded into **v0.8.0**, the single first release.
 
 ---
 
@@ -95,7 +95,7 @@ writes return `207` with per-item results).
 
 **Done when:** a course with lessons can be created, read back and updated; batch partial failure
 is surfaced per item, not collapsed into one error.
-**Ships:** v0.1.0
+**Ships:** ~~v0.1.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 3 — Quizzes & questions · Implemented, awaiting release · 10 tools
 
@@ -106,7 +106,7 @@ First block with `delete_*`, so the first real exercise of capability gating.
 
 **Done when:** a quiz with questions round-trips; deletes are refused under the default profile and
 permitted under an explicit one, proven by the one-capability-at-a-time matrix.
-**Ships:** v0.2.0
+**Ships:** ~~v0.2.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 4 — Question banks & bindings · Implemented, awaiting release · 9 tools
 
@@ -119,7 +119,7 @@ capability a widely-repeated published claim said did not exist in v2 (`FRICTION
 
 **Done when:** a bank can be created, populated, bound to a quiz with a weighting, rebound and
 unbound — the full TAISE item-reuse pattern, executed end to end.
-**Ships:** v0.3.0
+**Ships:** ~~v0.3.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 5 — Enrolment & reporting · Implemented, awaiting release · 9 tools
 
@@ -132,7 +132,7 @@ arrives in Block 11.
 
 **Done when:** enrolment state and scores are readable for a real course; bulk enrolment reports
 per-item results; the description says plainly that per-lesson detail is not available here.
-**Ships:** v0.4.0
+**Ships:** ~~v0.4.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 6 — Students · Done · 8 tools
 
@@ -148,7 +148,7 @@ network call; `SECURITY-RESOURCES.md` is re-reviewed. — **all met.** The four 
 behind `people.destructive`, which turned out to be reachable only via `full` or by naming the
 capability outright; not even the `people` profile grants it. `SECURITY-RESOURCES.md` carries a
 dated Block 6 review.
-**Ships:** v0.5.0
+**Ships:** ~~v0.5.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 7 — Groups & signup fields · Done · 11 tools
 
@@ -168,7 +168,7 @@ group-adjacent.
 **Done when:** membership add/remove works; the timestamp inconsistency is handled and has a
 regression test naming it. — **all met**, and mutation-verified: renaming the key to
 `modified_at` fails `test_groups_expose_updated_at_not_modified_at`.
-**Ships:** v0.6.0
+**Ships:** ~~v0.6.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 8 — Publishing & catalog · Done · 12 tools
 
@@ -188,7 +188,7 @@ are gated by `groups.*`, not `publishing.*`, because upstream hangs them off
 `/v2/groups/{id}/relationships/published-course-visibility/` and requires `student-groups:write`.
 Gating by the scope the credential actually needs keeps the local gate and the remote one from
 disagreeing.
-**Ships:** v0.7.0
+**Ships:** ~~v0.7.0~~ — folded into **v0.8.0**, the single first release.
 
 ### Block 9 — Web packages & OAuth client · Done · 6 tools
 
@@ -205,7 +205,7 @@ zero missing, and the only three extras are our own server-management tools, lis
 "extra" cannot become a dumping ground. The diff runs against the artifact rather than the network
 because reaching the live server needs an interactive login (FRICTION-001), and a test that needs
 a login is a test that does not run.
-**Ships:** v0.8.0 — **parity complete**
+**Ships:** **v0.8.0 — parity complete. RELEASED 2026-08-27**, collapsing Blocks 1–9 into one version: the release was blocked on a credential while the blocks landed behind it, so none of the intermediate numbers was ever published.
 
 ---
 
