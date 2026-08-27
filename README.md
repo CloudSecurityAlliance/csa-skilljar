@@ -11,17 +11,19 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–2 implemented, not yet released.**
+> **Status: Blocks 1–3 implemented, not yet released.**
 >
-> Eleven tools over Skilljar's v2 API. Install from source until the first PyPI release:
+> Twenty-one tools over Skilljar's v2 API. Install from source until the first PyPI release:
 > `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > | | |
 > |---|---|
 > | **Server** | `check_access` · `describe_capabilities` · `report_a_problem` |
 > | **Courses** | `list_courses` · `get_course` · `create_courses` · `update_courses` |
 > | **Lessons** | `list_lessons` · `get_lesson` · `create_lessons` · `update_lessons` |
+> | **Quizzes** | `list_quizzes` · `get_quiz` · `create_quizzes` · `update_quizzes` · `delete_quizzes` |
+> | **Questions** | `list_questions` · `get_question` · `create_questions` · `update_questions` · `delete_questions` |
 >
-> The full 73-tool parity surface arrives over Blocks 3–9; see [ROADMAP.md](ROADMAP.md).
+> The full 73-tool parity surface arrives over Blocks 4–9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 

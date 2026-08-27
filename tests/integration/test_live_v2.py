@@ -72,3 +72,31 @@ def test_a_scope_the_client_lacks_is_refused_before_any_request(live_client):
     with pytest.raises(exc.ScopeError) as e:
         creds.require_scope(missing)
     assert e.value.required == missing
+
+
+def test_quizzes_and_questions_are_readable(live_client):
+    quizzes = live_client.list_quizzes(page_size=3)
+    assert "data" in quizzes
+    if not quizzes["data"]:
+        pytest.skip("organization has no quizzes")
+    quiz = quizzes["data"][0]
+    fetched = live_client.get_quiz(quiz_id=quiz["id"])["data"]
+    assert fetched["id"] == quiz["id"]
+    questions = live_client.list_questions(quiz_id=quiz["id"], page_size=3)
+    assert "data" in questions
+    for row in questions["data"]:
+        assert row["attributes"].get("quiz_id") == quiz["id"]
+
+
+def test_a_question_carries_its_answers_inline(live_client):
+    """Only provable live: the fake nests answers because we told it to."""
+    quizzes = live_client.list_quizzes(page_size=5)["data"]
+    for quiz in quizzes:
+        rows = live_client.list_questions(quiz_id=quiz["id"], page_size=1)["data"]
+        if rows:
+            detail = live_client.get_question(question_id=rows[0]["id"])["data"]
+            assert "answers" in detail["attributes"], (
+                "get_question is documented as nesting answers inline"
+            )
+            return
+    pytest.skip("organization has no quiz with questions")

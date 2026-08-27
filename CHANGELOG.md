@@ -7,6 +7,18 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 3 — quizzes and questions.** Ten tools, and the project's first destructive
+  operations (`delete_quizzes`, `delete_questions`).
+- A new `content.delete` capability, deliberately separate from `content.write`: an
+  authoring credential that can create and update content cannot destroy it. Off in every
+  profile except `full`.
+- Local encoding of the question quiz-XOR-bank rule, the per-type answer-shape rules, and
+  the fields the service assigns rather than accepts.
+- Documented behaviour that exists only in the captured registry: `FILL_IN_THE_BLANK`
+  forces every answer correct, answers are immutable on update, and deleting a quiz spares
+  bank-owned questions.
+
+### Added
 - **Block 2 — courses and lessons.** Seven new tools: `get_course`, `create_courses`,
   `update_courses`, `list_lessons`, `get_lesson`, `create_lessons`, `update_lessons`.
 - Batch writes over v2's `207` envelope, with per-item results preserved rather than

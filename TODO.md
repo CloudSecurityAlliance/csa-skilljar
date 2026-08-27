@@ -17,7 +17,8 @@ file plus open GitHub Issues finds everything.
 ## Next
 
 - Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
-- Block 3 — quizzes & questions (10 tools) → `ROADMAP.md`
+- Block 4 — question banks & bindings (10 tools) → `ROADMAP.md`. **Highest CSA value:**
+  reusable exam item pools, and the capability a published claim said v2 lacked.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -40,6 +41,7 @@ work landed, and leaving them would make the sweep lie.
 - ~~`SECURITY.md`~~ · ~~Dependabot (pip + github-actions)~~
 - ~~`scripts/check_upstream.py` + weekly CI job~~
 - ~~Block 2 — courses & lessons (8 tools), shipped to `main` 2026-08-27~~
+- ~~Block 3 — quizzes & questions (10 tools), shipped to `main` 2026-08-27~~
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)
