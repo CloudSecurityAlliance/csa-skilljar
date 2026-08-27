@@ -7,6 +7,15 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 5 — enrolment and reporting.** Nine tools, and the first that affect people
+  rather than content. Both writes are gated on `enrolment.write`, which the `authoring`
+  profile does not grant.
+- `complete_enrollments` requires `send_notifications` with no default, because it decides
+  whether real learners receive email.
+- `list_course_ratings` returns learner-written free text and says so — the same
+  attacker-influencable surface as lesson HTML.
+
+### Added
 - **Block 4 — question banks and bindings.** Nine tools. Reusable exam item pools, and
   the quiz-to-bank binding that makes them reusable — neither of which v1 can do.
 - Re-binding an already-attached bank is an idempotent **partial** update: omitted fields
