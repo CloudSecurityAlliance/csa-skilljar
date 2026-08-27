@@ -62,20 +62,6 @@ def _captured_tool_count() -> int:
     return n
 
 
-def _registered_tool_count() -> int:
-    """What the server actually exposes. Imported, not counted from prose - the README's
-    running total is the one number here that goes stale every single block."""
-    sys.path.insert(0, str(ROOT / "src"))
-    from csa_skilljar.mcp._config import settings_from_env
-    from csa_skilljar.mcp.server import create_server
-
-    def unreachable():  # registration must not need a live client
-        raise AssertionError("counting tools must not construct a client")
-
-    server = create_server(unreachable, settings=settings_from_env({}))
-    return len(server._tool_manager._tools)
-
-
 def _roadmap_parity_tool_sum() -> int:
     """Blocks 2-9 are the parity blocks; their headings carry '· N tools'."""
     text = (ROOT / "ROADMAP.md").read_text()
@@ -163,17 +149,6 @@ def main() -> int:
     captured = _captured_tool_count(); checked += 1
     if captured != tools:
         failures.append(f"captured registry holds {captured} tools, tool-names.json holds {tools}")
-
-    registered = _registered_tool_count()
-    for pattern in (r"\*\*(\d+) tools\*\* over Skilljar's v2 API",):
-        found = re.findall(pattern, (ROOT / "README.md").read_text())
-        if not found:
-            failures.append(f"implemented tool count: pattern {pattern!r} matched nothing in README.md")
-        for got in found:
-            checked += 1
-            if int(got) != registered:
-                failures.append(
-                    f"implemented tool count: README.md says {got}, the server registers {registered}")
 
     parity = _roadmap_parity_tool_sum(); checked += 1
     if parity != tools:

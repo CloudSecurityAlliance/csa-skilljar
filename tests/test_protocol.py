@@ -5,6 +5,7 @@ bugs that reach users live in the delivery layer: a parameter alias that publish
 correct schema and fails every call, a tool shipped with no description, a TypedDict
 that returns null structured content below Python 3.12. Only the protocol path sees them.
 """
+import pathlib
 import re
 
 import pytest
@@ -102,6 +103,23 @@ def build(profile="full", env=None):
                     students=STUDENT_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
+
+
+def test_the_readme_tool_count_matches_the_registry():
+    """The README's running total is the one number that goes stale every single block.
+
+    This lives here rather than in `scripts/check_docs.py` because that script is
+    deliberately stdlib-only - its CI job installs no dependencies - and reaching the
+    registry imports httpx. A pattern that matches nothing is a failure, not a pass: a
+    claim we can no longer locate is a claim we can no longer verify.
+    """
+    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
+    claimed = re.findall(r"\*\*(\d+) tools\*\* over Skilljar's v2 API", readme)
+    assert claimed, "README no longer states its tool count in the form this test checks"
+    registered = len(build()._tool_manager._tools)
+    for got in claimed:
+        assert int(got) == registered, (
+            f"README says {got} tools, the server registers {registered}")
 
 
 def test_the_exercise_table_covers_every_registered_tool():
