@@ -150,21 +150,27 @@ capability outright; not even the `people` profile grants it. `SECURITY-RESOURCE
 dated Block 6 review.
 **Ships:** v0.5.0
 
-### Block 7 — Groups & signup fields · Next · 11 tools
+### Block 7 — Groups & signup fields · Done · 11 tools
 
 `list_groups` `get_group` `create_groups` `update_groups` `delete_groups`
 `add_group_memberships` `remove_group_memberships`
 `list_signup_field_values` `get_signup_field_value` `create_signup_field_values`
 `update_signup_field_values`
 
-Watch for `GroupAttributes.updated_at` — every other v2 object uses `modified_at`. A uniform
+Watch for `GroupAttributes.updated_at` — most other v2 objects use `modified_at`. A uniform
 assumption breaks group sync silently.
 
+**Correction, 2026-08-27:** this is a **pair**, not a singleton. Surveying all fourteen
+`*Attributes` schemas in the v2 spec, two use `updated_at` — `GroupAttributes` and
+`VisibilityOverrideAttributes`. The second belongs to Block 8. Both exceptions are
+group-adjacent.
+
 **Done when:** membership add/remove works; the timestamp inconsistency is handled and has a
-regression test naming it.
+regression test naming it. — **all met**, and mutation-verified: renaming the key to
+`modified_at` fails `test_groups_expose_updated_at_not_modified_at`.
 **Ships:** v0.6.0
 
-### Block 8 — Publishing & catalog · Planned · 12 tools
+### Block 8 — Publishing & catalog · Next · 12 tools
 
 `list_published_courses` `get_published_course` `publish_courses` `update_published_courses`
 `delete_published_course` `unpublish_published_course` `republish_published_course`
@@ -172,6 +178,9 @@ regression test naming it.
 `list_domains` `get_domain`
 
 Note the inversion: v1 hangs visibility off the content object, v2 hangs it off the group.
+
+`VisibilityOverrideAttributes` uses `updated_at`, not `modified_at` — see the Block 7
+correction above.
 
 **Done when:** a course publishes to a domain, becomes visible to a group, and unpublishes.
 **Ships:** v0.7.0

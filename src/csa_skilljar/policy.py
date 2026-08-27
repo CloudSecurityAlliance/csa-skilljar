@@ -30,21 +30,31 @@ DELETE_CONTENT = "content.delete"
 WRITE_PEOPLE = "people.write"
 WRITE_ENROLMENT = "enrolment.write"
 DESTRUCTIVE_PEOPLE = "people.destructive"
+# Groups sit between content and people: they are administered like content, but a
+# group membership decides which courses a learner can see. Neither content.* nor
+# people.* is the right gate, so they get their own.
+READ_GROUPS = "groups.read"
+WRITE_GROUPS = "groups.write"
+# Split out for the same reason content.delete is: deleting a group is a HARD delete
+# and its memberships and visibility overrides cascade at the database.
+DELETE_GROUPS = "groups.delete"
 ADMIN_CREDENTIALS = "admin.credentials"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
+    READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
 # pressure and everybody can pick a word. `parity` is the default.
 PROFILES: dict[str, tuple[str, ...]] = {
-    "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING),
+    "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, READ_GROUPS),
     "authoring": (READ_CONTENT, WRITE_CONTENT),
-    "people": (READ_PEOPLE, WRITE_PEOPLE),
+    "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
     "reporting": (READ_REPORTING, READ_CONTENT),
-    "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT),
+    "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
+                   READ_GROUPS),
     "admin": (ADMIN_CREDENTIALS,),
     "full": ALL_CAPABILITIES,
 }
@@ -96,6 +106,17 @@ _GATES: dict[str, str | None] = {
     "deactivate_student": DESTRUCTIVE_PEOPLE,
     "set_student_password": DESTRUCTIVE_PEOPLE,
     "send_password_reset": DESTRUCTIVE_PEOPLE,
+    "list_groups": READ_GROUPS,
+    "get_group": READ_GROUPS,
+    "create_groups": WRITE_GROUPS,
+    "update_groups": WRITE_GROUPS,
+    "delete_groups": DELETE_GROUPS,
+    "add_group_memberships": WRITE_GROUPS,
+    "remove_group_memberships": WRITE_GROUPS,
+    "list_signup_field_values": READ_GROUPS,
+    "get_signup_field_value": READ_GROUPS,
+    "create_signup_field_values": WRITE_GROUPS,
+    "update_signup_field_values": WRITE_GROUPS,
 }
 
 

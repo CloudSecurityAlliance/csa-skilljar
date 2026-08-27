@@ -167,6 +167,35 @@ class Backend(Protocol):
 
     def send_password_reset(self, *, student_id: str, domain: str) -> Envelope: ...
 
+    def list_groups(self, *, name: str | None = None, category_id: str | None = None,
+                    cursor: str | None = None, page_size: int | None = None) -> Envelope: ...
+
+    def get_group(self, *, group_id: str) -> Envelope: ...
+
+    def create_groups(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_groups(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_groups(self, *, group_ids: list[str]) -> Envelope: ...
+
+    def add_group_memberships(self, *, group_id: str,
+                              student_ids: list[str]) -> Envelope: ...
+
+    def remove_group_memberships(self, *, group_id: str,
+                                 student_ids: list[str]) -> Envelope: ...
+
+    def list_signup_field_values(self, *, student_id: str | None = None,
+                                 signup_field_id: str | None = None,
+                                 domains: str | None = None, cursor: str | None = None,
+                                 page_size: int | None = None) -> Envelope: ...
+
+    def get_signup_field_value(self, *, signup_field_value_id: str) -> Envelope: ...
+
+    def create_signup_field_values(self, *, student_id: str,
+                                   items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_signup_field_values(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -184,7 +213,9 @@ class FakeBackend:
                  enrollments: list[dict[str, Any]] | None = None,
                  certificates: list[dict[str, Any]] | None = None,
                  course_ratings: list[dict[str, Any]] | None = None,
-                 students: list[dict[str, Any]] | None = None) -> None:
+                 students: list[dict[str, Any]] | None = None,
+                 groups: list[dict[str, Any]] | None = None,
+                 signup_field_values: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -201,6 +232,11 @@ class FakeBackend:
         self._certificates = copy.deepcopy(list(certificates or []))
         self._ratings = copy.deepcopy(list(course_ratings or []))
         self._students = copy.deepcopy(list(students or []))
+        self._groups = copy.deepcopy(list(groups or []))
+        # group_id -> ordered student ids. Membership is a to-many relationship with no
+        # resource of its own, which is why it gets a side table rather than rows.
+        self._memberships: dict[str, list[str]] = {}
+        self._signup_values = copy.deepcopy(list(signup_field_values or []))
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -847,6 +883,202 @@ class FakeBackend:
         return {"data": {"type": "password-resets", "id": student_id,
                          "attributes": {"domain": domain}}}
 
+    # --- groups ----------------------------------------------------------------------
+
+    def list_groups(self, *, name: str | None = None, category_id: str | None = None,
+                    cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        rows = self._groups
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        if name is not None:
+            needle = name.lower()                       # substring, case-INsensitive
+            rows = [r for r in rows if needle in str(attr(r, "name") or "").lower()]
+        if category_id is not None:
+            # An unknown or cross-org category matches nothing. It is NOT an error.
+            rows = [r for r in rows if attr(r, "category_id") == category_id]
+        return self._page(rows, cursor, page_size, "/v2/groups/")
+
+    def get_group(self, *, group_id: str) -> Envelope:
+        for row in self._groups:
+            if row.get("id") == group_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no group with id {group_id}")
+
+    def create_groups(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        # Group names are unique within the org and CASE-SENSITIVE, so "Staff" and
+        # "staff" are two different groups. Do not casefold this key.
+        existing = {str(r.get("attributes", {}).get("name")) for r in self._groups}
+        for i, attrs in enumerate(items):
+            name = str(attrs.get("name", ""))
+            if name in seen or name in existing:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"group name {name!r} is already taken",
+                             "source": {"pointer": f"/data/{i}/attributes/name"}})
+                continue
+            seen.add(name)
+            new_id = f"g{len(self._groups) + 1}"
+            self._groups.append({"type": "groups", "id": new_id,
+                                 "attributes": {"rule_email_domains": [], **attrs}})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_groups(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, attrs in enumerate(items):
+            gid = str(attrs.get("id", ""))
+            if gid in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"id {gid} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            seen.add(gid)
+            row = next((r for r in self._groups if r.get("id") == gid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no group with id {gid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            # A plain dict merge, which is the whole point: an explicitly-null
+            # category_id lands as None and CLEARS the assignment, while an absent key
+            # leaves the stored value alone. Filtering falsy values here would silently
+            # turn "uncategorise this group" into a no-op.
+            row["attributes"].update({k: v for k, v in attrs.items() if k != "id"})
+            data.append({"status": "updated", "id": gid})
+        return self._batch(data)
+
+    def delete_groups(self, *, group_ids: list[str]) -> Envelope:
+        """HARD delete. StudentGroup is not a SoftDeletionModel; relations cascade."""
+        data: list[dict[str, Any]] = []
+        for i, gid in enumerate(group_ids):
+            row = next((r for r in self._groups if r.get("id") == gid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no group with id {gid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            self._groups.remove(row)
+            self._memberships.pop(gid, None)      # cascades at the database
+            data.append({"status": "deleted", "id": gid})
+        return self._batch(data)
+
+    def add_group_memberships(self, *, group_id: str,
+                              student_ids: list[str]) -> Envelope:
+        # The group lookup runs BEFORE the envelope is inspected, so a missing group is
+        # 404 whatever the body says. Deliberate: it stops a caller probing for group
+        # existence through the 400-vs-404 boundary.
+        self.get_group(group_id=group_id)
+        members = self._memberships.setdefault(group_id, [])
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, sid in enumerate(student_ids):
+            if sid in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{sid} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            seen.add(sid)
+            # Idempotent: an existing member succeeds. There is no already_a_member code.
+            if sid not in members:
+                members.append(sid)
+            data.append({"status": "created", "id": sid})
+        return self._batch(data)
+
+    def remove_group_memberships(self, *, group_id: str,
+                                 student_ids: list[str]) -> Envelope:
+        self.get_group(group_id=group_id)
+        members = self._memberships.setdefault(group_id, [])
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, sid in enumerate(student_ids):
+            if sid in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{sid} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            seen.add(sid)
+            # Idempotent: a non-member reports "deleted". There is no not_a_member
+            # outcome on the wire, so a caller cannot use this to test membership.
+            if sid in members:
+                members.remove(sid)
+            data.append({"status": "deleted", "id": sid})
+        return self._batch(data)
+
+    def group_members(self, group_id: str) -> list[str]:
+        """Test-only accessor. Membership has no read endpoint in v2."""
+        return list(self._memberships.get(group_id, []))
+
+    # --- signup field values -----------------------------------------------------------
+
+    def list_signup_field_values(self, *, student_id: str | None = None,
+                                 signup_field_id: str | None = None,
+                                 domains: str | None = None, cursor: str | None = None,
+                                 page_size: int | None = None) -> Envelope:
+        rows = self._signup_values
+        def rel(r: dict[str, Any], k: str) -> Any:
+            return r.get("relationships", {}).get(k, {}).get("data", {}).get("id")
+        if student_id is not None:
+            rows = [r for r in rows if rel(r, "student") == student_id]
+        if signup_field_id is not None:
+            rows = [r for r in rows if rel(r, "signup-field") == signup_field_id]
+        if domains is not None:
+            wanted = {d.strip() for d in domains.split(",") if d.strip()}
+            rows = [r for r in rows
+                    if str(r.get("attributes", {}).get("domain", "")) in wanted]
+        return self._page(rows, cursor, page_size, "/v2/signup-field-values/")
+
+    def get_signup_field_value(self, *, signup_field_value_id: str) -> Envelope:
+        for row in self._signup_values:
+            if row.get("id") == signup_field_value_id:
+                return {"data": row}
+        raise exc.NotFoundError(
+            f"no signup field value with id {signup_field_value_id}")
+
+    def create_signup_field_values(self, *, student_id: str,
+                                   items: list[dict[str, Any]]) -> Envelope:
+        """UPSERT, despite the name. Items are keyed by signup-FIELD id."""
+        self.get_student(student_id=student_id)     # 404 for an unknown student
+        def rel(r: dict[str, Any], k: str) -> Any:
+            return r.get("relationships", {}).get(k, {}).get("data", {}).get("id")
+        data: list[dict[str, Any]] = []
+        for item in items:
+            field_id = str(item.get("id", ""))
+            value = item.get("value")
+            existing = next((r for r in self._signup_values
+                             if rel(r, "student") == student_id
+                             and rel(r, "signup-field") == field_id), None)
+            if existing is not None:
+                existing["attributes"]["value"] = value
+                data.append({"status": "updated", "id": existing.get("id", "")})
+                continue
+            new_id = f"sfv{len(self._signup_values) + 1}"
+            self._signup_values.append({
+                "type": "signup-field-values", "id": new_id,
+                "attributes": {"label": field_id, "value": value},
+                "relationships": {
+                    "student": {"data": {"type": "students", "id": student_id}},
+                    "signup-field": {"data": {"type": "signup-fields",
+                                              "id": field_id}}}})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_signup_field_values(self, *, items: list[dict[str, Any]]) -> Envelope:
+        """Items are keyed by signup-field-VALUE id - not the field id create uses."""
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            vid = str(item.get("id", ""))
+            row = next((r for r in self._signup_values if r.get("id") == vid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no signup field value with id {vid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"]["value"] = item.get("value")
+            data.append({"status": "updated", "id": vid})
+        return self._batch(data)
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -1206,3 +1438,79 @@ class V2Backend:
         return self._send("POST",
                           f"/v2/students/{student_id}/send-password-reset/?domain={domain}",
                           {}, template="/v2/students/{id}/send-password-reset/")
+
+    # --- groups ----------------------------------------------------------------------
+
+    def list_groups(self, *, name: str | None = None, category_id: str | None = None,
+                    cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        return self._get("/v2/groups/", {
+            "filter[name]": name, "filter[category_id]": category_id,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_group(self, *, group_id: str) -> Envelope:
+        return self._get(f"/v2/groups/{group_id}", template="/v2/groups/{id}")
+
+    def create_groups(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/groups/", {
+            "data": [{"type": "groups", "attributes": a} for a in items]})
+
+    def update_groups(self, *, items: list[dict[str, Any]]) -> Envelope:
+        # `attributes` is built by exclusion, not by an allowlist, so an explicitly-null
+        # category_id survives to the wire. An allowlist that skipped None would turn a
+        # deliberate "clear the category" into a silent no-op.
+        return self._send("PATCH", "/v2/groups/", {
+            "data": [{"type": "groups", "id": a.get("id"),
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def delete_groups(self, *, group_ids: list[str]) -> Envelope:
+        return self._send("DELETE", "/v2/groups/", {
+            "data": [{"type": "groups", "id": gid} for gid in group_ids]})
+
+    def add_group_memberships(self, *, group_id: str,
+                              student_ids: list[str]) -> Envelope:
+        return self._send("POST", f"/v2/groups/{group_id}/relationships/students/", {
+            "data": [{"type": "students", "id": sid} for sid in student_ids]},
+            template="/v2/groups/{id}/relationships/students/")
+
+    def remove_group_memberships(self, *, group_id: str,
+                                 student_ids: list[str]) -> Envelope:
+        return self._send("DELETE", f"/v2/groups/{group_id}/relationships/students/", {
+            "data": [{"type": "students", "id": sid} for sid in student_ids]},
+            template="/v2/groups/{id}/relationships/students/")
+
+    # --- signup field values -----------------------------------------------------------
+
+    def list_signup_field_values(self, *, student_id: str | None = None,
+                                 signup_field_id: str | None = None,
+                                 domains: str | None = None, cursor: str | None = None,
+                                 page_size: int | None = None) -> Envelope:
+        return self._get("/v2/signup-field-values/", {
+            "filter[student.id]": student_id,
+            "filter[signup-field.id]": signup_field_id,
+            "filter[domains]": domains, "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_signup_field_value(self, *, signup_field_value_id: str) -> Envelope:
+        # The path parameter really is named signup_field_value_id upstream; every other
+        # by-id path in v2 uses {id}. The template must match the spec or the scope
+        # pre-check cannot find the operation.
+        return self._get(f"/v2/signup-field-values/{signup_field_value_id}",
+                         template="/v2/signup-field-values/{signup_field_value_id}")
+
+    def create_signup_field_values(self, *, student_id: str,
+                                   items: list[dict[str, Any]]) -> Envelope:
+        # HYBRID envelope: student_id sits at the TOP level, not inside each item, and
+        # each item is keyed by the signup-FIELD id. Putting student_id in the items is
+        # the natural-looking mistake and the server would ignore it.
+        return self._send("POST", "/v2/signup-field-values/", {
+            "student_id": student_id,
+            "data": [{"type": "signup-field-values", "id": i.get("id"),
+                      "attributes": {"value": i.get("value")}} for i in items]})
+
+    def update_signup_field_values(self, *, items: list[dict[str, Any]]) -> Envelope:
+        # Keyed by the signup-field-VALUE id. Not the field id that create uses.
+        return self._send("PATCH", "/v2/signup-field-values/", {
+            "data": [{"type": "signup-field-values", "id": i.get("id"),
+                      "attributes": {"value": i.get("value")}} for i in items]})

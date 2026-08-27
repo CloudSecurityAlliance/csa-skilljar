@@ -73,6 +73,14 @@ EXPECTED_BY_CAPABILITY = {
     # destroy what it can create.
     "content.delete": {"delete_quizzes", "delete_questions",
                        "delete_question_banks"},
+    "groups.read": {"list_groups", "get_group",
+                    "list_signup_field_values", "get_signup_field_value"},
+    "groups.write": {"create_groups", "update_groups",
+                     "add_group_memberships", "remove_group_memberships",
+                     "create_signup_field_values", "update_signup_field_values"},
+    # Deliberately NOT in groups.write: deleting a group is a HARD delete and takes its
+    # memberships and course-visibility overrides with it at the database level.
+    "groups.delete": {"delete_groups"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -107,6 +115,14 @@ CALL_ARGS = {
     "deactivate_student": {"student_id": "s1"},
     "set_student_password": {"student_id": "s1", "password": "x"},
     "send_password_reset": {"student_id": "s1", "domain": "d"},
+    "list_groups": {}, "get_group": {"group_id": "g1"},
+    "create_groups": {"items": []}, "update_groups": {"items": []},
+    "delete_groups": {"group_ids": []},
+    "add_group_memberships": {"group_id": "g1", "student_ids": []},
+    "remove_group_memberships": {"group_id": "g1", "student_ids": []},
+    "list_signup_field_values": {}, "get_signup_field_value": {"signup_field_value_id": "v1"},
+    "create_signup_field_values": {"student_id": "s1", "items": []},
+    "update_signup_field_values": {"items": []},
 }
 
 

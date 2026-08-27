@@ -11,9 +11,9 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–6 implemented, not yet released.**
+> **Status: Blocks 1–7 implemented, not yet released.**
 >
-> **47 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
+> **58 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
 > `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > | | |
 > |---|---|
@@ -27,9 +27,12 @@ tools.
 > | **Enrolment** | `list_enrollments` · `get_enrollment` · `update_enrollments` · `complete_enrollments` · `bulk_enroll_students` |
 > | **Reporting** | `list_certificates` · `get_certificate` · `get_course_analytics` · `list_course_ratings` |
 > | **Students** | `list_students` · `get_student` · `create_students` · `update_students` |
+> | **Groups** | `list_groups` · `get_group` · `create_groups` · `update_groups` · `add_group_memberships` · `remove_group_memberships` |
+> | **Signup fields** | `list_signup_field_values` · `get_signup_field_value` · `create_signup_field_values` · `update_signup_field_values` |
 > | **Students (destructive)** | `anonymize_student` · `deactivate_student` · `set_student_password` · `send_password_reset` — gated on `people.destructive`, which no profile but `full` grants |
+> | **Groups (destructive)** | `delete_groups` — a hard delete that cascades to memberships and course visibility; gated on `groups.delete` |
 >
-> The full 73-tool parity surface arrives over Blocks 7–9; see [ROADMAP.md](ROADMAP.md).
+> The full 73-tool parity surface arrives over Blocks 8–9; see [ROADMAP.md](ROADMAP.md).
 
 ## Start with Skilljar's official MCP server
 

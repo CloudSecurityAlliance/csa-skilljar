@@ -7,6 +7,42 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 7 — groups and signup fields.** Eleven tools. Groups decide which published
+  courses a learner can see, so they are administered like content but grant access like
+  people; they get their own `groups.read` / `groups.write` / `groups.delete`
+  capabilities rather than borrowing either family's.
+- `delete_groups` is gated by `groups.delete` alone, in no profile but `full`. A group is
+  a **hard** delete — not a soft one like quizzes and banks — and its memberships and
+  published-course visibility overrides cascade at the database, so deleting a group can
+  revoke course access learners currently have.
+- `update_groups` distinguishes an **absent** `category_id` from an **explicitly null**
+  one: null clears the category, omitted leaves it alone. `rule_email_domains` replaces
+  the stored array rather than merging, and the description says so, because the natural
+  assumption silently deletes the caller's other domain rules.
+- Group membership tools are annotated idempotent, which they genuinely are: adding an
+  existing member succeeds and removing a non-member reports `deleted`. The result
+  therefore cannot be used to test membership, and the tools say so rather than implying
+  a change occurred.
+- `create_signup_field_values` is an upsert wearing a `create_` name, with a hybrid
+  envelope — `student_id` at the top level, per-field items in the batch. It keys items
+  by the signup-**field** id while `update_signup_field_values` keys them by the
+  signup-field-**value** id; both descriptions name the other call's identifier so a
+  model holding one id can tell which it has.
+- `get_signup_field_value` takes `signup_field_value_id`, not `id`. Every other
+  single-object lookup takes `id`; this one matches Skilljar's parameter exactly, per
+  ADR-006.
+- Signup-field values are learner-typed free text and are labelled untrusted, the same
+  treatment `list_course_ratings` and lesson HTML get.
+
+### Fixed
+- **ROADMAP's `updated_at` note was half the story.** It named `GroupAttributes` as the
+  lone v2 resource spelling the timestamp `updated_at`. A survey of all fourteen
+  `*Attributes` schemas found two: `GroupAttributes` and `VisibilityOverrideAttributes`,
+  the latter a Block 8 tool. Corrected in place so Block 8 is not misled.
+- ROADMAP listed the Block 6 tool as `set_password`; the captured registry says
+  `set_student_password`. The code was built from the registry and was already correct.
+
+### Added
 - **Block 6 — students.** Eight tools, and the ones this project was most careful about:
   irreversible PII erasure, deactivation, and two password paths.
 - A new `people.destructive` capability holding all four sensitive tools. It is granted by
