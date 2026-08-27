@@ -56,6 +56,12 @@ class Backend(Protocol):
 
     def get_course(self, *, course_id: str) -> Envelope: ...
 
+    def list_lessons(self, *, course_id: str | None = None, title: str | None = None,
+                     lesson_type: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope: ...
+
+    def get_lesson(self, *, lesson_id: str) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -65,8 +71,10 @@ class FakeBackend:
     is code that has never exercised paging.
     """
 
-    def __init__(self, courses: list[dict[str, Any]] | None = None) -> None:
+    def __init__(self, courses: list[dict[str, Any]] | None = None,
+                 lessons: list[dict[str, Any]] | None = None) -> None:
         self._courses = list(courses or [])
+        self._lessons = list(lessons or [])
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -97,6 +105,29 @@ class FakeBackend:
             if row.get("id") == course_id:
                 return {"data": row}
         raise exc.NotFoundError(f"no course with id {course_id}")
+
+    def list_lessons(self, *, course_id: str | None = None, title: str | None = None,
+                     lesson_type: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        rows = self._lessons
+        if course_id is not None:
+            rows = [x for x in rows if x.get("attributes", {}).get("course_id") == course_id]
+        if title is not None:
+            # EXACT match, case-insensitive - unlike course titles, which match partially.
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("title", "").lower() == title.lower()]
+        if lesson_type is not None:
+            rows = [x for x in rows if x.get("attributes", {}).get("type") == lesson_type]
+        if updated_since is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("modified_at", "") >= updated_since]
+        return self._page(rows, cursor, page_size, "/v2/lessons/")
+
+    def get_lesson(self, *, lesson_id: str) -> Envelope:
+        for row in self._lessons:
+            if row.get("id") == lesson_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no lesson with id {lesson_id}")
 
 
 class V2Backend:
@@ -175,3 +206,15 @@ class V2Backend:
 
     def get_course(self, *, course_id: str) -> Envelope:
         return self._get(f"/v2/courses/{course_id}", template="/v2/courses/{id}")
+
+    def list_lessons(self, *, course_id: str | None = None, title: str | None = None,
+                     lesson_type: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        return self._get("/v2/lessons/", {
+            "filter[course_id]": course_id, "filter[title]": title,
+            "filter[type]": lesson_type, "filter[updated_since]": updated_since,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_lesson(self, *, lesson_id: str) -> Envelope:
+        return self._get(f"/v2/lessons/{lesson_id}", template="/v2/lessons/{id}")

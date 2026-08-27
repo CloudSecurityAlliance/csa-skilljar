@@ -34,6 +34,8 @@ REQUIREMENTS = {
     "report_a_problem": ["what_happened", "no credential"],
     "list_courses": ["one page", "has_more", "next_cursor", "courses:read", "filter_title"],
     "get_course": ["courses:read", "does not return", "list_lessons"],
+    "list_lessons": ["one page", "has_more", "next_cursor", "lessons:read", "exact"],
+    "get_lesson": ["lessons:read", "untrusted", "content_html"],
 }
 
 

@@ -50,6 +50,8 @@ PROFILES: dict[str, tuple[str, ...]] = {
 _GATES: dict[str, str | None] = {
     "list_courses": READ_CONTENT,
     "get_course": READ_CONTENT,
+    "list_lessons": READ_CONTENT,
+    "get_lesson": READ_CONTENT,
 }
 
 

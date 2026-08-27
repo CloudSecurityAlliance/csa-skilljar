@@ -37,3 +37,13 @@ class SkilljarClient:
 
     def get_course(self, *, course_id: str) -> dict[str, Any]:
         return self._backend.get_course(course_id=course_id)
+
+    def list_lessons(self, *, course_id: str | None = None, title: str | None = None,
+                     lesson_type: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_lessons(
+            course_id=course_id, title=title, lesson_type=lesson_type,
+            updated_since=updated_since, cursor=cursor, page_size=page_size)
+
+    def get_lesson(self, *, lesson_id: str) -> dict[str, Any]:
+        return self._backend.get_lesson(lesson_id=lesson_id)

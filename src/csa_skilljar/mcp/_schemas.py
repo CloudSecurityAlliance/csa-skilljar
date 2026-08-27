@@ -6,6 +6,8 @@ null structured content and no error anywhere.
 """
 from __future__ import annotations
 
+from typing import Any
+
 from typing_extensions import NotRequired, TypedDict
 
 
@@ -60,5 +62,35 @@ class CourseDetailOut(TypedDict):
     external_id: NotRequired[str]
     is_published: NotRequired[bool]
     lesson_count: NotRequired[int]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class LessonOut(TypedDict):
+    id: str
+    title: str
+    type: str
+    course_id: NotRequired[str]
+    order: NotRequired[int]
+
+
+class LessonListOut(TypedDict):
+    lessons: list[LessonOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class LessonDetailOut(TypedDict):
+    id: str
+    title: str
+    type: str
+    course_id: NotRequired[str]
+    order: NotRequired[int]
+    description_html: NotRequired[str]
+    content_html: NotRequired[str]
+    quiz_id: NotRequired[str]
+    content_items: NotRequired[list[dict[str, Any]]]
+    external_id: NotRequired[str]
     created_at: NotRequired[str]
     modified_at: NotRequired[str]
