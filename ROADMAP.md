@@ -85,7 +85,7 @@ Blocks 2–9 implement the official Skilljar MCP server's tool surface, with add
 (ADR-006). Order is value-first, with the destructive tools deliberately late so the gating
 machinery is proven before it matters.
 
-### Block 2 — Courses & lessons · Planned · 8 tools
+### Block 2 — Courses & lessons · Implemented, awaiting release · 8 tools
 
 `list_courses` `get_course` `create_courses` `update_courses`
 `list_lessons` `get_lesson` `create_lessons` `update_lessons`
@@ -97,7 +97,7 @@ writes return `207` with per-item results).
 is surfaced per item, not collapsed into one error.
 **Ships:** v0.1.0
 
-### Block 3 — Quizzes & questions · Planned · 10 tools
+### Block 3 — Quizzes & questions · Next · 10 tools
 
 `list_quizzes` `get_quiz` `create_quizzes` `update_quizzes` `delete_quizzes`
 `list_questions` `get_question` `create_questions` `update_questions` `delete_questions`

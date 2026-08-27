@@ -16,8 +16,8 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
-- Block 2 — courses & lessons (8 tools) → plan written:
-  `docs/superpowers/plans/2026-08-26-block-2-courses-and-lessons.md`
+- Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
+- Block 3 — quizzes & questions (10 tools) → `ROADMAP.md`
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -39,6 +39,7 @@ work landed, and leaving them would make the sweep lie.
 - ~~Branch protection enforced for admins~~
 - ~~`SECURITY.md`~~ · ~~Dependabot (pip + github-actions)~~
 - ~~`scripts/check_upstream.py` + weekly CI job~~
+- ~~Block 2 — courses & lessons (8 tools), shipped to `main` 2026-08-27~~
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)
