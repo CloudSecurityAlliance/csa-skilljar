@@ -6,6 +6,20 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **`scripts/mcp-launch.sh`** — reads `CSA_SKILLJAR_*` from a `.env` file and execs the
+  server, so an MCP client can be pointed at it and the client configuration holds no
+  secret. `claude mcp add -e KEY=value` writes the literal value into `~/.claude.json`,
+  which is neither gitignored nor a secrets store, and puts it in shell history on the
+  way.
+- It **parses** the file rather than sourcing it. `source` executes the file: a stray
+  `echo` in `.env` would print to stdout and corrupt the JSON-RPC stream before the
+  server started, and any other command in it would simply run. Both are regression
+  tests, and reverting to `source` kills three of them.
+- Only `CSA_SKILLJAR_*` names are exported — this repository's own `.env` also holds a
+  v1 testing key that is not the server's to receive — and an already-exported variable
+  wins over the file, so a one-off override needs no edit to the credential file.
+
 ### Fixed
 - **The scope pre-check refused every call against a real token.** Skilljar issues
   granted scopes in a **`scopes`** claim holding a JSON **list**; this code read the
