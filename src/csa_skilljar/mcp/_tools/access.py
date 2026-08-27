@@ -53,7 +53,14 @@ def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: 
             try:
                 creds = get_client().credentials
                 if creds is not None:
-                    out["granted_scopes"] = list(creds.granted_scopes())
+                    granted = creds.granted_scopes()
+                    # None is not "no scopes" - it is "the token did not say". Report
+                    # the difference rather than showing an empty list, which reads as
+                    # a client that was issued nothing.
+                    if granted is None:
+                        out["scopes_unknown"] = True
+                    else:
+                        out["granted_scopes"] = list(granted)
                     remaining = creds.expires_in()
                     if remaining is not None:
                         out["expires_in_seconds"] = remaining

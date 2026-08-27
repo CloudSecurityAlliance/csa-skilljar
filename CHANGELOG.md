@@ -7,6 +7,24 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **The scope pre-check refused every call against a real token.** Skilljar issues
+  granted scopes in a **`scopes`** claim holding a JSON **list**; this code read the
+  RFC 6749 / RFC 9068 standard `scope`, a space-delimited string. So `granted_scopes()`
+  returned empty for every production token, and every scoped v2 call was refused with
+  "Your v2 client was issued: (none). Re-issue it including `courses:read`" — against a
+  client that had been issued seventeen scopes correctly. Both claim names and both
+  shapes are now read.
+- The offline suite was green throughout, because its JWT fixture could only produce
+  `scope` as a string — the shape the code already expected. **A fixture that can only
+  express your own assumption cannot catch a mismatch with the vendor.** The helper now
+  takes arbitrary claims, and the vendor's real shape is recorded next to the tests.
+- **"No scope claim" and "no scopes" are now different answers.** `granted_scopes()`
+  returns `None` when the token does not declare its scopes, and `()` only when it
+  declares none. Collapsing them meant an unrecognised claim silently refused everything
+  and blamed the credential — the same absorbing-state shape as the `_expired` bug in
+  ZERO-DEFECT §17. `check_access` reports `scopes_unknown` rather than an empty list.
+
+### Fixed
 - **ADR-003 cited evidence that does not hold.** It said the API's authorization server
   "does offer `client_credentials`". It does not advertise it — `grant_types_supported`
   lists only `authorization_code` and `refresh_token`, the same as the hosted MCP
