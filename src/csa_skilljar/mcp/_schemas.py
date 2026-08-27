@@ -94,3 +94,17 @@ class LessonDetailOut(TypedDict):
     external_id: NotRequired[str]
     created_at: NotRequired[str]
     modified_at: NotRequired[str]
+
+
+class BatchFailureOut(TypedDict):
+    code: str
+    detail: str
+    pointer: str
+
+
+class BatchResultOut(TypedDict):
+    total: int
+    succeeded: int
+    failed: list[BatchFailureOut]
+    ids: list[str]
+    note: str

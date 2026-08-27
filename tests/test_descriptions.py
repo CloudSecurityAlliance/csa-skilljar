@@ -36,6 +36,8 @@ REQUIREMENTS = {
     "get_course": ["courses:read", "does not return", "list_lessons"],
     "list_lessons": ["one page", "has_more", "next_cursor", "lessons:read", "exact"],
     "get_lesson": ["lessons:read", "untrusted", "content_html"],
+    "create_courses": ["batch", "courses:write", "failed", "title"],
+    "update_courses": ["batch", "courses:write", "preserved", "id"],
 }
 
 

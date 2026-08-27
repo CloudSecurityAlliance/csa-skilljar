@@ -29,6 +29,8 @@ EXERCISE = {
     "get_course": {"id": "c1"},
     "list_lessons": {},
     "get_lesson": {"id": "l1"},
+    "create_courses": {"courses": [{"title": "New"}]},
+    "update_courses": {"courses": [{"id": "c1", "title": "Renamed"}]},
 }
 
 
@@ -36,7 +38,7 @@ LESSON_ROWS = [{"type": "lessons", "id": "l1",
                 "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
 
 
-def build(profile="parity", env=None):
+def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS), Policy.from_profile(profile)))
