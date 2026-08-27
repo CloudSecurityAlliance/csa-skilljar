@@ -126,6 +126,13 @@ tells you what is available.
 We link Skilljar's own documentation rather than transcribing their dashboard navigation, which
 we cannot keep current.
 
+**There is no login step and no browser.** The v2 credential is a machine credential: you create
+an API client in the Skilljar Dashboard, put its id and secret in your MCP client's configuration,
+and the server obtains its own access token on first use (`client_credentials`, ADR-003). No
+redirect URI, no consent screen, no token file on disk. Skilljar's own hosted MCP server does use
+an interactive flow — it is remote and acts for a browser user, which is exactly the constraint
+running locally removes.
+
 Scope the v2 client to what you actually need. The API declares a required scope on every
 operation, and the sensitive ones are separable — `students:anonymize` (irreversible),
 `students:deactivate`, and `students:manage-password` can all be withheld from a client used for

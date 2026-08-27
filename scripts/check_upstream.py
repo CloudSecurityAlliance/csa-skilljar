@@ -28,6 +28,7 @@ import pathlib
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -137,6 +138,53 @@ def check_reserved_areas(drift: list[str]) -> None:
                      f"the matching v1 family can now be retired")
 
 
+def check_client_credentials_grant(drift: list[str]) -> None:
+    """The single assumption the whole project rests on (ADR-003).
+
+    If Skilljar ever stops accepting `client_credentials`, this server cannot
+    authenticate at all - there is no browser here to run `authorization_code` through.
+    That is a total failure, so it is worth a free probe on every drift check.
+
+    The probe needs no credentials, because the two outcomes are distinguishable
+    without one:
+
+        401 invalid_client   the grant was ACCEPTED and reached the credential check
+        400 invalid_request  the grant itself was rejected
+
+    Deliberately fake credentials are sent. Nothing is created and nothing is logged in
+    against.
+    """
+    body = urllib.parse.urlencode({
+        "grant_type": "client_credentials",
+        "client_id": "csa-skilljar-upstream-probe-not-a-real-client",
+        "client_secret": "not-a-real-secret",  # nosec B106 # a deliberate non-credential
+    }).encode()
+    req = urllib.request.Request(
+        f"{BASE}/v2/auth/token", data=body, method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded",
+                 "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - fixed https host
+            status, payload = r.status, r.read()
+    except urllib.error.HTTPError as e:
+        status, payload = e.code, e.read()
+    except Exception as e:  # noqa: BLE001
+        raise Unreachable(f"could not reach the token endpoint: {e}") from e
+
+    try:
+        error = json.loads(payload).get("error", "")
+    except ValueError:
+        error = ""
+    print(f"  client_credentials grant: HTTP {status} {error or '(no error field)'}")
+
+    if status == 401 and error == "invalid_client":
+        return                              # accepted; only our fake credentials failed
+    drift.append(
+        f"client_credentials may no longer be accepted at {BASE}/v2/auth/token "
+        f"(expected HTTP 401 invalid_client, got HTTP {status} {error!r}). "
+        f"ADR-003 depends on this grant; without it this server cannot authenticate.")
+
+
 def check_official_registry(drift: list[str]) -> bool:
     """The ADR-006 parity baseline. Returns False when it could not run.
 
@@ -153,6 +201,7 @@ def main() -> int:
         check_v2_surface(drift)
         check_scope_catalogue(drift)
         check_reserved_areas(drift)
+        check_client_credentials_grant(drift)
         ran_registry = check_official_registry(drift)
     except Unreachable as e:
         # NOT drift. Exit 2 so the caller can tell an outage from a finding.

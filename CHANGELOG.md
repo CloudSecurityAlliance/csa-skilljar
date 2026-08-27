@@ -7,6 +7,28 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **ADR-003 cited evidence that does not hold.** It said the API's authorization server
+  "does offer `client_credentials`". It does not advertise it — `grant_types_supported`
+  lists only `authorization_code` and `refresh_token`, the same as the hosted MCP
+  server's. The decision is still correct, but the evidence is now a probe: the token
+  endpoint returns `401 invalid_client` for `client_credentials` with fake credentials
+  (the grant was accepted and reached the credential check), while a nonsense grant type
+  returns `400 invalid_request` and the validator names `client_credentials` first among
+  the three it accepts. An ADR whose stated reasoning fails when checked is worse than
+  one that says less.
+- This is the mirror image of the discrepancy already recorded in `CLAUDE.md` — 88
+  scopes advertised against 28 implemented. There the vendor's metadata runs ahead of
+  the API; here it runs behind. Probe beats docs in both directions, the vendor's own
+  machine-readable docs included.
+
+### Added
+- `scripts/check_upstream.py` now probes the `client_credentials` grant on every drift
+  check. It needs no credentials — `401 invalid_client` and `400 invalid_request`
+  separate "grant accepted" from "grant withdrawn" — and if Skilljar ever withdraws it,
+  this server cannot authenticate at all, since there is no browser here to run
+  `authorization_code` through.
+
+### Fixed
 - **`serverInfo.version` was an empty string** in the MCP initialize handshake — the
   field a client shows when someone asks which build they are talking to. `MCPServer`
   was constructed without `version`. No in-process test reads the handshake, so nothing
