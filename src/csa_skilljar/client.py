@@ -53,3 +53,9 @@ class SkilljarClient:
 
     def update_courses(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
         return self._backend.update_courses(items=items)
+
+    def create_lessons(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_lessons(items=items)
+
+    def update_lessons(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_lessons(items=items)

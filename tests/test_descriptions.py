@@ -38,6 +38,9 @@ REQUIREMENTS = {
     "get_lesson": ["lessons:read", "untrusted", "content_html"],
     "create_courses": ["batch", "courses:write", "failed", "title"],
     "update_courses": ["batch", "courses:write", "preserved", "id"],
+    "create_lessons": ["batch", "lessons:write", "content_html", "quiz_id"],
+    "update_lessons": ["deleted", "confirm_delete_all_content_items",
+                       "lessons:write", "preserved", "read-only"],
 }
 
 

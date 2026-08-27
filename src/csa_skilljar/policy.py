@@ -54,6 +54,8 @@ _GATES: dict[str, str | None] = {
     "get_lesson": READ_CONTENT,
     "create_courses": WRITE_CONTENT,
     "update_courses": WRITE_CONTENT,
+    "create_lessons": WRITE_CONTENT,
+    "update_lessons": WRITE_CONTENT,
 }
 
 

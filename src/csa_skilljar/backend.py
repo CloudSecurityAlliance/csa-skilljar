@@ -67,6 +67,10 @@ class Backend(Protocol):
 
     def update_courses(self, *, items: list[dict[str, Any]]) -> Envelope: ...
 
+    def create_lessons(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_lessons(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -184,6 +188,40 @@ class FakeBackend:
             # PARTIAL update: an omitted field is preserved, never cleared.
             row["attributes"].update({k: v for k, v in item.items() if k != "id"})
             data.append({"status": "updated", "id": cid})
+        return self._batch(data)
+
+    def create_lessons(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, attrs in enumerate(items):
+            if not attrs.get("course_id"):
+                data.append({"status": "error", "code": "not_found",
+                             "detail": "course_id is required",
+                             "source": {"pointer": f"/data/{i}/attributes/course_id"}})
+                continue
+            new_id = f"l{len(self._lessons) + 1}"
+            stored = dict(attrs)
+            stored.setdefault("order", (max(
+                (x.get("attributes", {}).get("order", 0) for x in self._lessons), default=0) + 10))
+            self._lessons.append({"type": "lessons", "id": new_id, "attributes": stored})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_lessons(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            lid = item.get("id")
+            row = next((r for r in self._lessons if r.get("id") == lid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no lesson with id {lid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            # content_items is a TRI-STATE: omitted leaves children alone, present
+            # replaces them, present-and-empty deletes them all. The delivery layer
+            # gates the destructive case behind an explicit flag; here it is applied
+            # exactly as sent, because that is what the API does.
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": lid})
         return self._batch(data)
 
 
@@ -309,5 +347,15 @@ class V2Backend:
     def update_courses(self, *, items: list[dict[str, Any]]) -> Envelope:
         return self._send("PATCH", "/v2/courses/", {
             "data": [{"type": "courses", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def create_lessons(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/lessons/", {
+            "data": [{"type": "lessons", "attributes": a} for a in items]})
+
+    def update_lessons(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/lessons/", {
+            "data": [{"type": "lessons", "id": a["id"],
                       "attributes": {k: v for k, v in a.items() if k != "id"}}
                      for a in items]})

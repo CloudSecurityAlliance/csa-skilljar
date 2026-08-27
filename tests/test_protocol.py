@@ -31,6 +31,9 @@ EXERCISE = {
     "get_lesson": {"id": "l1"},
     "create_courses": {"courses": [{"title": "New"}]},
     "update_courses": {"courses": [{"id": "c1", "title": "Renamed"}]},
+    "create_lessons": {"lessons": [{"course_id": "c1", "type": "HTML",
+                                    "title": "New", "content_html": "<p>x</p>"}]},
+    "update_lessons": {"lessons": [{"id": "l1", "title": "Renamed"}]},
 }
 
 
