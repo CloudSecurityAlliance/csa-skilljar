@@ -16,7 +16,7 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
-- Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
+- Release v0.1.0 — **unblocked 2026-08-27**, `WAITING-FOR-002` closed. Six versions are stacked (v0.1.0–v0.8.0); collapse them into one release.
 - Phase 2 — the v2 capabilities the official server does not expose → `ROADMAP.md`.
   `/v2/clients/` (list, get, patch, delete, rotate-secret) is in the v2 spec and absent
   from the official 73; it is the first candidate.

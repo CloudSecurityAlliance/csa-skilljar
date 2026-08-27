@@ -117,10 +117,37 @@ class V2Credentials:
                     "assuming %.0fs", _FALLBACK_LIFETIME_SECONDS)
         return time.time() + _FALLBACK_LIFETIME_SECONDS
 
-    def granted_scopes(self) -> tuple[str, ...]:
+    def granted_scopes(self) -> tuple[str, ...] | None:
+        """The scopes this token carries, or None when the token does not say.
+
+        None and () are DIFFERENT and the caller must treat them differently. () means
+        "issued with no scopes", which is a real answer and a reason to refuse locally.
+        None means "this token has no scope claim we recognise", which says nothing
+        about what the client may do - refusing on it would send the operator off to
+        re-issue a credential that is fine.
+
+        Skilljar issues `scopes` as a JSON LIST. RFC 6749 and RFC 9068 specify `scope`
+        as a space-delimited STRING. Both are read, because this code originally read
+        only the standard one and every single call was refused against a real token
+        that was correctly scoped - the claim was there, under the other name, in the
+        other shape.
+        """
         self.token()
-        raw = self._claims.get("scope") or ""
-        return tuple(s for s in str(raw).replace(",", " ").split() if s)
+        for key in ("scopes", "scope"):
+            if key not in self._claims:
+                continue
+            raw = self._claims[key]
+            if isinstance(raw, (list, tuple)):
+                return tuple(str(s) for s in raw if str(s))
+            return tuple(s for s in str(raw).replace(",", " ").split() if s)
+        # ZD-1/ZD-17: an absorbing state that quietly refuses everything is exactly the
+        # shape of the `_expired` bug. Say so, once, and let the caller decide.
+        log.warning(
+            "v2 token carries no recognised scope claim (looked for `scopes` and "
+            "`scope`; token has: %s). The local scope pre-check is disabled for this "
+            "token - Skilljar remains authoritative and will reject anything the "
+            "client may not do.", ", ".join(sorted(self._claims)) or "(no claims)")
+        return None
 
     def expires_in(self) -> float | None:
         """Seconds until expiry, from cached state. No network call."""
@@ -129,6 +156,11 @@ class V2Credentials:
     def require_scope(self, scope: str) -> None:
         """Refuse locally, before any request, naming the exact missing scope."""
         granted = self.granted_scopes()
+        if granted is None:
+            # The token does not say what it may do. granted_scopes() has already
+            # warned. Refusing here would be a guess presented as a fact, and would
+            # send the operator to re-issue a credential that may be perfectly good.
+            return
         if scope in granted:
             return
         raise exc.ScopeError(

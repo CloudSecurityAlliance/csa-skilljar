@@ -23,6 +23,9 @@ class AccessOut(TypedDict):
     v2: CredentialState
     v1: CredentialState
     granted_scopes: list[str]
+    # Set only when the token carries no recognised scope claim. Distinct from an empty
+    # granted_scopes, which means the client really was issued nothing.
+    scopes_unknown: NotRequired[bool]
     expires_in_seconds: NotRequired[float]
 
 

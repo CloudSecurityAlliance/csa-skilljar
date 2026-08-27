@@ -1449,8 +1449,11 @@ class V2Backend:
                 f"Regenerate with scripts/gen_scopes.py if specs/ was refreshed.")
         needed = scopes_for(method, spec_path)
         if needed:
-            granted = set(self._creds.granted_scopes())
-            if not granted & set(needed):        # any-of semantics
+            granted = self._creds.granted_scopes()
+            # None means the token does not declare its scopes, which is not the same
+            # as declaring none. require_scope() owns that distinction; short-cutting
+            # it here with `set(None or ())` would silently refuse every call.
+            if granted is not None and not set(granted) & set(needed):
                 self._creds.require_scope(needed[0])
 
     def _receive(self, r: httpx.Response, spec_path: str) -> Envelope:
