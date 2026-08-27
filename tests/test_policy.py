@@ -57,6 +57,12 @@ EXPECTED_BY_CAPABILITY = {
                        "list_course_ratings"},
     "enrolment.write": {"update_enrollments", "complete_enrollments",
                         "bulk_enroll"},
+    "people.read": {"list_students", "get_student"},
+    "people.write": {"create_students", "update_students"},
+    # Deliberately NOT in people.write: a credential for routine learner administration
+    # must not be able to erase anyone or take over their account.
+    "people.destructive": {"anonymize_student", "deactivate_student",
+                           "set_student_password", "send_password_reset"},
     "content.write": {"create_courses", "update_courses",
                       "create_lessons", "update_lessons",
                       "create_quizzes", "update_quizzes",
@@ -95,6 +101,12 @@ CALL_ARGS = {
     "update_enrollments": {"items": []},
     "complete_enrollments": {"send_notifications": False, "items": []},
     "bulk_enroll": {"published_course_id": "pc1", "emails": []},
+    "list_students": {}, "get_student": {"student_id": "s1"},
+    "create_students": {"items": []}, "update_students": {"items": []},
+    "anonymize_student": {"student_id": "s1"},
+    "deactivate_student": {"student_id": "s1"},
+    "set_student_password": {"student_id": "s1", "password": "x"},
+    "send_password_reset": {"student_id": "s1", "domain": "d"},
 }
 
 

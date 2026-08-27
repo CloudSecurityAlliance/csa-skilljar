@@ -129,3 +129,39 @@ def test_get_course_404_is_a_typed_not_found():
         return_value=httpx.Response(404, json={}))
     with pytest.raises(exc.NotFoundError):
         V2Backend(creds()).get_course(course_id="nope")
+
+
+# --- the X-Confirm-Destructive header ----------------------------------------------
+
+@respx.mock
+def test_anonymize_sends_the_confirm_destructive_header():
+    """Skilljar's own gate on the irreversible operation, distinct from OAuth scope."""
+    route = respx.post("https://api.skilljar.com/v2/students/s1/anonymize/").mock(
+        return_value=httpx.Response(200, json={"data": {"id": "s1"}}))
+    V2Backend(creds(scope="students:anonymize")).anonymize_student(student_id="s1")
+    assert route.calls[0].request.headers.get("X-Confirm-Destructive") == "true"
+
+
+@respx.mock
+def test_no_other_call_sends_the_confirm_destructive_header():
+    """The named trap: sending it globally because threading it through one call is
+    harder would silently disarm Skilljar's gate for every future destructive endpoint."""
+    token = respx.post("https://api.skilljar.com/v2/auth/token").mock(
+        return_value=httpx.Response(200, json={"access_token": make_jwt(
+            "courses:write students:write students:deactivate")}))
+    courses = respx.post("https://api.skilljar.com/v2/courses/").mock(
+        return_value=httpx.Response(200, json={"data": [], "summary": {
+            "total": 0, "succeeded": 0, "failed": 0}}))
+    students = respx.patch("https://api.skilljar.com/v2/students/").mock(
+        return_value=httpx.Response(200, json={"data": [], "summary": {
+            "total": 0, "succeeded": 0, "failed": 0}}))
+    deactivate = respx.delete("https://api.skilljar.com/v2/students/s1").mock(
+        return_value=httpx.Response(200, json={"data": {"id": "s1"}}))
+    b = V2Backend(V2Credentials("id", "sk-live-X"))
+    b.create_courses(items=[])
+    b.update_students(items=[])
+    b.deactivate_student(student_id="s1")
+    for route in (token, courses, students, deactivate):
+        for call in route.calls:
+            assert "X-Confirm-Destructive" not in call.request.headers, (
+                f"the destructive-confirmation header leaked onto {call.request.url}")

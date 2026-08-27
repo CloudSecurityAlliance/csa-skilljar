@@ -88,6 +88,14 @@ _GATES: dict[str, str | None] = {
     "update_enrollments": WRITE_ENROLMENT,
     "complete_enrollments": WRITE_ENROLMENT,
     "bulk_enroll": WRITE_ENROLMENT,
+    "list_students": READ_PEOPLE,
+    "get_student": READ_PEOPLE,
+    "create_students": WRITE_PEOPLE,
+    "update_students": WRITE_PEOPLE,
+    "anonymize_student": DESTRUCTIVE_PEOPLE,
+    "deactivate_student": DESTRUCTIVE_PEOPLE,
+    "set_student_password": DESTRUCTIVE_PEOPLE,
+    "send_password_reset": DESTRUCTIVE_PEOPLE,
 }
 
 

@@ -17,9 +17,7 @@ file plus open GitHub Issues finds everything.
 ## Next
 
 - Release v0.1.0 — needs `WAITING-FOR-002`; everything else for it is done
-- Block 6 — students (8 tools) → `ROADMAP.md`. **The dangerous block:** irreversible
-  PII erasure and an account-takeover primitive, deliberately placed after the gating
-  machinery has been exercised four times.
+- Block 7 — groups & signup fields (11 tools) → `ROADMAP.md`.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -45,6 +43,9 @@ work landed, and leaving them would make the sweep lie.
 - ~~Block 3 — quizzes & questions (10 tools), shipped to `main` 2026-08-27~~
 - ~~Block 4 — question banks & bindings (9 tools), shipped to `main` 2026-08-27~~
 - ~~Block 5 — enrolment & reporting (9 tools), shipped to `main` 2026-08-27~~
+- ~~Block 6 — students (8 tools), shipped to `main` 2026-08-27~~ — the four destructive
+  tools sit behind `people.destructive`, which no named profile but `full` grants.
+  `SECURITY-RESOURCES.md` carries the dated review.
 - ~~Replace `check_access`'s private-attribute reach~~ → `SkilljarClient.credentials`
 
 ## Later (Blocks 2–17)

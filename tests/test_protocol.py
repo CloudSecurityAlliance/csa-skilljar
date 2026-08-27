@@ -5,6 +5,7 @@ bugs that reach users live in the delivery layer: a parameter alias that publish
 correct schema and fails every call, a tool shipped with no description, a TypedDict
 that returns null structured content below Python 3.12. Only the protocol path sees them.
 """
+import pathlib
 import re
 
 import pytest
@@ -69,6 +70,14 @@ EXERCISE = {
                              "enrollments": [{"id": "e1", "success_status": "passed"}]},
     "bulk_enroll_students": {"published_course_id": "pc1",
                              "emails": ["someone@example.org"]},
+    "list_students": {},
+    "get_student": {"id": "s1"},
+    "create_students": {"students": [{"email": "new@example.org"}]},
+    "update_students": {"students": [{"id": "s1", "first_name": "New"}]},
+    "anonymize_student": {"id": "s1", "confirm": True},
+    "deactivate_student": {"id": "s1"},
+    "set_student_password": {"id": "s1", "password": "hunter2hunter2", "confirm": True},
+    "send_password_reset": {"id": "s1", "domain": "learn.example.org"},
 }
 
 
@@ -78,6 +87,8 @@ QUIZ_ROWS = [{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}]
 BANK_ROWS = [{"type": "question-banks", "id": "b1", "attributes": {"name": "Bank"}}]
 ENROLMENT_ROWS = [{"type": "enrollments", "id": "e1", "attributes": {"active": True}}]
 CERT_ROWS = [{"type": "certificates", "id": "cert1", "attributes": {"status": "active"}}]
+STUDENT_ROWS = [{"type": "students", "id": "s1",
+                 "attributes": {"email": "ada@example.org", "is_inactive": False}}]
 QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
     "question_html": "<p>Q?</p>", "question_type": "FREEFORM", "quiz_id": "q1",
     "answers": []}}]
@@ -88,9 +99,27 @@ def build(profile="full", env=None):
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
                     questions=QUESTION_ROWS, question_banks=BANK_ROWS,
-                    enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS),
+                    enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS,
+                    students=STUDENT_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
+
+
+def test_the_readme_tool_count_matches_the_registry():
+    """The README's running total is the one number that goes stale every single block.
+
+    This lives here rather than in `scripts/check_docs.py` because that script is
+    deliberately stdlib-only - its CI job installs no dependencies - and reaching the
+    registry imports httpx. A pattern that matches nothing is a failure, not a pass: a
+    claim we can no longer locate is a claim we can no longer verify.
+    """
+    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
+    claimed = re.findall(r"\*\*(\d+) tools\*\* over Skilljar's v2 API", readme)
+    assert claimed, "README no longer states its tool count in the form this test checks"
+    registered = len(build()._tool_manager._tools)
+    for got in claimed:
+        assert int(got) == registered, (
+            f"README says {got} tools, the server registers {registered}")
 
 
 def test_the_exercise_table_covers_every_registered_tool():

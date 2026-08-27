@@ -7,6 +7,22 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Block 6 — students.** Eight tools, and the ones this project was most careful about:
+  irreversible PII erasure, deactivation, and two password paths.
+- A new `people.destructive` capability holding all four sensitive tools. It is granted by
+  **no named profile except `full`** — the `people` profile, which an operator setting up
+  learner administration would reach for, gives `people.read` and `people.write` and cannot
+  touch erasure or passwords.
+- `anonymize_student` and `set_student_password` refuse to run without `confirm=True`. This
+  is a restatement gate, not an access control: it makes a destructive call legible to a
+  human reading the transcript. The capability gate and the OAuth scope are the real
+  controls.
+- `anonymize_student` is the only call in the codebase that sends Skilljar's
+  `X-Confirm-Destructive` header, and a test enumerates every other call to prove it.
+- `update_students` refuses `is_inactive: false` combined with other fields, because
+  Skilljar accepts that and silently drops the other fields. Reactivation takes two calls.
+
+### Added
 - **Block 5 — enrolment and reporting.** Nine tools, and the first that affect people
   rather than content. Both writes are gated on `enrolment.write`, which the `authoring`
   profile does not grant.

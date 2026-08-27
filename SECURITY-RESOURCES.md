@@ -94,8 +94,42 @@ Recorded here so a dismissal is reviewable rather than invisible.
 |---|---|---|
 | `py/clear-text-logging-sensitive-data` (CodeQL, high) | `src/csa_skilljar/mcp/cli.py` startup warning | **False positive.** `os.environ` is a taint source, and CodeQL does not distinguish a value *read from* the environment from a module constant *selected because of* it. The printed strings are module-level constants naming environment **variables**, never their values. Three structural rewrites were attempted first - narrowing `Settings` to two booleans, deriving presence from env keys rather than values, and making the messages module constants so only control flow depends on env - and none shifted the alert. The counter-evidence is `tests/test_zero_defect.py::test_no_credential_value_can_reach_the_cli_output`, which runs the real CLI with distinctive credential values and asserts none reach stdout or stderr. **If that test fails, this dismissal is wrong and the alert must be reopened.** |
 
+## Destructive-tool review — Block 6 (students), 2026-08-27
+
+The four tools this file named as the worst case have now landed. Recording what was actually
+built against what was promised, because a control that was designed and not implemented is worse
+than one that was never claimed.
+
+| Tool | Gate | In which profile | Extra control |
+|---|---|---|---|
+| `anonymize_student` | `people.destructive` | **`full` only** | `confirm=True` required; sends `X-Confirm-Destructive: true`, the only call in the codebase that does |
+| `deactivate_student` | `people.destructive` | **`full` only** | reversible, so no `confirm`; description points at it as the safe alternative to anonymise |
+| `set_student_password` | `people.destructive` | **`full` only** | `confirm=True` required |
+| `send_password_reset` | `people.destructive` | **`full` only** | no `confirm` — it mails the learner rather than changing anything |
+
+Three findings worth carrying forward:
+
+1. **`people.destructive` is in no named profile but `full`.** Not even `people`, which holds
+   `people.read` + `people.write`. An operator who wants a learner-administration install and
+   picks the obvious word cannot reach PII erasure. Reaching it takes naming `full`, or naming the
+   capability itself. This is stronger than the design promised, and it should stay that way.
+2. **`confirm` is a model-facing gate, not a security control.** An agent that has decided to
+   erase a learner will pass `confirm=True`. Its value is that the model must *restate* the
+   intent, so a human reading the tool call sees an explicit destructive flag rather than an
+   innocuous-looking id. The real control is the capability gate above it and the OAuth scope
+   above that. The docs must not oversell it.
+3. **The `X-Confirm-Destructive` header is scoped by a test, not by convention.**
+   `test_no_other_call_sends_the_confirm_destructive_header` enumerates every backend call and
+   asserts the header is absent. Mutation-verified 2026-08-27: adding the header to the shared
+   request path fails that test. Without it, a later refactor that hoists headers into `_send`
+   would silently arm every request.
+
+No change to the risk table below is warranted: the "prompt-injection defence is configuration,
+not enforcement" row still describes the position exactly, and Block 6 did not widen it.
+
 ## Review schedule
 
-- **Last reviewed:** 2026-08-26 (initial, pre-implementation)
-- **Next review:** at the first implementation PR, when `SECURITY.md` is written — and thereafter
-  whenever a phase adds destructive tools.
+- **Last reviewed:** 2026-08-27 (Block 6 — first destructive tools; see section above)
+- **Previously:** 2026-08-26 (initial, pre-implementation)
+- **Next review:** when Block 9 lands `register_oauth_client` (credential minting, the one tool
+  gated by `admin`) — and thereafter whenever a block adds destructive tools.
