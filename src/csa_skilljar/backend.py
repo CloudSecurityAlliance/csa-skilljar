@@ -16,6 +16,39 @@ from .scopes import is_known_operation, scopes_for
 Envelope = dict[str, Any]
 
 
+def parse_batch(envelope: Envelope) -> dict[str, Any]:
+    """Split a 207 batch envelope into succeeded and failed items.
+
+    v2 collection writes return per-item results rather than one status for the whole
+    request. Preserving that split is the point: a caller told only "the batch failed"
+    cannot tell which forty-nine rows landed.
+
+    The `succeeded + failed == total` invariant is CHECKED, not trusted. Skilljar
+    enforces it server-side, so a mismatch means we are misreading the envelope - and
+    reporting a confidently wrong count is worse than raising.
+    """
+    summary = envelope.get("summary")
+    if not isinstance(summary, dict):
+        raise ValueError("batch response carried no summary; this is not a 207 envelope")
+    total = int(summary.get("total", 0))
+    succeeded: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
+    for item in envelope.get("data", []):
+        if item.get("status") == "error":
+            failed.append({
+                "code": item.get("code", "unknown"),
+                "detail": item.get("detail", ""),
+                "pointer": (item.get("source") or {}).get("pointer", ""),
+            })
+        else:
+            succeeded.append(item)
+    if len(succeeded) + len(failed) != total:
+        raise ValueError(
+            f"batch summary disagrees with its own data: summary total={total} but "
+            f"{len(succeeded)} succeeded + {len(failed)} failed were present")
+    return {"succeeded": succeeded, "failed": failed, "total": total}
+
+
 @runtime_checkable
 class Backend(Protocol):
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
