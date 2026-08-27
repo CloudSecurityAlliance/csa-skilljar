@@ -115,6 +115,40 @@ class Backend(Protocol):
 
     def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> Envelope: ...
 
+    def list_enrollments(self, *, active: bool | None = None,
+                         completed_gte: str | None = None, completed_lte: str | None = None,
+                         enrolled_gte: str | None = None, enrolled_lte: str | None = None,
+                         course_id: str | None = None, domains: str | None = None,
+                         progress_status: str | None = None,
+                         student_email: str | None = None, student_id: str | None = None,
+                         include: str | None = None, cursor: str | None = None,
+                         page_size: int | None = None) -> Envelope: ...
+
+    def get_enrollment(self, *, enrollment_id: str,
+                       include: str | None = None) -> Envelope: ...
+
+    def update_enrollments(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def complete_enrollments(self, *, send_notifications: bool,
+                             items: list[dict[str, Any]]) -> Envelope: ...
+
+    def bulk_enroll(self, *, published_course_id: str, emails: list[str],
+                    expires_at: str | None = None) -> Envelope: ...
+
+    def list_certificates(self, *, course_id: str | None = None,
+                          student_id: str | None = None, domains: str | None = None,
+                          issued_gte: str | None = None, issued_lte: str | None = None,
+                          status: str = "all", cursor: str | None = None,
+                          page_size: int | None = None) -> Envelope: ...
+
+    def get_certificate(self, *, certificate_id: str) -> Envelope: ...
+
+    def get_course_analytics(self, *, course_id: str,
+                             domains: str | None = None) -> Envelope: ...
+
+    def list_course_ratings(self, *, course_id: str,
+                            student_id: str | None = None) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -128,7 +162,10 @@ class FakeBackend:
                  lessons: list[dict[str, Any]] | None = None,
                  quizzes: list[dict[str, Any]] | None = None,
                  questions: list[dict[str, Any]] | None = None,
-                 question_banks: list[dict[str, Any]] | None = None) -> None:
+                 question_banks: list[dict[str, Any]] | None = None,
+                 enrollments: list[dict[str, Any]] | None = None,
+                 certificates: list[dict[str, Any]] | None = None,
+                 course_ratings: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -141,6 +178,9 @@ class FakeBackend:
         # (quiz_id, question_bank_id) -> assignment attributes. A join row keyed by a
         # natural key, not by an id of its own.
         self._assignments: dict[tuple[str, str], dict[str, Any]] = {}
+        self._enrollments = copy.deepcopy(list(enrollments or []))
+        self._certificates = copy.deepcopy(list(certificates or []))
+        self._ratings = copy.deepcopy(list(course_ratings or []))
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -579,6 +619,123 @@ class FakeBackend:
             data.append({"status": "deleted", "id": bank})
         return self._batch(data)
 
+    # --- enrolment and reporting -----------------------------------------------------
+
+    def list_enrollments(self, *, active: bool | None = None,
+                         completed_gte: str | None = None, completed_lte: str | None = None,
+                         enrolled_gte: str | None = None, enrolled_lte: str | None = None,
+                         course_id: str | None = None, domains: str | None = None,
+                         progress_status: str | None = None,
+                         student_email: str | None = None, student_id: str | None = None,
+                         include: str | None = None, cursor: str | None = None,
+                         page_size: int | None = None) -> Envelope:
+        rows = self._enrollments
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        if active is not None:
+            rows = [r for r in rows if attr(r, "active") is active]
+        if progress_status is not None:
+            wanted = {s.strip() for s in progress_status.split(",")}
+            rows = [r for r in rows if attr(r, "progress_status") in wanted]
+        if domains is not None:
+            wanted = {s.strip() for s in domains.split(",")}
+            rows = [r for r in rows if attr(r, "domain_name") in wanted]
+        for key, bound, op in (("completed_at", completed_gte, "ge"),
+                               ("completed_at", completed_lte, "le"),
+                               ("enrolled_at", enrolled_gte, "ge"),
+                               ("enrolled_at", enrolled_lte, "le")):
+            if bound is None:
+                continue
+            rows = [r for r in rows if attr(r, key) and
+                    ((attr(r, key) >= bound) if op == "ge" else (attr(r, key) <= bound))]
+        return self._page(rows, cursor, page_size, "/v2/enrollments/")
+
+    def get_enrollment(self, *, enrollment_id: str,
+                       include: str | None = None) -> Envelope:
+        for row in self._enrollments:
+            if row.get("id") == enrollment_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no enrollment with id {enrollment_id}")
+
+    def update_enrollments(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            eid = item.get("id")
+            row = next((r for r in self._enrollments if r.get("id") == eid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no enrollment with id {eid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": eid})
+        return self._batch(data)
+
+    def complete_enrollments(self, *, send_notifications: bool,
+                             items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            eid = item.get("id")
+            row = next((r for r in self._enrollments if r.get("id") == eid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no enrollment with id {eid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": eid,
+                         "notified": bool(send_notifications)})
+        return self._batch(data)
+
+    def bulk_enroll(self, *, published_course_id: str, emails: list[str],
+                    expires_at: str | None = None) -> Envelope:
+        """Hybrid envelope: the course and expiry are shared, emails are per-row."""
+        data: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for i, raw in enumerate(emails):
+            email = str(raw).lower()          # normalised server-side
+            if email in seen:
+                data.append({"status": "error", "code": "duplicate_in_batch",
+                             "detail": f"{email} appears earlier in this batch",
+                             "source": {"pointer": f"/data/{i}/attributes/email"}})
+                continue
+            seen.add(email)
+            new_id = f"e{len(self._enrollments) + 1}"
+            attrs = {"active": True, "progress_status": "not_started", "email": email,
+                     "published_course_id": published_course_id}
+            if expires_at:
+                attrs["expires_at"] = expires_at
+            self._enrollments.append({"type": "enrollments", "id": new_id,
+                                      "attributes": attrs})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def list_certificates(self, *, course_id: str | None = None,
+                          student_id: str | None = None, domains: str | None = None,
+                          issued_gte: str | None = None, issued_lte: str | None = None,
+                          status: str = "all", cursor: str | None = None,
+                          page_size: int | None = None) -> Envelope:
+        rows = self._certificates
+        if status != "all":
+            rows = [r for r in rows if r.get("attributes", {}).get("status") == status]
+        return self._page(rows, cursor, page_size, "/v2/certificates/")
+
+    def get_certificate(self, *, certificate_id: str) -> Envelope:
+        for row in self._certificates:
+            if row.get("id") == certificate_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no certificate with id {certificate_id}")
+
+    def get_course_analytics(self, *, course_id: str,
+                             domains: str | None = None) -> Envelope:
+        return {"data": {"type": "course-analytics", "id": course_id,
+                         "attributes": {"enrollment_count": len(self._enrollments),
+                                        "average_rating": 5.0}}}
+
+    def list_course_ratings(self, *, course_id: str,
+                            student_id: str | None = None) -> Envelope:
+        return {"data": list(self._ratings)}
+
 
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
@@ -812,3 +969,77 @@ class V2Backend:
                           {"data": [{"type": "question-bank-assignments", "attributes": a}
                                     for a in items]},
                           template="/v2/quizzes/{quiz_id}/question-banks/")
+
+    def list_enrollments(self, *, active: bool | None = None,
+                         completed_gte: str | None = None, completed_lte: str | None = None,
+                         enrolled_gte: str | None = None, enrolled_lte: str | None = None,
+                         course_id: str | None = None, domains: str | None = None,
+                         progress_status: str | None = None,
+                         student_email: str | None = None, student_id: str | None = None,
+                         include: str | None = None, cursor: str | None = None,
+                         page_size: int | None = None) -> Envelope:
+        return self._get("/v2/enrollments/", {
+            "filter[active]": None if active is None else str(active).lower(),
+            "filter[completed_gte]": completed_gte, "filter[completed_lte]": completed_lte,
+            "filter[enrolled_gte]": enrolled_gte, "filter[enrolled_lte]": enrolled_lte,
+            "filter[course.id]": course_id, "filter[domains]": domains,
+            "filter[progress_status]": progress_status,
+            "filter[student.email]": student_email, "filter[student.id]": student_id,
+            "include": include, "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_enrollment(self, *, enrollment_id: str,
+                       include: str | None = None) -> Envelope:
+        return self._get(f"/v2/enrollments/{enrollment_id}", {"include": include},
+                         template="/v2/enrollments/{id}")
+
+    def update_enrollments(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/enrollments/", {
+            "data": [{"type": "enrollments", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def complete_enrollments(self, *, send_notifications: bool,
+                             items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/enrollments/completion", {
+            "send_notifications": send_notifications,
+            "data": [{"type": "enrollments", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def bulk_enroll(self, *, published_course_id: str, emails: list[str],
+                    expires_at: str | None = None) -> Envelope:
+        body: dict[str, Any] = {
+            "published_course_id": published_course_id,
+            "data": [{"type": "enrollments", "attributes": {"email": e}} for e in emails]}
+        if expires_at is not None:
+            body["expires_at"] = expires_at
+        return self._send("POST", "/v2/enrollments/", body)
+
+    def list_certificates(self, *, course_id: str | None = None,
+                          student_id: str | None = None, domains: str | None = None,
+                          issued_gte: str | None = None, issued_lte: str | None = None,
+                          status: str = "all", cursor: str | None = None,
+                          page_size: int | None = None) -> Envelope:
+        return self._get("/v2/certificates/", {
+            "filter[course.id]": course_id, "filter[student.id]": student_id,
+            "filter[domains]": domains, "filter[issued_gte]": issued_gte,
+            "filter[issued_lte]": issued_lte, "filter[status]": status,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_certificate(self, *, certificate_id: str) -> Envelope:
+        return self._get(f"/v2/certificates/{certificate_id}",
+                         template="/v2/certificates/{id}")
+
+    def get_course_analytics(self, *, course_id: str,
+                             domains: str | None = None) -> Envelope:
+        return self._get(f"/v2/analytics/courses/{course_id}",
+                         {"filter[domains]": domains},
+                         template="/v2/analytics/courses/{course_id}")
+
+    def list_course_ratings(self, *, course_id: str,
+                            student_id: str | None = None) -> Envelope:
+        return self._get(f"/v2/analytics/courses/{course_id}/ratings/",
+                         {"filter[student.id]": student_id},
+                         template="/v2/analytics/courses/{course_id}/ratings/")

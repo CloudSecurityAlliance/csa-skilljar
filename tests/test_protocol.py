@@ -58,6 +58,17 @@ EXERCISE = {
                                    "question_banks": [{"question_bank_id": "b1"}]},
     "unbind_quiz_question_banks": {"quiz_id": "q1",
                                    "question_banks": [{"question_bank_id": "b1"}]},
+    "list_enrollments": {},
+    "get_enrollment": {"id": "e1"},
+    "list_certificates": {},
+    "get_certificate": {"id": "cert1"},
+    "get_course_analytics": {"course_id": "c1"},
+    "list_course_ratings": {"course_id": "c1"},
+    "update_enrollments": {"enrollments": [{"id": "e1", "due_at": None}]},
+    "complete_enrollments": {"send_notifications": False,
+                             "enrollments": [{"id": "e1", "success_status": "passed"}]},
+    "bulk_enroll_students": {"published_course_id": "pc1",
+                             "emails": ["someone@example.org"]},
 }
 
 
@@ -65,6 +76,8 @@ LESSON_ROWS = [{"type": "lessons", "id": "l1",
                 "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
 QUIZ_ROWS = [{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}]
 BANK_ROWS = [{"type": "question-banks", "id": "b1", "attributes": {"name": "Bank"}}]
+ENROLMENT_ROWS = [{"type": "enrollments", "id": "e1", "attributes": {"active": True}}]
+CERT_ROWS = [{"type": "certificates", "id": "cert1", "attributes": {"status": "active"}}]
 QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
     "question_html": "<p>Q?</p>", "question_type": "FREEFORM", "quiz_id": "q1",
     "answers": []}}]
@@ -74,7 +87,8 @@ def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
-                    questions=QUESTION_ROWS, question_banks=BANK_ROWS),
+                    questions=QUESTION_ROWS, question_banks=BANK_ROWS,
+                    enrollments=ENROLMENT_ROWS, certificates=CERT_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 

@@ -79,6 +79,15 @@ _GATES: dict[str, str | None] = {
     "bind_banks": WRITE_CONTENT,
     "update_bank_assignments": WRITE_CONTENT,
     "unbind_banks": WRITE_CONTENT,
+    "list_enrollments": READ_REPORTING,
+    "get_enrollment": READ_REPORTING,
+    "list_certificates": READ_REPORTING,
+    "get_certificate": READ_REPORTING,
+    "get_course_analytics": READ_REPORTING,
+    "list_course_ratings": READ_REPORTING,
+    "update_enrollments": WRITE_ENROLMENT,
+    "complete_enrollments": WRITE_ENROLMENT,
+    "bulk_enroll": WRITE_ENROLMENT,
 }
 
 

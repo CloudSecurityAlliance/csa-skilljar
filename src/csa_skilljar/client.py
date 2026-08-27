@@ -126,3 +126,37 @@ class SkilljarClient:
 
     def unbind_banks(self, *, quiz_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
         return self._backend.unbind_banks(quiz_id=quiz_id, items=items)
+
+    def list_enrollments(self, **kw: Any) -> dict[str, Any]:
+        return self._backend.list_enrollments(**kw)
+
+    def get_enrollment(self, *, enrollment_id: str,
+                       include: str | None = None) -> dict[str, Any]:
+        return self._backend.get_enrollment(enrollment_id=enrollment_id, include=include)
+
+    def update_enrollments(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_enrollments(items=items)
+
+    def complete_enrollments(self, *, send_notifications: bool,
+                             items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.complete_enrollments(
+            send_notifications=send_notifications, items=items)
+
+    def bulk_enroll(self, *, published_course_id: str, emails: list[str],
+                    expires_at: str | None = None) -> dict[str, Any]:
+        return self._backend.bulk_enroll(published_course_id=published_course_id,
+                                         emails=emails, expires_at=expires_at)
+
+    def list_certificates(self, **kw: Any) -> dict[str, Any]:
+        return self._backend.list_certificates(**kw)
+
+    def get_certificate(self, *, certificate_id: str) -> dict[str, Any]:
+        return self._backend.get_certificate(certificate_id=certificate_id)
+
+    def get_course_analytics(self, *, course_id: str,
+                             domains: str | None = None) -> dict[str, Any]:
+        return self._backend.get_course_analytics(course_id=course_id, domains=domains)
+
+    def list_course_ratings(self, *, course_id: str,
+                            student_id: str | None = None) -> dict[str, Any]:
+        return self._backend.list_course_ratings(course_id=course_id, student_id=student_id)

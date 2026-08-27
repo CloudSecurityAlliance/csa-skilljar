@@ -52,6 +52,11 @@ EXPECTED_BY_CAPABILITY = {
                      "list_questions", "get_question",
                      "list_question_banks", "get_question_bank",
                      "list_bank_assignments"},
+    "reporting.read": {"list_enrollments", "get_enrollment", "list_certificates",
+                       "get_certificate", "get_course_analytics",
+                       "list_course_ratings"},
+    "enrolment.write": {"update_enrollments", "complete_enrollments",
+                        "bulk_enroll"},
     "content.write": {"create_courses", "update_courses",
                       "create_lessons", "update_lessons",
                       "create_quizzes", "update_quizzes",
@@ -84,6 +89,12 @@ CALL_ARGS = {
     "bind_banks": {"quiz_id": "q1", "items": []},
     "update_bank_assignments": {"quiz_id": "q1", "items": []},
     "unbind_banks": {"quiz_id": "q1", "items": []},
+    "list_enrollments": {}, "get_enrollment": {"enrollment_id": "e1"},
+    "list_certificates": {}, "get_certificate": {"certificate_id": "cert1"},
+    "get_course_analytics": {"course_id": "c1"}, "list_course_ratings": {"course_id": "c1"},
+    "update_enrollments": {"items": []},
+    "complete_enrollments": {"send_notifications": False, "items": []},
+    "bulk_enroll": {"published_course_id": "pc1", "emails": []},
 }
 
 
