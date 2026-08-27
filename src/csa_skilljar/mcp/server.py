@@ -9,6 +9,7 @@ from ._tools import (
     register_course_tools,
     register_feedback_tools,
     register_lesson_tools,
+    register_quiz_tools,
 )
 
 __all__ = ["INSTRUCTIONS", "create_server"]
@@ -54,4 +55,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_feedback_tools(app, settings)
     register_course_tools(app, get_client)
     register_lesson_tools(app, get_client)
+    register_quiz_tools(app, get_client)
     return app

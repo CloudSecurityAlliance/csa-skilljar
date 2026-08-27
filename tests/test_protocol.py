@@ -34,17 +34,24 @@ EXERCISE = {
     "create_lessons": {"lessons": [{"course_id": "c1", "type": "HTML",
                                     "title": "New", "content_html": "<p>x</p>"}]},
     "update_lessons": {"lessons": [{"id": "l1", "title": "Renamed"}]},
+    "list_quizzes": {},
+    "get_quiz": {"id": "q1"},
+    "create_quizzes": {"quizzes": [{"name": "New"}]},
+    "update_quizzes": {"quizzes": [{"id": "q1", "name": "Renamed"}]},
+    "delete_quizzes": {"quiz_ids": ["q1"]},
 }
 
 
 LESSON_ROWS = [{"type": "lessons", "id": "l1",
                 "attributes": {"title": "Intro", "type": "HTML", "course_id": "c1"}}]
+QUIZ_ROWS = [{"type": "quizzes", "id": "q1", "attributes": {"name": "Exam"}}]
 
 
 def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     client = SkilljarClient(PolicyBackend(
-        FakeBackend(courses=ROWS, lessons=LESSON_ROWS), Policy.from_profile(profile)))
+        FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS),
+        Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 
 

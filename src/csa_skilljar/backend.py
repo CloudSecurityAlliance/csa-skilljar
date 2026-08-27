@@ -71,6 +71,17 @@ class Backend(Protocol):
 
     def update_lessons(self, *, items: list[dict[str, Any]]) -> Envelope: ...
 
+    def list_quizzes(self, *, name: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope: ...
+
+    def get_quiz(self, *, quiz_id: str) -> Envelope: ...
+
+    def create_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def update_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope: ...
+
+    def delete_quizzes(self, *, quiz_ids: list[str]) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -81,13 +92,15 @@ class FakeBackend:
     """
 
     def __init__(self, courses: list[dict[str, Any]] | None = None,
-                 lessons: list[dict[str, Any]] | None = None) -> None:
+                 lessons: list[dict[str, Any]] | None = None,
+                 quizzes: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
         # different one. A double that mutates its input is a trap, not a double.
         self._courses = copy.deepcopy(list(courses or []))
         self._lessons = copy.deepcopy(list(lessons or []))
+        self._quizzes = copy.deepcopy(list(quizzes or []))
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -222,6 +235,68 @@ class FakeBackend:
             # exactly as sent, because that is what the API does.
             row["attributes"].update({k: v for k, v in item.items() if k != "id"})
             data.append({"status": "updated", "id": lid})
+        return self._batch(data)
+
+    def list_quizzes(self, *, name: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        rows = self._quizzes
+        if name is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("name", "").lower() == name.lower()]
+        if updated_since is not None:
+            rows = [x for x in rows
+                    if x.get("attributes", {}).get("modified_at", "") >= updated_since]
+        return self._page(rows, cursor, page_size, "/v2/quizzes/")
+
+    def get_quiz(self, *, quiz_id: str) -> Envelope:
+        for row in self._quizzes:
+            if row.get("id") == quiz_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no quiz with id {quiz_id}")
+
+    def create_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, attrs in enumerate(items):
+            if not attrs.get("name"):
+                data.append({"status": "error", "code": "validation_error",
+                             "detail": "name is required",
+                             "source": {"pointer": f"/data/{i}/attributes/name"}})
+                continue
+            new_id = f"q{len(self._quizzes) + 1}"
+            self._quizzes.append({"type": "quizzes", "id": new_id, "attributes": dict(attrs)})
+            data.append({"status": "created", "id": new_id})
+        return self._batch(data)
+
+    def update_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope:
+        data: list[dict[str, Any]] = []
+        for i, item in enumerate(items):
+            qid = item.get("id")
+            row = next((r for r in self._quizzes if r.get("id") == qid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no quiz with id {qid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            row["attributes"].update({k: v for k, v in item.items() if k != "id"})
+            data.append({"status": "updated", "id": qid})
+        return self._batch(data)
+
+    def delete_quizzes(self, *, quiz_ids: list[str]) -> Envelope:
+        """Soft-delete. The quiz's OWN questions go with it; shared banks do not."""
+        data: list[dict[str, Any]] = []
+        for i, qid in enumerate(quiz_ids):
+            row = next((r for r in self._quizzes if r.get("id") == qid), None)
+            if row is None:
+                data.append({"status": "error", "code": "not_found",
+                             "detail": f"no quiz with id {qid}",
+                             "source": {"pointer": f"/data/{i}/id"}})
+                continue
+            self._quizzes.remove(row)
+            # A quiz owns only questions where question.quiz == quiz. Bank-owned
+            # questions survive - that is the cascade rule from the captured registry.
+            self._questions = [q for q in getattr(self, "_questions", [])
+                               if q.get("attributes", {}).get("quiz_id") != qid]
+            data.append({"status": "deleted", "id": qid})
         return self._batch(data)
 
 
@@ -359,3 +434,27 @@ class V2Backend:
             "data": [{"type": "lessons", "id": a["id"],
                       "attributes": {k: v for k, v in a.items() if k != "id"}}
                      for a in items]})
+
+    def list_quizzes(self, *, name: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> Envelope:
+        return self._get("/v2/quizzes/", {
+            "filter[name]": name, "filter[updated_since]": updated_since,
+            "page[cursor]": cursor,
+            "page[size]": page_size if page_size is None else str(page_size)})
+
+    def get_quiz(self, *, quiz_id: str) -> Envelope:
+        return self._get(f"/v2/quizzes/{quiz_id}", template="/v2/quizzes/{id}")
+
+    def create_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("POST", "/v2/quizzes/", {
+            "data": [{"type": "quizzes", "attributes": a} for a in items]})
+
+    def update_quizzes(self, *, items: list[dict[str, Any]]) -> Envelope:
+        return self._send("PATCH", "/v2/quizzes/", {
+            "data": [{"type": "quizzes", "id": a["id"],
+                      "attributes": {k: v for k, v in a.items() if k != "id"}}
+                     for a in items]})
+
+    def delete_quizzes(self, *, quiz_ids: list[str]) -> Envelope:
+        return self._send("DELETE", "/v2/quizzes/", {
+            "data": [{"type": "quizzes", "id": qid} for qid in quiz_ids]})

@@ -108,3 +108,37 @@ class BatchResultOut(TypedDict):
     failed: list[BatchFailureOut]
     ids: list[str]
     note: str
+
+
+class QuizOut(TypedDict):
+    id: str
+    name: str
+    passing_percentage_correct: NotRequired[int]
+    max_attempts: NotRequired[int]
+
+
+class QuizListOut(TypedDict):
+    quizzes: list[QuizOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class QuizDetailOut(TypedDict):
+    id: str
+    name: str
+    description_html: NotRequired[str]
+    alignment: NotRequired[str]
+    passing_percentage_correct: NotRequired[int]
+    max_attempts: NotRequired[int]
+    limit_question_count: NotRequired[int]
+    time_limit_seconds: NotRequired[int]
+    randomize_questions: NotRequired[bool]
+    randomize_answers: NotRequired[bool]
+    require_correct_response: NotRequired[bool]
+    show_question_feedback: NotRequired[bool]
+    show_results_on_failure: NotRequired[bool]
+    skip_start_screen: NotRequired[bool]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]

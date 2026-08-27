@@ -59,3 +59,20 @@ class SkilljarClient:
 
     def update_lessons(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
         return self._backend.update_lessons(items=items)
+
+    def list_quizzes(self, *, name: str | None = None, updated_since: str | None = None,
+                     cursor: str | None = None, page_size: int | None = None) -> dict[str, Any]:
+        return self._backend.list_quizzes(name=name, updated_since=updated_since,
+                                          cursor=cursor, page_size=page_size)
+
+    def get_quiz(self, *, quiz_id: str) -> dict[str, Any]:
+        return self._backend.get_quiz(quiz_id=quiz_id)
+
+    def create_quizzes(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.create_quizzes(items=items)
+
+    def update_quizzes(self, *, items: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._backend.update_quizzes(items=items)
+
+    def delete_quizzes(self, *, quiz_ids: list[str]) -> dict[str, Any]:
+        return self._backend.delete_quizzes(quiz_ids=quiz_ids)
