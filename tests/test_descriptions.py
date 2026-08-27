@@ -41,6 +41,16 @@ REQUIREMENTS = {
     "create_lessons": ["batch", "lessons:write", "content_html", "quiz_id"],
     "update_lessons": ["deleted", "confirm_delete_all_content_items",
                        "lessons:write", "preserved", "read-only"],
+    "list_quizzes": ["one page", "has_more", "quizzes:read", "exact", "list_questions"],
+    "get_quiz": ["quizzes:read", "does not return", "list_questions"],
+    "create_quizzes": ["batch", "quizzes:write", "name", "unlimited"],
+    "update_quizzes": ["batch", "quizzes:write", "preserved"],
+    "delete_quizzes": ["destructive", "untouched", "content.delete", "explicit instruction"],
+    "list_questions": ["one page", "has_more", "xor", "get_question"],
+    "get_question": ["untrusted", "answers", "list_questions"],
+    "create_questions": ["batch", "exactly one", "freeform", "1000"],
+    "update_questions": ["immutable", "read-only", "delete_questions", "that row"],
+    "delete_questions": ["destructive", "untouched", "content.delete", "question_ids"],
 }
 
 

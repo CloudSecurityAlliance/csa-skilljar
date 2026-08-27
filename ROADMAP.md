@@ -97,7 +97,7 @@ writes return `207` with per-item results).
 is surfaced per item, not collapsed into one error.
 **Ships:** v0.1.0
 
-### Block 3 — Quizzes & questions · Next · 10 tools
+### Block 3 — Quizzes & questions · Implemented, awaiting release · 10 tools
 
 `list_quizzes` `get_quiz` `create_quizzes` `update_quizzes` `delete_quizzes`
 `list_questions` `get_question` `create_questions` `update_questions` `delete_questions`
@@ -108,7 +108,7 @@ First block with `delete_*`, so the first real exercise of capability gating.
 permitted under an explicit one, proven by the one-capability-at-a-time matrix.
 **Ships:** v0.2.0
 
-### Block 4 — Question banks & bindings · Planned · 9 tools
+### Block 4 — Question banks & bindings · Next · 9 tools
 
 `list_question_banks` `get_question_bank` `create_question_banks` `update_question_banks`
 `delete_question_banks` `bind_quiz_question_banks` `unbind_quiz_question_banks`

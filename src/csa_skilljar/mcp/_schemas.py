@@ -108,3 +108,79 @@ class BatchResultOut(TypedDict):
     failed: list[BatchFailureOut]
     ids: list[str]
     note: str
+
+
+class QuizOut(TypedDict):
+    id: str
+    name: str
+    passing_percentage_correct: NotRequired[int]
+    max_attempts: NotRequired[int]
+
+
+class QuizListOut(TypedDict):
+    quizzes: list[QuizOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class QuizDetailOut(TypedDict):
+    id: str
+    name: str
+    description_html: NotRequired[str]
+    alignment: NotRequired[str]
+    passing_percentage_correct: NotRequired[int]
+    max_attempts: NotRequired[int]
+    limit_question_count: NotRequired[int]
+    time_limit_seconds: NotRequired[int]
+    randomize_questions: NotRequired[bool]
+    randomize_answers: NotRequired[bool]
+    require_correct_response: NotRequired[bool]
+    show_question_feedback: NotRequired[bool]
+    show_results_on_failure: NotRequired[bool]
+    skip_start_screen: NotRequired[bool]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]
+
+
+class AnswerOut(TypedDict):
+    answer_text: str
+    correct: NotRequired[bool]
+    order: NotRequired[int]
+
+
+class QuestionOut(TypedDict):
+    id: str
+    question_html: str
+    question_type: str
+    quiz_id: NotRequired[str]
+    question_bank_id: NotRequired[str]
+    order: NotRequired[int]
+
+
+class QuestionListOut(TypedDict):
+    questions: list[QuestionOut]
+    has_more: bool
+    next_cursor: NotRequired[str]
+    note: str
+
+
+class QuestionDetailOut(TypedDict):
+    id: str
+    question_html: str
+    question_type: str
+    answers: list[AnswerOut]
+    quiz_id: NotRequired[str]
+    question_bank_id: NotRequired[str]
+    order: NotRequired[int]
+    correct_answer_feedback_html: NotRequired[str]
+    incorrect_answer_feedback_html: NotRequired[str]
+    answer_feedback_html: NotRequired[str]
+    case_sensitive: NotRequired[bool]
+    is_graded: NotRequired[bool]
+    is_optional: NotRequired[bool]
+    requires_manual_grading: NotRequired[bool]
+    external_id: NotRequired[str]
+    created_at: NotRequired[str]
+    modified_at: NotRequired[str]

@@ -23,13 +23,17 @@ READ_CONTENT = "content.read"
 READ_PEOPLE = "people.read"
 READ_REPORTING = "reporting.read"
 WRITE_CONTENT = "content.write"
+# Deletes are gated separately from writes on purpose: an authoring credential that can
+# create and update content should not thereby be able to destroy it. No default profile
+# grants this.
+DELETE_CONTENT = "content.delete"
 WRITE_PEOPLE = "people.write"
 WRITE_ENROLMENT = "enrolment.write"
 DESTRUCTIVE_PEOPLE = "people.destructive"
 ADMIN_CREDENTIALS = "admin.credentials"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
-    READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT,
+    READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
 )
 
@@ -56,6 +60,16 @@ _GATES: dict[str, str | None] = {
     "update_courses": WRITE_CONTENT,
     "create_lessons": WRITE_CONTENT,
     "update_lessons": WRITE_CONTENT,
+    "list_quizzes": READ_CONTENT,
+    "get_quiz": READ_CONTENT,
+    "create_quizzes": WRITE_CONTENT,
+    "update_quizzes": WRITE_CONTENT,
+    "delete_quizzes": DELETE_CONTENT,
+    "list_questions": READ_CONTENT,
+    "get_question": READ_CONTENT,
+    "create_questions": WRITE_CONTENT,
+    "update_questions": WRITE_CONTENT,
+    "delete_questions": DELETE_CONTENT,
 }
 
 
