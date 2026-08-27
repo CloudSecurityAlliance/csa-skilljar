@@ -126,6 +126,30 @@ tells you what is available.
 We link Skilljar's own documentation rather than transcribing their dashboard navigation, which
 we cannot keep current.
 
+### Connecting it to an MCP client
+
+```bash
+# Recommended: credentials stay in .env, and the client config holds no secret.
+claude mcp add csa-skilljar -- /abs/path/to/csa-skilljar/scripts/mcp-launch.sh
+
+# Or pass them directly - note this writes the literal secret into ~/.claude.json,
+# which is not gitignored, and into your shell history.
+claude mcp add csa-skilljar \
+  -e CSA_SKILLJAR_V2_CLIENT_ID=... -e CSA_SKILLJAR_V2_CLIENT_SECRET=... \
+  -- /abs/path/to/csa-skilljar/.venv/bin/csa-skilljar-mcp
+```
+
+`scripts/mcp-launch.sh` reads `CSA_SKILLJAR_*` variables from the repository's `.env`
+(override with `CSA_SKILLJAR_ENV_FILE`) and execs the server. It parses the file rather
+than sourcing it: `source` executes it, so a stray `echo` would print to stdout and
+corrupt the JSON-RPC stream before the server ever starts.
+
+Use an **absolute path** to the script or to `.venv/bin/csa-skilljar-mcp`. A bare
+`csa-skilljar-mcp` resolves through `PATH`, which may find a different install.
+
+Then call `check_access` first — it is built to work when nothing else does, and reports
+which credentials resolved and which scopes the token carries.
+
 **There is no login step and no browser.** The v2 credential is a machine credential: you create
 an API client in the Skilljar Dashboard, put its id and secret in your MCP client's configuration,
 and the server obtains its own access token on first use (`client_credentials`, ADR-003). No
