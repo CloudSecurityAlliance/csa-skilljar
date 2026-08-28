@@ -209,6 +209,26 @@ class V1Backend:
             f"{published_course_id}. They have {len(listing['rows'])} enrolments; "
             f"list_learner_progress shows them.")
 
+    # --- assets (v2 has no assets endpoint at all) --------------------------------------
+
+    def list_assets(self, *, page: int | None = None) -> Envelope:
+        """Every asset in the library. DRF-enveloped, with a total.
+
+        Carries NO `download_url` - only the detail view does. That asymmetry is the
+        reason `get_asset` exists, and a caller who lists and finds no URL would
+        otherwise conclude there is none.
+        """
+        return parse_page(self._get("/v1/assets", {"page": page}))
+
+    def get_asset(self, *, asset_id: str) -> Envelope:
+        """One asset, including a `download_url` the listing does not carry.
+
+        That URL is a PRESIGNED S3 link: it expires in about an hour, it is different on
+        every fetch, and it works with no Skilljar credentials at all. Verified with a
+        ranged GET carrying no authorization: 206, application/pdf.
+        """
+        return parse_page(self._get(f"/v1/assets/{asset_id}"))
+
     def find_learner(self, *, email: str) -> Envelope:
         """Resolve an email to a learner id, using the DRF-enveloped `/v1/users`.
 
@@ -228,7 +248,8 @@ class FakeV1Backend:
     """
 
     def __init__(self, users: list[dict[str, Any]] | None = None,
-                 progress: dict[str, list[dict[str, Any]]] | None = None) -> None:
+                 progress: dict[str, list[dict[str, Any]]] | None = None,
+                 assets: list[dict[str, Any]] | None = None) -> None:
         import copy
         # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
         # what the real listing does and what a reader looking for a top-level `id`
@@ -236,9 +257,26 @@ class FakeV1Backend:
         self._users = copy.deepcopy(list(users or []))
         # user_id -> the learner's enrolments, as the BARE ARRAY the real endpoint sends.
         self._progress = copy.deepcopy(dict(progress or {}))
+        # Stored WITH download_url; the listing strips it, exactly as the API does.
+        self._assets = copy.deepcopy(list(assets or []))
 
     def __repr__(self) -> str:
         return f"FakeV1Backend(users={len(self._users)})"
+
+    def list_assets(self, *, page: int | None = None) -> Envelope:
+        # The DRF envelope, and deliberately WITHOUT download_url on any row - the real
+        # listing does not carry it, and a fake that did would hide trap 3 entirely.
+        rows = [{k: v for k, v in a.items() if k != "download_url"} for a in self._assets]
+        return parse_page({"count": len(rows), "next": None, "previous": None,
+                           "results": rows})
+
+    def get_asset(self, *, asset_id: str) -> Envelope:
+        for a in self._assets:
+            if a.get("id") == asset_id:
+                # A single object, as the real detail endpoint returns - not an envelope.
+                return parse_page(dict(a))
+        raise exc.NotFoundError(f"v1 returned 404 for /v1/assets/{asset_id}. Either the "
+                                f"record does not exist, or this endpoint is not served.")
 
     def find_learner(self, *, email: str) -> Envelope:
         rows = [u for u in self._users

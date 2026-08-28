@@ -124,6 +124,7 @@ it will touch before it touches them, and refuse to widen silently.
 | `api.skilljar.com/v2` | server (memory) | learner records, content, analytics | sensitive |
 | server | MCP client (stdio) | tool results | sensitive |
 | MCP client | transcript (persisted by the client) | whatever was returned | sensitive — the one path that outlives the process |
+| `get_asset` result | anyone who reads the URL | **the course file itself**, for ~60 minutes, with no credentials | sensitive — a bearer capability, not a reference |
 | `api.skilljar.com` (specs, unauthenticated) | `specs/` | API descriptions | public |
 | `specs/` | `analysis/` | derived inventory | public |
 
@@ -134,6 +135,9 @@ it will touch before it touches them, and refuse to widen silently.
 - **Redacting `__repr__` on anything holding learner data.** Never let `@dataclass` regenerate one.
 - **No caching.** If a cache is ever proposed, it changes this file and the security posture, and
   it needs its own ADR.
+- **A `download_url` is the file, not a pointer to it.** Presigned, credential-free, valid
+  about an hour. Do not paste one anywhere it will outlive the task, and do not store it —
+  it expires and then reads as a broken asset rather than an expired link.
 - **Demos read named accounts only** — `@cloudsecurityalliance.org` and `kurt@seifried.org`. A
   transcript persists, so an unfiltered `list_students()` puts strangers' PII somewhere this
   project cannot delete it from.

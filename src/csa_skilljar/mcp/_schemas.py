@@ -537,3 +537,21 @@ class LearnerListOut(TypedDict):
     learners: list[LearnerOut]
     total: NotRequired[int | None]
     note: str
+
+
+class AssetOut(TypedDict):
+    id: str
+    name: NotRequired[str]
+    asset_type: NotRequired[str]
+    embed_link_url: NotRequired[str]
+    sync_completion: NotRequired[bool]
+    # Detail view only. A presigned, expiring, credential-free download link - see
+    # _tools/assets.py, and the egress note in SECURITY-RESOURCES.md.
+    download_url: NotRequired[str]
+    warning: NotRequired[str]
+
+
+class AssetListOut(TypedDict):
+    assets: list[AssetOut]
+    total: NotRequired[int | None]
+    note: str

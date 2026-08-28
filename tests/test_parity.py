@@ -40,7 +40,9 @@ BEYOND_PARITY = {
 # Served by Skilljar's v1 API, which the official server does not touch at all. Kept
 # separate from BEYOND_PARITY because the risk differs: these drift with a DIFFERENT
 # API, on a different auth scheme and a different envelope.
-V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress"}
+V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
+           # Block 12 - v2 has no assets endpoint at all.
+           "list_assets", "get_asset"}
 
 OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 

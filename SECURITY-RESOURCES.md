@@ -127,12 +127,52 @@ Two honest limits:
   `admin` gate — an operator chose to expose these — and by the `warning` field. It is the same
   accepted position as `register_oauth_client`.
 
+## A presigned download link is a new egress path — Block 12, 2026-08-28
+
+Every other row in the exposure table is a request this server makes. `get_asset` returns
+something different: a URL that **is** the file.
+
+`download_url` on a v1 asset is a presigned S3 link. Verified against the live API with a
+ranged GET carrying **no authorization header at all** — `206`, `application/pdf`,
+`bytes 0-0/7455694`.
+
+| Property | Value |
+|---|---|
+| Needs Skilljar credentials | **No** |
+| Lifetime | ~60 minutes |
+| Stable between fetches | No — a new signature each time |
+| Reaches | `everpath-course-content.s3.amazonaws.com` |
+
+So the URL is a **bearer capability, not a reference**. Anyone who reads it can download
+the content for an hour, and none of this project's controls reach that far: not the
+capability profile, not the OAuth scope, not the v1 key. The exposure happens wherever the
+URL is read.
+
+That compounds the transcript problem already recorded under demonstrations. A `download_url`
+in a chat log, a ticket or a screenshot is a live download link for whoever sees it — and
+unlike a learner's name, it does not merely describe the content, it hands it over.
+
+Controls, such as they are:
+
+1. **The listing does not carry it.** Only `get_asset` returns a link, so a caller
+   surveying the library never produces one. That is upstream's design, kept rather than
+   smoothed over.
+2. **The warning travels in the payload**, not only in the description, so a model that
+   never read the docstring is still told beside the thing it is about.
+3. **It expires**, which bounds the damage to about an hour — the one genuinely
+   mitigating property.
+
+Not a control, and worth being plain about: nothing prevents a model from including the
+URL in its answer. This is a procedural limit like the demonstration allowlist, and it is
+listed in the risk table below rather than claimed as handled.
+
 ## Known gaps and accepted risks
 
 | Gap | Rationale | Owner |
 |---|---|---|
 | v1 API keys are organisation-wide and unscopeable | Skilljar offers no per-scope v1 credential. Accepted: v1 tools are used only where v2 has no equivalent, and the profile system still gates which of them an install exposes. | Kurt Seifried |
 | `CINO_READ_ONLY_TESTING_KEY` reaches all of v1 against production | Read-only, so the exposure is disclosure rather than damage. Open question in `TODO.md` on whether the integration suite should use something narrower. | Kurt Seifried |
+| `get_asset` returns a credential-free download link | Presigned S3 URLs are how Skilljar serves asset content; there is no alternative endpoint that returns bytes through the API. Bounded by a ~60 minute expiry, kept out of listings, and carried with a warning in the payload. Nothing stops a model repeating the URL. | Kurt Seifried |
 | Demo PII restriction is procedural, not enforced | `students:read` is all-or-nothing and Skilljar offers no domain filter, so nothing stops an unfiltered listing except the operator following `DATA-RESOURCES.md`. `demonstration_plan` should default to the allowlist when built. | Kurt Seifried |
 | Prompt-injection defence is configuration, not enforcement | An operator who grants every scope and enables `full` has the same exposure as the official server. Mitigation is documentation and a conservative default, which is a real but partial control. | Kurt Seifried |
 | ~~No `SECURITY.md`~~ | **Closed 2026-08-26.** `SECURITY.md` delegates reporting to CSA's org-wide policy in `csa-product-security` and adds the project-specific threat model. | Kurt Seifried |
@@ -215,7 +255,8 @@ from the blocked release.
 
 ## Review schedule
 
-- **Last reviewed:** 2026-08-27 (Block 10 — credential administration; see section above)
+- **Last reviewed:** 2026-08-28 (Block 12 — presigned asset links; see section above)
+- **Previously:** 2026-08-27 (Block 10 — credential administration)
 - **Previously:** 2026-08-27 (Block 9 — credential-returning tools)
 - **Previously:** 2026-08-27 (Block 6 — first destructive tools)
 - **Previously:** 2026-08-26 (initial, pre-implementation)

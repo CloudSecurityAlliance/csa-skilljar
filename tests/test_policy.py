@@ -52,7 +52,10 @@ EXPECTED_BY_CAPABILITY = {
                      "list_quizzes", "get_quiz",
                      "list_questions", "get_question",
                      "list_question_banks", "get_question_bank",
-                     "list_bank_assignments"},
+                     "list_bank_assignments",
+                     # v1-only: an asset IS content, and list_lessons already returns
+                     # content_asset_id under this same capability.
+                     "list_assets", "get_asset"},
     "reporting.read": {"list_enrollments", "get_enrollment", "list_certificates",
                        "get_certificate", "get_course_analytics",
                        "list_course_ratings"},
@@ -170,6 +173,7 @@ CALL_ARGS = {
     "find_learner": {"email": "a@b.c"},
     "list_learner_progress": {"user_id": "u1"},
     "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
+    "list_assets": {}, "get_asset": {"asset_id": "a1"},
 }
 
 
@@ -202,6 +206,12 @@ class BothBackends(FakeBackend):
 
     def get_learner_progress(self, **kw):
         return self._v1.get_learner_progress(**kw)
+
+    def list_assets(self, **kw):
+        return self._v1.list_assets(**kw)
+
+    def get_asset(self, **kw):
+        return self._v1.get_asset(**kw)
 
 
 def test_one_capability_at_a_time_matrix():

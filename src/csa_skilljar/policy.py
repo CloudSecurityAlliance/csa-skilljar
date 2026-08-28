@@ -171,6 +171,11 @@ _GATES: dict[str, str | None] = {
     "find_learner": READ_PROGRESS,
     "list_learner_progress": READ_PROGRESS,
     "get_learner_progress": READ_PROGRESS,
+    # Block 12. `content.read`, not a stricter gate: list_lessons already returns
+    # content_asset_id under that capability, so gating assets harder would leave a
+    # caller able to see the reference and unable to resolve it.
+    "list_assets": READ_CONTENT,
+    "get_asset": READ_CONTENT,
 }
 
 
