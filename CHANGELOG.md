@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.11.0] — 2026-08-28
+
 ### Added
 - **Block 12 — the asset library.** `list_assets` and `get_asset`: the files courses are
   built from. **v2 has no assets endpoint at all**, so this is the only way to resolve
