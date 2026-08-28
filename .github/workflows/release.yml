@@ -4,17 +4,23 @@ on:
     types: [published]
 permissions:
   contents: read
+
+# TWO jobs, deliberately. `build` runs every check and is NOT gated; `publish` does
+# nothing but upload and IS gated.
+#
+# One gated job put the approval FIRST: the `pypi` environment gates a whole job, so a
+# reviewer was asked to approve a publish before a single test had run, and then waited
+# to find out whether it passed. An approval that cannot be informed by the checks is a
+# button, not a control. Now the checks run first and the reviewer approves an artifact
+# that is already built, tested, audited and content-checked.
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-    environment: pypi          # protected environment with a required reviewer
-    permissions:
-      id-token: write          # OIDC, so no long-lived API token exists to leak
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with: { python-version: "3.12" }
-      - run: pip install -e ".[dev]" build twine pip-audit bandit
+      - run: pip install -e ".[dev]" build twine
       - run: pytest -q --cov
       - run: pip-audit
       - run: bandit -r src
@@ -38,9 +44,31 @@ jobs:
               names += zipfile.ZipFile(f).namelist()
           hits = [n for n in names if any(p in n.lower() for p in BAD)]
           if hits:
-              sys.exit(f"refusing to publish, artifact contains: {sorted(set(hits))}")
+              sys.exit(f"refusing to publish, artifact contents: {sorted(set(hits))}")
           if not any(n.endswith("py.typed") for n in names):
               sys.exit("refusing to publish: py.typed missing from the artifact")
           print(f"artifact contents clean ({len(names)} entries, py.typed present)")
           PY
+      # The reviewer approves THIS artifact, not a promise to build one. Uploading it
+      # here and downloading it below also means `publish` cannot quietly build
+      # something different from what the checks passed.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi          # protected: required reviewer, approval happens HERE
+    permissions:
+      id-token: write          # OIDC, so no long-lived API token exists to leak
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      # No build step, no source checkout: this job's only job is the upload. There is
+      # nothing here that could differ from what `build` verified.
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

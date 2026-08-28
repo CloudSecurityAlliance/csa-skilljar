@@ -6,6 +6,13 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.9.0] — 2026-08-28
+
+Credential administration, and the release process fix that this version is the first to
+use.
+
 ### Added
 - **Block 10 — credential administration. The first work past parity.** Eight tools, and
   the asymmetry they close is the point: Skilljar's own MCP server ships the tool that
@@ -37,6 +44,14 @@ All notable changes to this project are documented here. Format follows
   everything still using it breaks the moment the call returns.
 
 ### Fixed
+- **The release approval came before the tests.** `release.yml` was one job gated by the
+  `pypi` environment, and an environment gates a *whole* job — so a reviewer was asked to
+  approve a publish before a single test had run, then waited to find out whether it
+  passed. An approval that cannot be informed by the checks is a button, not a control.
+  Split into `build` (every check, ungated) and `publish` (upload only, gated), passing
+  the artifact between them. The reviewer now approves an artifact that is already built,
+  tested, audited and content-checked — and `publish` has no build step, so it cannot
+  produce something different from what passed.
 - Two brittle literal counts became derived. `tests/e2e` asserted "76 tools" and the
   parity test lumped every addition into one "server management" set. The first turns
   each block into an edit that teaches nothing; the second would have quietly
