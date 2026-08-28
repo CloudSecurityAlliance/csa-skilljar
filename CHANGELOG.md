@@ -6,7 +6,21 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- **The release artifact guard refused a real release.** It matched the substring
+  `"credential"` against every filename, so Block 10's `_tools/credentials.py` — a module
+  named after the domain it implements — looked like a credential file, and v0.9.0's
+  build failed. The rule now matches what a file **is**, not what it is called: a
+  credential arrives as a `.env`, a `.pem`, a `client_secret.json`, not as a Python
+  module whose subject is credentials.
+- The guard also lived as a heredoc inside `release.yml`, so it ran **once per release
+  and nothing could test it** — its first real firing was the false positive above. It is
+  now `scripts/check_artifact.py`, run by `scripts/verify.sh` whenever a `dist/` exists
+  and exercised by `tests/test_artifact_guard.py` with deliberately bad archives: real
+  secret files, repository furniture, a missing `py.typed`, an empty archive, and the
+  sdist `pkg-version/` prefix that would otherwise hide a directory exclusion.
+- Added the case that would let an empty release through: no distributions found at all
+  now fails, rather than passing every "nothing bad is present" rule vacuously.
 
 ## [0.9.0] — 2026-08-28
 

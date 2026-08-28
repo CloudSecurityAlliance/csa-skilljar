@@ -52,6 +52,12 @@ step "types"        .venv/bin/mypy
 step "security"     security
 step "doc claims"   $PY scripts/check_docs.py
 
+# Only when a dist/ already exists. Building on every commit would put ~8s on a check
+# people run constantly, and the release workflow builds and checks unconditionally.
+if compgen -G "dist/*.whl" >/dev/null 2>&1; then
+  step "artifact"    $PY scripts/check_artifact.py dist/*.whl dist/*.tar.gz
+fi
+
 printf '\n'
 if [ "$fail" -ne 0 ]; then printf '\033[31mVERIFY FAILED - do not commit\033[0m\n'; exit 1; fi
 printf '\033[32mverify passed\033[0m\n'
