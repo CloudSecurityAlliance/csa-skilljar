@@ -89,6 +89,8 @@ EXPECTED_BY_CAPABILITY = {
     # Deliberately NOT in groups.write: deleting a group is a HARD delete and takes its
     # memberships and course-visibility overrides with it at the database level.
     "groups.delete": {"delete_groups"},
+    "commerce.read": {"list_promo_codes", "list_promo_code_pools", "list_offers",
+                      "list_training_credit_codes", "get_purchase"},
     "publishing.read": {"list_published_courses", "get_published_course",
                         "list_domains", "get_domain"},
     # v1-only, and gated by the SAME table as every v2 method.
@@ -174,6 +176,8 @@ CALL_ARGS = {
     "list_learner_progress": {"user_id": "u1"},
     "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
     "list_assets": {}, "get_asset": {"asset_id": "a1"},
+    "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
+    "list_training_credit_codes": {}, "get_purchase": {"purchase_id": "pur1"},
 }
 
 
@@ -212,6 +216,21 @@ class BothBackends(FakeBackend):
 
     def get_asset(self, **kw):
         return self._v1.get_asset(**kw)
+
+    def list_promo_codes(self, **kw):
+        return self._v1.list_promo_codes(**kw)
+
+    def list_promo_code_pools(self, **kw):
+        return self._v1.list_promo_code_pools(**kw)
+
+    def list_offers(self, **kw):
+        return self._v1.list_offers(**kw)
+
+    def list_training_credit_codes(self, **kw):
+        return self._v1.list_training_credit_codes(**kw)
+
+    def get_purchase(self, **kw):
+        return self._v1.get_purchase(**kw)
 
 
 def test_one_capability_at_a_time_matrix():

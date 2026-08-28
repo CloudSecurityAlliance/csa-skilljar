@@ -394,3 +394,18 @@ class SkilljarClient:
 
     def get_asset(self, *, asset_id: str) -> dict[str, Any]:
         return self._require_v1().get_asset(asset_id=asset_id)
+
+    def list_promo_codes(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_promo_codes(**kw)
+
+    def list_promo_code_pools(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_promo_code_pools(**kw)
+
+    def list_offers(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_offers(**kw)
+
+    def list_training_credit_codes(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_training_credit_codes(**kw)
+
+    def get_purchase(self, *, purchase_id: str) -> dict[str, Any]:
+        return self._require_v1().get_purchase(purchase_id=purchase_id)

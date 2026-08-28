@@ -254,7 +254,7 @@ Ordered by usage evidence in the reference org, not by API size.
 | # | Block | Why here |
 |---|---|---|
 | 12 | Assets & media | **Done.** 157 assets. v2 has no assets endpoint at all. Only `/v1/web-packages/{id}/lessons` is v1-only there — list/get/delete are v2's (Block 9) |
-| 13 | Commerce (read-biased) | 13,687 promo codes, 4,278 pools — the volume leader. Reads yes, bulk creation no |
+| 13 | Commerce (read-biased) | **Done, reads only.** Re-counted 2026-08-28: **13,708** codes, **4,290** pools, 376 offers — grown since ADR-007's probe. `license-packages` and `access-code-pools` are still empty and were skipped. Purchases are **by id only**; v1 has no listing |
 | 14 | Learning paths | 10 published paths, 14 course series |
 | 15 | Events & webhooks | Only 3 subscribed, but the cleanest compression: 10 `sample-*` endpoints → one `preview_event_payload(event_type)` |
 | 16 | vILT / ILT | 341 registrations; ILT proper is thin (9 instructors) |

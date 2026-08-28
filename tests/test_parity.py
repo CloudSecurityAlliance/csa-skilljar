@@ -42,7 +42,9 @@ BEYOND_PARITY = {
 # API, on a different auth scheme and a different envelope.
 V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
            # Block 12 - v2 has no assets endpoint at all.
-           "list_assets", "get_asset"}
+           "list_assets", "get_asset",
+           # Block 13 - v2 has no commerce surface at all.
+           "list_promo_codes", "list_promo_code_pools", "list_offers", "list_training_credit_codes", "get_purchase"}
 
 OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 

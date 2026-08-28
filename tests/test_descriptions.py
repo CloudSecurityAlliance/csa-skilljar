@@ -182,6 +182,18 @@ REQUIREMENTS = {
     "get_asset": ["csa_skilljar_v1_api_key", "is the file, not a reference to it",
                   "no skilljar credentials", "different every time",
                   "do not store or cache it"],
+    # Block 13 — read-only commerce. The phrases are about scale and about which
+    # record actually holds the money.
+    "list_promo_codes": ["read-only", "thousands", "total", "filter_code",
+                         "not the same as zero remaining", "csa_skilljar_v1_api_key"],
+    "list_promo_code_pools": ["carries the discount", "percent_off", "expire_content",
+                              "csa_skilljar_v1_api_key"],
+    "list_offers": ["exactly one of which is set", "price_credits",
+                    "discounts live in promo-code pools", "csa_skilljar_v1_api_key"],
+    "list_training_credit_codes": ["carries a balance", "credits_used",
+                                   "tracking_identifier", "csa_skilljar_v1_api_key"],
+    "get_purchase": ["no way to list or search purchases", "webhook",
+                     "say that rather than searching", "csa_skilljar_v1_api_key"],
 }
 
 

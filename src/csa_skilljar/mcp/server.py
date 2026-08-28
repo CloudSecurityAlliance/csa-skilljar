@@ -8,6 +8,7 @@ from ._config import ClientProvider, Settings
 from ._tools import (
     register_access_tools,
     register_asset_tools,
+    register_commerce_tools,
     register_course_tools,
     register_credential_tools,
     register_enrolment_tools,
@@ -83,4 +84,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_credential_tools(app, get_client)
     register_progress_tools(app, get_client)
     register_asset_tools(app, get_client)
+    register_commerce_tools(app, get_client)
     return app

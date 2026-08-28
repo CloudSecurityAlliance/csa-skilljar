@@ -13,7 +13,7 @@ tools.
 
 > **Status: Blocks 1–11. Full 73-tool parity, credential administration, and the first v1-only capability. v0.9.0 on PyPI.**
 >
-> **89 tools** — 84 over Skilljar's v2 API, and five over v1.
+> **94 tools** — 84 over Skilljar's v2 API, and ten over v1.
 >
 > ```
 > pipx install csa-skilljar
@@ -42,6 +42,7 @@ tools.
 > | **Web packages (destructive)** | `delete_web_package` — refused while a live lesson uses the package |
 > | **Learner progress** (v1) | `find_learner` · `list_learner_progress` · `get_learner_progress` — lesson counts, credits and re-enrolment history, which v2 does not carry. Needs `CSA_SKILLJAR_V1_API_KEY` |
 > | **Assets** (v1) | `list_assets` · `get_asset` — the files courses are built from. v2 has no assets endpoint at all |
+> | **Commerce** (v1, read-only) | `list_promo_codes` · `list_promo_code_pools` · `list_offers` · `list_training_credit_codes` · `get_purchase` — v2 has no commerce surface at all |
 > | **Credentials** | `register_oauth_client` · `list_oauth_clients` · `get_oauth_client` · `create_oauth_client` · `update_oauth_client` · `deactivate_oauth_client` · `rotate_oauth_client_secret` · `list_oauth_scopes` · `revoke_refresh_token` — all off unless the `admin` profile is named |
 >
 > All 73 official tools are present — asserted by `tests/test_parity.py`, not claimed. The three extra tools are our own server management. See [ROADMAP.md](ROADMAP.md).

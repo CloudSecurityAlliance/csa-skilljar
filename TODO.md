@@ -24,8 +24,10 @@ file plus open GitHub Issues finds everything.
   needs yet — dropping them removes the last write path rather than guarding it.
 
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
-- Blocks 13–17 — the remaining v1 families → `ROADMAP.md`. Next by ADR-007 is commerce,
-  read-biased: 13,687 promo codes and 4,278 pools, the volume leader.
+- Blocks 14–17 — the remaining v1 families → `ROADMAP.md`. Next by ADR-007 is learning
+  paths (10 published paths, 14 course series).
+- `license-packages` and `access-code-pools` are still empty in the reference org and
+  were skipped in Block 13. Worth a tool only if they ever get used.
 - `/v1/web-packages/{id}/lessons` — attaching a package to lessons, the one v1-only
   web-package capability. A write, so it waits on `WAITING-FOR-003` like the rest.
 - **Per-lesson progress is not available from Skilljar.** The documented v1 endpoint
