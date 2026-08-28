@@ -32,23 +32,11 @@ jobs:
           [ "$TAG" = "$PKG" ] || { echo "::error::tag $TAG != version $PKG"; exit 1; }
       - run: python -m build
       - run: twine check dist/*
-      - name: Guard the artifact contents
-        run: |
-          python - <<'PY'
-          import glob, sys, tarfile, zipfile
-          BAD = (".env", "token", "secret", "credential", "analysis/", "docs-html/")
-          names = []
-          for f in glob.glob("dist/*.tar.gz"):
-              names += tarfile.open(f).getnames()
-          for f in glob.glob("dist/*.whl"):
-              names += zipfile.ZipFile(f).namelist()
-          hits = [n for n in names if any(p in n.lower() for p in BAD)]
-          if hits:
-              sys.exit(f"refusing to publish, artifact contents: {sorted(set(hits))}")
-          if not any(n.endswith("py.typed") for n in names):
-              sys.exit("refusing to publish: py.typed missing from the artifact")
-          print(f"artifact contents clean ({len(names)} entries, py.typed present)")
-          PY
+      # The guard is a script, not a heredoc: scripts/verify.sh runs the same code
+      # before every commit and tests/test_artifact_guard.py feeds it deliberately bad
+      # archives. As a heredoc it ran once per release and its first real firing was a
+      # false positive that blocked one.
+      - run: python scripts/check_artifact.py dist/*.whl dist/*.tar.gz
       # The reviewer approves THIS artifact, not a promise to build one. Uploading it
       # here and downloading it below also means `publish` cannot quietly build
       # something different from what the checks passed.
