@@ -1,5 +1,6 @@
 from .access import register_access_tools
 from .assets import register_asset_tools
+from .commerce import register_commerce_tools
 from .courses import register_course_tools
 from .credentials import register_credential_tools
 from .enrolment import register_enrolment_tools
@@ -18,6 +19,7 @@ from .web_packages import register_web_package_tools
 __all__ = [
     "register_access_tools",
     "register_asset_tools",
+    "register_commerce_tools",
     "register_course_tools",
     "register_credential_tools",
     "register_enrolment_tools",

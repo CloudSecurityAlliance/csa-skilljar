@@ -22,6 +22,7 @@ from csa_skilljar.client import SkilljarClient
 from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp.server import create_server
 from csa_skilljar.policy import Policy, PolicyBackend
+from csa_skilljar.v1backend import FakeV1Backend
 
 
 def rows(kind, n, **attrs):
@@ -74,9 +75,23 @@ def backend():
     )
 
 
+def v1_backend():
+    """Enough rows that the default page leaves more behind, for each v1 family."""
+    return FakeV1Backend(
+        promo_codes=[{"id": f"c{i}", "code": f"C{i}", "active": True,
+                      "promo_code_pool_id": "p1"} for i in range(N)],
+        promo_code_pools=[{"id": f"p{i}", "name": f"Pool {i}"} for i in range(N)],
+        offers=[{"id": f"o{i}", "sku": f"SKU{i}"} for i in range(N)],
+        credit_codes=[{"id": f"t{i}", "training_credit_code": f"T{i}"} for i in range(N)],
+        assets=[{"id": f"a{i}", "name": f"a{i}.pdf", "type": "PDF"} for i in range(N)],
+    )
+
+
 def tools():
     fake = backend()
-    client = SkilljarClient(PolicyBackend(fake, Policy.from_profile("full")))
+    policy = Policy.from_profile("full")
+    client = SkilljarClient(PolicyBackend(fake, policy),
+                            v1=PolicyBackend(v1_backend(), policy))
     app = create_server(lambda: client, settings=settings_from_env({}))
     fns = {n: t.fn for n, t in app._tool_manager._tools.items()}
     # Visibility overrides have no constructor argument - they only exist once created,
@@ -118,14 +133,22 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
                  # v1 returns the whole asset library in one response.
                  "list_assets"}
 
+# A THIRD kind, which the original two categories had no room for. v1 pages by NUMBER
+# with a total; v2 pages by opaque cursor with none. Lumping these in with "not
+# paginated" would have asserted they take no paging arguments, which is false, and
+# lumping them in with the cursor-paginated set would have demanded a `page_cursor` they
+# do not have. Neither would have described what these tools actually do.
+V1_PAGE_NUMBER = {"list_promo_codes", "list_promo_code_pools", "list_offers",
+                  "list_training_credit_codes"}
+
 
 def test_every_list_tool_is_classified():
     """Fail-closed. A list tool added next block lands in neither set and fails here,
     rather than shipping unpaginated-and-untested like five of these did."""
     registered = {n for n in tools()[0] if n.startswith("list_")}
-    unclassified = sorted(registered - set(PAGINATED) - NOT_PAGINATED)
+    unclassified = sorted(registered - set(PAGINATED) - NOT_PAGINATED - V1_PAGE_NUMBER)
     assert not unclassified, f"new list tools with no pagination verdict: {unclassified}"
-    stale = sorted((set(PAGINATED) | NOT_PAGINATED) - registered)
+    stale = sorted((set(PAGINATED) | NOT_PAGINATED | V1_PAGE_NUMBER) - registered)
     assert not stale, f"classified tools that no longer exist: {stale}"
 
 
@@ -170,3 +193,21 @@ def test_unpaginated_tools_take_no_paging_arguments(name):
     params = set(inspect.signature(tools()[0][name]).parameters)
     assert not params & {"page_size", "page_cursor"}, (
         f"{name} is not paginated upstream but accepts paging arguments")
+
+
+@pytest.mark.parametrize("name", sorted(V1_PAGE_NUMBER))
+def test_v1_tools_page_by_number_not_cursor(name):
+    """v1 and v2 paginate differently, and a tool must offer the one its backend has.
+    Offering `page_cursor` on a v1 tool would be a control that cannot be honoured."""
+    params = set(inspect.signature(tools()[0][name]).parameters)
+    assert "page" in params and "page_size" in params
+    assert "page_cursor" not in params, (
+        f"{name} is served by v1, which has no cursors")
+
+
+@pytest.mark.parametrize("name", sorted(V1_PAGE_NUMBER))
+def test_v1_tools_report_a_total(name):
+    """The reason page numbers are tolerable here: v1 gives a count, so "how many" is
+    answerable from one small page. v2 never provides one."""
+    out = tools()[0][name]()
+    assert "total" in out, f"{name} must surface v1's count"

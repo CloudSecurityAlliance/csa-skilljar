@@ -126,6 +126,8 @@ EXERCISE = {
     "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
     "list_assets": {},
     "get_asset": {"id": "a1"},
+    "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
+    "list_training_credit_codes": {}, "get_purchase": {"id": "pur1"},
 }
 
 
@@ -170,6 +172,14 @@ V1_USERS = [{"user": {"id": "u1", "email": "ada@example.org"},
 V1_ASSETS = [{"id": "a1", "name": "Module 1.pdf", "type": "PDF", "aspect_ratio": "16:9",
               "embed_link_url": "", "sync_completion": False,
               "download_url": "https://everpath-course-content.s3.amazonaws.com/x?Signature=s"}]
+V1_CODES = [{"id": "pc1", "code": "LAUNCH", "active": True, "max_uses": 10,
+             "use_count": 1, "promo_code_pool_id": "pool1"}]
+V1_POOLS = [{"id": "pool1", "name": "Launch", "active": True, "percent_off": 25}]
+V1_OFFERS = [{"id": "o1", "sku": "CCSK", "offer_type": "COURSE", "active": True,
+              "currency_code": "USD", "price_cents": 39500}]
+V1_CREDITS = [{"id": "tc1", "training_credit_code": "ACME", "credits_total": 10,
+               "credits_used": 1, "tracking_identifier": "PO-1"}]
+V1_PURCHASES = [{"id": "pur1", "total_cents": 39500}]
 V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
                        "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
                        "course_progress": {"completed_lesson_count": 4},
@@ -191,7 +201,10 @@ def build(profile="full", env=None):
         # Since Block 11 a client carries BOTH backends, policy-wrapped with the same
         # policy. The protocol suite exercises every registered tool, and three of them
         # are served by v1.
-        v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS, assets=V1_ASSETS), policy))
+        v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS, assets=V1_ASSETS,
+                      promo_codes=V1_CODES, promo_code_pools=V1_POOLS,
+                      offers=V1_OFFERS, credit_codes=V1_CREDITS,
+                      purchases=V1_PURCHASES), policy))
     return create_server(lambda: client, settings=settings)
 
 

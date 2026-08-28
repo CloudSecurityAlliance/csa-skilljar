@@ -6,7 +6,37 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **Block 13 — commerce, read-only.** `list_promo_codes`, `list_promo_code_pools`,
+  `list_offers`, `list_training_credit_codes`, `get_purchase`. **v2 has no commerce
+  surface at all**, so there is no routing question here.
+- Read-only is a **decision, not a consequence of the write freeze** (ADR-007 calls this
+  family read-biased). A promo code is money, a mistake is visible to customers, and the
+  useful question is almost always "what exists and is it still valid" rather than "make
+  more". A test asserts the module never grows a `create_`/`update_`/`delete_` tool.
+- **Its own `commerce.read` capability, deliberately not in `parity`.** That profile
+  mirrors the official server, which has no commerce tools — granting it there would
+  quietly change what the word means. It sits in `reporting` and `full`.
+
+### Fixed
+- **Scale is the trap in this family, and the tools are shaped against it.** v1 defaults
+  to 250 rows and honours `page_size=1000` — verified live. With 13,708 promo codes, a
+  tool that inherited that default would put thousands of rows into a conversation to
+  answer "are there any". These default to **25**, refuse above 250 with a message saying
+  to read `total` instead, and always surface v1's count so "how many" is answerable from
+  one small page.
+- **The pagination test grew a third category.** v1 pages by NUMBER with a total; v2 by
+  opaque cursor with none. The binary classification had no room for it — calling these
+  "not paginated" would assert they take no paging arguments (false), and calling them
+  cursor-paginated would demand a `page_cursor` they do not have. `V1_PAGE_NUMBER` now
+  asserts what they actually do, including that they report a total.
+- **`get_purchase` says there is no way to search.** v1 offers only the by-id route, so
+  an id must come from a webhook payload or an order reference. Reporting "I could not
+  find the purchase" would imply a search that does not exist.
+- ADR-007's counts re-taken while building this: promo codes 13,687 → **13,708**, pools
+  4,278 → **4,290** in two days. The ordering stands; the ADR now records that its
+  numbers have a shelf life, and that "populated" and "reachable" are different questions
+  — purchases are populated and unlistable.
 
 ## [0.11.0] — 2026-08-28
 

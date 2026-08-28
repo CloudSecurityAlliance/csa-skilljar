@@ -48,6 +48,10 @@ READ_WEB_PACKAGES = "webpackages.read"
 # v1-only. A read of learner progress is no more sensitive than list_enrollments, which
 # `parity` already grants - so it goes in the same profiles rather than a stricter one.
 READ_PROGRESS = "progress.read"
+# Commerce is money: prices, discounts, prepaid balances and a customer's transaction.
+# Its own capability rather than content.read, so a content-reading credential does not
+# also see what everything costs and who bought it.
+READ_COMMERCE = "commerce.read"
 WRITE_WEB_PACKAGES = "webpackages.write"
 ADMIN_CREDENTIALS = "admin.credentials"
 
@@ -55,7 +59,7 @@ ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
-    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS,
+    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS, READ_COMMERCE,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
@@ -66,7 +70,9 @@ PROFILES: dict[str, tuple[str, ...]] = {
     "authoring": (READ_CONTENT, WRITE_CONTENT, READ_WEB_PACKAGES,
                   WRITE_WEB_PACKAGES),
     "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
-    "reporting": (READ_REPORTING, READ_CONTENT),
+    # Commerce reads are analytical, so they belong with reporting - and
+    # NOT with `parity`, which mirrors a server that has no commerce at all.
+    "reporting": (READ_REPORTING, READ_CONTENT, READ_COMMERCE),
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
                    READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "admin": (ADMIN_CREDENTIALS,),
@@ -176,6 +182,12 @@ _GATES: dict[str, str | None] = {
     # caller able to see the reference and unable to resolve it.
     "list_assets": READ_CONTENT,
     "get_asset": READ_CONTENT,
+    # Block 13 - read-only by design (ADR-007), not merely by the write freeze.
+    "list_promo_codes": READ_COMMERCE,
+    "list_promo_code_pools": READ_COMMERCE,
+    "list_offers": READ_COMMERCE,
+    "list_training_credit_codes": READ_COMMERCE,
+    "get_purchase": READ_COMMERCE,
 }
 
 

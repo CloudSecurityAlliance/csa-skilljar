@@ -555,3 +555,59 @@ class AssetListOut(TypedDict):
     assets: list[AssetOut]
     total: NotRequired[int | None]
     note: str
+
+
+class PromoCodeOut(TypedDict):
+    id: str
+    code: NotRequired[str]
+    active: NotRequired[bool]
+    max_uses: NotRequired[int | None]
+    use_count: NotRequired[int]
+    promo_code_pool_id: NotRequired[str]
+
+
+class PromoCodePoolOut(TypedDict):
+    id: str
+    name: NotRequired[str]
+    active: NotRequired[bool]
+    percent_off: NotRequired[int | None]
+    price_cents: NotRequired[int | None]
+    starts_at: NotRequired[str | None]
+    expires_at: NotRequired[str | None]
+    expire_content: NotRequired[bool]
+
+
+class OfferOut(TypedDict):
+    id: str
+    sku: NotRequired[str]
+    offer_type: NotRequired[str]
+    active: NotRequired[bool]
+    currency_code: NotRequired[str]
+    price_cents: NotRequired[int | None]
+    price_credits: NotRequired[int | None]
+    domain_name: NotRequired[str]
+    published_course_id: NotRequired[str | None]
+    published_path_id: NotRequired[str | None]
+    course_series_id: NotRequired[str | None]
+    max_quantity: NotRequired[int | None]
+    starts_at: NotRequired[str | None]
+    ends_at: NotRequired[str | None]
+
+
+class TrainingCreditCodeOut(TypedDict):
+    id: str
+    training_credit_code: NotRequired[str]
+    tracking_identifier: NotRequired[str]
+    credits_total: NotRequired[int]
+    credits_used: NotRequired[int]
+    expiration_date: NotRequired[str | None]
+    expire_content: NotRequired[bool]
+
+
+class CommerceListOut(TypedDict):
+    rows: list[dict[str, Any]]
+    total: NotRequired[int | None]
+    page: NotRequired[int]
+    has_more: NotRequired[bool]
+    next_page: NotRequired[int | None]
+    note: str

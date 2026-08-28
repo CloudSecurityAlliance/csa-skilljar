@@ -229,6 +229,43 @@ class V1Backend:
         """
         return parse_page(self._get(f"/v1/assets/{asset_id}"))
 
+    # --- commerce (v2 has no commerce surface at all) -----------------------------------
+
+    def list_promo_codes(self, *, active: bool | None = None, code: str | None = None,
+                         promo_code_pool_id: str | None = None,
+                         page: int | None = None,
+                         page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/promo-codes", {
+            "active": None if active is None else str(active).lower(),
+            "code": code, "promo_code_pool_id": promo_code_pool_id,
+            "page": page, "page_size": page_size}))
+
+    def list_promo_code_pools(self, *, name: str | None = None,
+                              offer_id: str | None = None, page: int | None = None,
+                              page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/promo-code-pools", {
+            "name": name, "offer_id": offer_id,
+            "page": page, "page_size": page_size}))
+
+    def list_offers(self, *, page: int | None = None,
+                    page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/offers",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_training_credit_codes(self, *, tracking_identifier: str | None = None,
+                                   training_credit_code: str | None = None,
+                                   page: int | None = None,
+                                   page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/training-credit-codes", {
+            "tracking_identifier": tracking_identifier,
+            "training_credit_code": training_credit_code,
+            "page": page, "page_size": page_size}))
+
+    def get_purchase(self, *, purchase_id: str) -> Envelope:
+        """By id only. v1 offers NO purchase listing, so an id must come from elsewhere -
+        a fulfillment webhook, or an order reference someone already has."""
+        return parse_page(self._get(f"/v1/purchases/{purchase_id}"))
+
     def find_learner(self, *, email: str) -> Envelope:
         """Resolve an email to a learner id, using the DRF-enveloped `/v1/users`.
 
@@ -249,7 +286,12 @@ class FakeV1Backend:
 
     def __init__(self, users: list[dict[str, Any]] | None = None,
                  progress: dict[str, list[dict[str, Any]]] | None = None,
-                 assets: list[dict[str, Any]] | None = None) -> None:
+                 assets: list[dict[str, Any]] | None = None,
+                 promo_codes: list[dict[str, Any]] | None = None,
+                 promo_code_pools: list[dict[str, Any]] | None = None,
+                 offers: list[dict[str, Any]] | None = None,
+                 credit_codes: list[dict[str, Any]] | None = None,
+                 purchases: list[dict[str, Any]] | None = None) -> None:
         import copy
         # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
         # what the real listing does and what a reader looking for a top-level `id`
@@ -259,6 +301,11 @@ class FakeV1Backend:
         self._progress = copy.deepcopy(dict(progress or {}))
         # Stored WITH download_url; the listing strips it, exactly as the API does.
         self._assets = copy.deepcopy(list(assets or []))
+        self._promo_codes = copy.deepcopy(list(promo_codes or []))
+        self._promo_code_pools = copy.deepcopy(list(promo_code_pools or []))
+        self._offers = copy.deepcopy(list(offers or []))
+        self._credit_codes = copy.deepcopy(list(credit_codes or []))
+        self._purchases = copy.deepcopy(list(purchases or []))
 
     def __repr__(self) -> str:
         return f"FakeV1Backend(users={len(self._users)})"
@@ -277,6 +324,57 @@ class FakeV1Backend:
                 return parse_page(dict(a))
         raise exc.NotFoundError(f"v1 returned 404 for /v1/assets/{asset_id}. Either the "
                                 f"record does not exist, or this endpoint is not served.")
+
+    def _commerce_page(self, rows: list[dict[str, Any]], page: int | None,
+                       page_size: int | None) -> Envelope:
+        """v1 pages by NUMBER with a total, and honours page_size. Modelled faithfully
+        because these are the families where paging actually happens - 13,708 promo
+        codes is 55 pages at the server's default of 250."""
+        size = page_size or 250
+        start = ((page or 1) - 1) * size
+        window = rows[start:start + size]
+        more = start + size < len(rows)
+        return parse_page({
+            "count": len(rows),
+            "next": f"https://api.skilljar.com/v1/x?page={(page or 1) + 1}" if more else None,
+            "previous": None, "results": window})
+
+    def list_promo_codes(self, *, active=None, code=None, promo_code_pool_id=None,
+                         page=None, page_size=None) -> Envelope:
+        rows = self._promo_codes
+        if active is not None:
+            rows = [r for r in rows if bool(r.get("active")) is bool(active)]
+        if code is not None:
+            rows = [r for r in rows if r.get("code") == code]
+        if promo_code_pool_id is not None:
+            rows = [r for r in rows if r.get("promo_code_pool_id") == promo_code_pool_id]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_promo_code_pools(self, *, name=None, offer_id=None, page=None,
+                              page_size=None) -> Envelope:
+        rows = self._promo_code_pools
+        if name is not None:
+            rows = [r for r in rows if r.get("name") == name]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_offers(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._offers, page, page_size)
+
+    def list_training_credit_codes(self, *, tracking_identifier=None,
+                                   training_credit_code=None, page=None,
+                                   page_size=None) -> Envelope:
+        rows = self._credit_codes
+        if tracking_identifier is not None:
+            rows = [r for r in rows if r.get("tracking_identifier") == tracking_identifier]
+        if training_credit_code is not None:
+            rows = [r for r in rows if r.get("training_credit_code") == training_credit_code]
+        return self._commerce_page(rows, page, page_size)
+
+    def get_purchase(self, *, purchase_id: str) -> Envelope:
+        for r in self._purchases:
+            if r.get("id") == purchase_id:
+                return parse_page(dict(r))
+        raise exc.NotFoundError(f"v1 returned 404 for /v1/purchases/{purchase_id}.")
 
     def find_learner(self, *, email: str) -> Envelope:
         rows = [u for u in self._users
