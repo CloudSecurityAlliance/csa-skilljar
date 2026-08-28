@@ -24,9 +24,12 @@ file plus open GitHub Issues finds everything.
   needs yet — dropping them removes the last write path rather than guarding it.
 
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
-- Block 11 — v1 foundation + per-lesson learner progress → `ROADMAP.md`. The largest
-  functional gap in v2 (ADR-007). Note `GET /v1/lessons` requires `course_id`, so
-  enumerating lessons org-wide is impossible on v1 and the description must say so.
+- Blocks 12–17 — the remaining v1 families → `ROADMAP.md`. Next by ADR-007 is assets and
+  media. `V1Backend` and its two envelope shapes are in place, so each family is now
+  tools rather than foundation.
+- **Per-lesson progress is not available from Skilljar.** The documented v1 endpoint
+  404s; see the Block 11 correction in `ROADMAP.md`. Worth re-probing if Skilljar ships
+  it, since it is the one thing a progress question usually means.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 

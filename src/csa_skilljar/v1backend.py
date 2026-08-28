@@ -216,3 +216,54 @@ class V1Backend:
         email would otherwise have to reach into v2 to start a v1 call.
         """
         return parse_page(self._get("/v1/users", {"email": email}))
+
+
+class FakeV1Backend:
+    """In-memory v1 double. Holds RAW v1 payloads, not normalised ones.
+
+    Deliberate: it stores the bare array and the DRF envelope exactly as Skilljar sends
+    them, and runs them through the same `parse_page` the real backend uses. A double
+    that stored the normalised shape would never exercise the normalisation, and the
+    two-envelope trap is the single most likely thing to break here.
+    """
+
+    def __init__(self, users: list[dict[str, Any]] | None = None,
+                 progress: dict[str, list[dict[str, Any]]] | None = None) -> None:
+        import copy
+        # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
+        # what the real listing does and what a reader looking for a top-level `id`
+        # misses entirely.
+        self._users = copy.deepcopy(list(users or []))
+        # user_id -> the learner's enrolments, as the BARE ARRAY the real endpoint sends.
+        self._progress = copy.deepcopy(dict(progress or {}))
+
+    def __repr__(self) -> str:
+        return f"FakeV1Backend(users={len(self._users)})"
+
+    def find_learner(self, *, email: str) -> Envelope:
+        rows = [u for u in self._users
+                if str(u.get("user", {}).get("email", "")).lower() == email.lower()]
+        # The DRF envelope, verbatim - including `count`, which v2 never provides.
+        return parse_page({"count": len(rows), "next": None, "previous": None,
+                           "results": rows})
+
+    def list_learner_progress(self, *, user_id: str,
+                              page: int | None = None) -> Envelope:
+        if user_id not in self._progress:
+            raise exc.NotFoundError(f"v1 returned 404 for /v1/users/{user_id}"
+                                    f"/published-courses. Either the record does not "
+                                    f"exist, or this endpoint is not served.")
+        # A BARE ARRAY, as the real endpoint sends. No count, no next.
+        return parse_page(self._progress[user_id])
+
+    def get_learner_progress(self, *, user_id: str,
+                             published_course_id: str) -> Envelope:
+        """Selects from the list, exactly as `V1Backend` does and for the same reason."""
+        listing = self.list_learner_progress(user_id=user_id)
+        for row in listing["rows"]:
+            if row.get("published_course_id") == published_course_id:
+                return {"rows": [row], "total": 1, "has_more": False, "next_page": None}
+        raise exc.NotFoundError(
+            f"learner {user_id} has no enrolment in published course "
+            f"{published_course_id}. They have {len(listing['rows'])} enrolments; "
+            f"list_learner_progress shows them.")

@@ -37,7 +37,12 @@ BEYOND_PARITY = {
     "list_oauth_scopes", "revoke_refresh_token",
 }
 
-OURS = SERVER_MANAGEMENT | BEYOND_PARITY
+# Served by Skilljar's v1 API, which the official server does not touch at all. Kept
+# separate from BEYOND_PARITY because the risk differs: these drift with a DIFFERENT
+# API, on a different auth scheme and a different envelope.
+V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress"}
+
+OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 
 
 def registered():
@@ -73,6 +78,16 @@ def test_our_additions_are_registered_and_correctly_classified():
     # "calls an endpoint the official server omits" is a contradiction, and would mean
     # one of the two lists has stopped meaning what it says.
     assert not (SERVER_MANAGEMENT & BEYOND_PARITY)
+    assert not (V1_ONLY & (SERVER_MANAGEMENT | BEYOND_PARITY))
+
+
+def test_v1_only_tools_exist_because_v2_lacks_the_capability():
+    """ADR-002. A v1 tool is justified only by a capability v2 does not have, so each
+    must be absent from the v2 backend - otherwise it is duplication, not coverage."""
+    from csa_skilljar.backend import Backend
+    v2 = {n for n in dir(Backend) if not n.startswith("_")}
+    duplicated = sorted(V1_ONLY & v2)
+    assert not duplicated, f"v1 tools duplicating a v2 capability: {duplicated}"
 
 
 def test_beyond_parity_tools_are_all_admin_gated():

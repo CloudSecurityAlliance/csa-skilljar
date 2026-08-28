@@ -490,3 +490,50 @@ class ScopeCatalogueOut(TypedDict):
 class RevocationOut(TypedDict):
     requested: bool
     note: str
+
+
+class LearnerProgressOut(TypedDict):
+    published_course_id: str
+    course_id: NotRequired[str]
+    course_title: NotRequired[str]
+    domain_name: NotRequired[str]
+    enrolled_at: NotRequired[str]
+    enrollment_id: NotRequired[str]
+    # v1-only: v2's enrolment carries no lesson counts at all.
+    completed_lesson_count: NotRequired[int]
+    completed_required_lesson_count: NotRequired[int]
+    lesson_count: NotRequired[int]
+    required_lesson_count: NotRequired[int]
+    credits_earned: NotRequired[str]
+    credit_unit_plural: NotRequired[str]
+    latest_activity: NotRequired[str | None]
+    completed_at: NotRequired[str | None]
+    score: NotRequired[int | None]
+    max_score: NotRequired[int | None]
+    success_status: NotRequired[str | None]
+    has_certificate: NotRequired[bool]
+    enrollment_count: NotRequired[int]
+
+
+class LearnerProgressListOut(TypedDict):
+    user_id: str
+    progress: list[LearnerProgressOut]
+    total: NotRequired[int | None]
+    note: str
+
+
+class LearnerOut(TypedDict):
+    id: str
+    email: NotRequired[str]
+    first_name: NotRequired[str]
+    last_name: NotRequired[str]
+    signed_up_at: NotRequired[str]
+    registration_count: NotRequired[int]
+    completion_count: NotRequired[int]
+    latest_activity: NotRequired[str | None]
+
+
+class LearnerListOut(TypedDict):
+    learners: list[LearnerOut]
+    total: NotRequired[int | None]
+    note: str

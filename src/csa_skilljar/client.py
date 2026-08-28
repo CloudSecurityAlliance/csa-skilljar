@@ -3,15 +3,30 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import exceptions as exc
 from .backend import Backend
 from .policy import Policy, PolicyBackend
 
 
 class SkilljarClient:
-    """Thin, typed surface over a (policy-wrapped) Backend."""
+    """Thin, typed surface over the backends.
 
-    def __init__(self, backend: Backend | PolicyBackend) -> None:
+    TWO backends, and which one answers is fixed per capability (ADR-002): v2 owns every
+    capability v2 has, v1 is used only for what v2 lacks. There is no fallback in either
+    direction, and no method consults both. The two APIs have incompatible data models -
+    JSON:API with opaque cursors against a DRF envelope with page numbers - so a silent
+    fallback would hand callers a different shape for the same question depending on
+    which backend happened to answer.
+
+    `v1` is optional. Without it the v1-only capabilities raise a typed error naming the
+    variable to set, rather than the server refusing to start: a v1 key is not needed to
+    use any of the v2 surface.
+    """
+
+    def __init__(self, backend: Backend | PolicyBackend,
+                 v1: Any | None = None) -> None:
         self._backend = backend
+        self._v1 = v1
 
     @property
     def credentials(self) -> Any | None:
@@ -25,6 +40,16 @@ class SkilljarClient:
         """
         inner = getattr(self._backend, "_backend", self._backend)
         return getattr(inner, "_creds", None)
+
+    def _require_v1(self) -> Any:
+        if self._v1 is None:
+            raise exc.CredentialsMissing(
+                "this capability is served by Skilljar's v1 API, which is not "
+                "configured. Set CSA_SKILLJAR_V1_API_KEY in your MCP client "
+                "configuration and restart. It is a separate credential from the v2 "
+                "client id and secret, and neither substitutes for the other. Call "
+                "`check_access` to see what is available.")
+        return self._v1
 
     @property
     def policy(self) -> Policy | None:
@@ -349,3 +374,17 @@ class SkilljarClient:
                              token_type_hint: str | None = None) -> dict[str, Any]:
         return self._backend.revoke_refresh_token(token=token,
                                                   token_type_hint=token_type_hint)
+
+    # --- v1-only capabilities. v2 has no equivalent; see ADR-002. ----------------------
+
+    def find_learner(self, *, email: str) -> dict[str, Any]:
+        return self._require_v1().find_learner(email=email)
+
+    def list_learner_progress(self, *, user_id: str,
+                              page: int | None = None) -> dict[str, Any]:
+        return self._require_v1().list_learner_progress(user_id=user_id, page=page)
+
+    def get_learner_progress(self, *, user_id: str,
+                             published_course_id: str) -> dict[str, Any]:
+        return self._require_v1().get_learner_progress(
+            user_id=user_id, published_course_id=published_course_id)

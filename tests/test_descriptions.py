@@ -166,6 +166,16 @@ REQUIREMENTS = {
                                    "shown once", "revoke_refresh_token"],
     "revoke_refresh_token": ["admin", "not evidence", "rfc 7009", "typo",
                              "sends no credentials"],
+    # Block 11 — served by v1. Each phrase is something the v2 half cannot answer, or a
+    # live-API behaviour that is not in Skilljar's published v1 document.
+    "list_learner_progress": ["csa_skilljar_v1_api_key", "separate credential",
+                              "counts only, not which lessons", "404",
+                              "completed_lesson_count", "list_students",
+                              "not paginated"],
+    "get_learner_progress": ["csa_skilljar_v1_api_key", "on a particular domain",
+                             "counts only, not which lessons", "not-found"],
+    "find_learner": ["csa_skilljar_v1_api_key", "both apis", "exact",
+                     "empty list", "total"],
 }
 
 

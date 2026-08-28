@@ -16,6 +16,7 @@ from csa_skilljar.client import SkilljarClient
 from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp.server import create_server
 from csa_skilljar.policy import Policy, PolicyBackend
+from csa_skilljar.v1backend import FakeV1Backend
 
 ROWS = [{"type": "courses", "id": "c1",
          "attributes": {"title": "Zero Trust Foundations", "lesson_count": 4}}]
@@ -120,6 +121,9 @@ EXERCISE = {
     "rotate_oauth_client_secret": {"id": "cl1"},
     "list_oauth_scopes": {},
     "revoke_refresh_token": {"token": "rt-abc"},
+    "find_learner": {"email": "ada@example.org"},
+    "list_learner_progress": {"user_id": "u1"},
+    "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
 }
 
 
@@ -159,8 +163,17 @@ QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
     "answers": []}}]
 
 
+V1_USERS = [{"user": {"id": "u1", "email": "ada@example.org"},
+             "registration_count": 1, "completion_count": 0}]
+V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
+                       "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
+                       "course_progress": {"completed_lesson_count": 4},
+                       "certificate": None, "all_enrollments": [{"enrollment_id": "e1"}]}]}
+
+
 def build(profile="full", env=None):
     settings = settings_from_env(env or {})
+    policy = Policy.from_profile(profile)
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
                     questions=QUESTION_ROWS, question_banks=BANK_ROWS,
@@ -169,7 +182,11 @@ def build(profile="full", env=None):
                     signup_field_values=SIGNUP_VALUE_ROWS,
                     published_courses=PUBLISHED_ROWS, domains=DOMAIN_ROWS,
                     web_packages=WEB_PACKAGE_ROWS, oauth_clients=OAUTH_CLIENT_ROWS),
-        Policy.from_profile(profile)))
+        policy),
+        # Since Block 11 a client carries BOTH backends, policy-wrapped with the same
+        # policy. The protocol suite exercises every registered tool, and three of them
+        # are served by v1.
+        v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS), policy))
     return create_server(lambda: client, settings=settings)
 
 
@@ -182,7 +199,7 @@ def test_the_readme_tool_count_matches_the_registry():
     claim we can no longer locate is a claim we can no longer verify.
     """
     readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
-    claimed = re.findall(r"\*\*(\d+) tools\*\* over Skilljar's v2 API", readme)
+    claimed = re.findall(r"\*\*(\d+) tools\*\* — \d+ over Skilljar's v2 API", readme)
     assert claimed, "README no longer states its tool count in the form this test checks"
     registered = len(build()._tool_manager._tools)
     for got in claimed:
