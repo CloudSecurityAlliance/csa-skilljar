@@ -112,6 +112,14 @@ EXERCISE = {
     "update_web_packages": {"web_packages": [{"id": "wp1", "title": "Renamed"}]},
     "delete_web_package": {"id": "wp1"},
     "register_oauth_client": {"client_name": "a client"},
+    "list_oauth_clients": {},
+    "get_oauth_client": {"id": "cl1"},
+    "create_oauth_client": {"name": "New job", "scope_preset": "read_only"},
+    "update_oauth_client": {"id": "cl1", "name": "Renamed"},
+    "deactivate_oauth_client": {"id": "cl1"},
+    "rotate_oauth_client_secret": {"id": "cl1"},
+    "list_oauth_scopes": {},
+    "revoke_refresh_token": {"token": "rt-abc"},
 }
 
 
@@ -132,6 +140,9 @@ PUBLISHED_ROWS = [{"type": "published-courses", "id": "pc1",
                    "relationships": {
                        "course": {"data": {"type": "courses", "id": "c1"}},
                        "domain": {"data": {"type": "domains", "id": "d1"}}}}]
+OAUTH_CLIENT_ROWS = [{"type": "clients", "id": "cl1", "attributes": {
+    "name": "Reporting export", "client_id": "cid-cl1", "is_active": True,
+    "scope_codenames": ["courses:read"], "ip_allowlist": []}}]
 WEB_PACKAGE_ROWS = [{"type": "web-packages", "id": "wp1", "attributes": {
     "title": "Zero Trust SCORM", "display_name": "Zero Trust SCORM",
     "state": "READY", "type": "SCORM", "base_path": "/pkg/wp1/"}}]
@@ -157,7 +168,7 @@ def build(profile="full", env=None):
                     students=STUDENT_ROWS, groups=GROUP_ROWS,
                     signup_field_values=SIGNUP_VALUE_ROWS,
                     published_courses=PUBLISHED_ROWS, domains=DOMAIN_ROWS,
-                    web_packages=WEB_PACKAGE_ROWS),
+                    web_packages=WEB_PACKAGE_ROWS, oauth_clients=OAUTH_CLIENT_ROWS),
         Policy.from_profile(profile)))
     return create_server(lambda: client, settings=settings)
 

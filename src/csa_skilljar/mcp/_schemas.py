@@ -453,3 +453,40 @@ class RegisteredClientOut(TypedDict):
     token_endpoint_auth_method: NotRequired[str]
     scope: NotRequired[str]
     warning: str
+
+
+class OAuthClientOut(TypedDict):
+    id: str
+    name: NotRequired[str]
+    description: NotRequired[str | None]
+    client_id: NotRequired[str]
+    is_active: NotRequired[bool]
+    scope_codenames: NotRequired[list[str]]
+    ip_allowlist: NotRequired[list[str]]
+    created_at: NotRequired[str]
+    # Present ONLY on create and rotate. Never on a read - upstream does not store it in
+    # a retrievable form, and neither does this.
+    client_secret: NotRequired[str]
+    warning: NotRequired[str]
+
+
+class OAuthClientListOut(TypedDict):
+    clients: list[OAuthClientOut]
+    note: str
+
+
+class ScopeOut(TypedDict):
+    codename: str
+    description: NotRequired[str]
+    category: NotRequired[str]
+
+
+class ScopeCatalogueOut(TypedDict):
+    scopes: list[ScopeOut]
+    presets: dict[str, list[str]]
+    note: str
+
+
+class RevocationOut(TypedDict):
+    requested: bool
+    note: str

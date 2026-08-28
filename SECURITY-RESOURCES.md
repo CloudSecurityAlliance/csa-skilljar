@@ -95,6 +95,38 @@ Note that this cannot be enforced by scoping the credential: `students:read` is 
 and Skilljar's `filter[email]` is an exact match with no domain form. It is a procedural control
 today, and `demonstration_plan` should carry the allowlist as a default when it is built.
 
+## Credential administration — Block 10 review, 2026-08-27
+
+Block 10 adds the eight operations Skilljar's own MCP server omits. The asymmetry it closes is
+itself worth recording: **their server ships the tool that MINTS a credential and withholds every
+tool that AUDITS or REMEDIATES one.** Through the official server you can create an OAuth client
+and then cannot list what exists, see what a client may do, narrow it, rotate a leaked secret, or
+turn it off. That is a worse security position than not having the minting tool at all.
+
+Controls on the new surface:
+
+1. **All eight are `admin.credentials`, including the READS.** Enumerating an organization's
+   credentials is the reconnaissance step, so `list_oauth_clients` is gated exactly as hard as
+   `rotate_oauth_client_secret`. No profile but `admin` grants it, and a test asserts every
+   beyond-parity tool is admin-gated so a future one cannot slip in ungated by omission.
+2. **`revoke_refresh_token` sends no credentials.** It is the second unauthenticated call, after
+   `register_oauth_client`. Both go through `_unauthenticated()` rather than `_send()`, and a test
+   enumerates the backend by PATH — not by count — so a later refactor cannot route an
+   authenticated call through it and quietly drop its credentials.
+3. **Secrets exist only in the response that created them.** `create_oauth_client` and
+   `rotate_oauth_client_secret` return a one-time secret with a `warning` field; every read path
+   omits it, and a test asserts no listing ever carries one.
+
+Two honest limits:
+
+- **A revocation cannot be confirmed.** RFC 7009 §2.2 requires success regardless of whether the
+  token existed, so the endpoint cannot be used to test token validity — verified live against a
+  deliberately invalid token. The tool reports `requested`, never `confirmed`, because a model
+  that reports "revoked" for a typo has told someone their leak is contained when it is not.
+- **The one-time secret reaches the model.** That is what returning it means. Mitigated by the
+  `admin` gate — an operator chose to expose these — and by the `warning` field. It is the same
+  accepted position as `register_oauth_client`.
+
 ## Known gaps and accepted risks
 
 | Gap | Rationale | Owner |
@@ -111,7 +143,9 @@ Recorded here so a dismissal is reviewable rather than invisible.
 
 | Rule | Where | Why dismissed |
 |---|---|---|
-| `B105` / `B107` `hardcoded_password` (bandit, low × 3) | `backend.py` `_register`, `_tools/web_packages.py` | **False positives, name-heuristic.** All three are RFC 7591 vocabulary or prose: the `token_endpoint_auth_method` values `"none"` and `"client_secret_post"`, and a warning message whose *variable name* contained "SECRET". None is a credential. The variable was renamed to `_SHOWN_ONCE_WARNING`, which removed one hit honestly rather than suppressing it; the other two are annotated `# nosec` with a reason, because `token_endpoint_auth_method` is Skilljar's own parameter name and ADR-006 forbids renaming it. Counter-evidence: `tests/test_zero_defect.py::test_the_dismissed_literals_are_what_they_claim_to_be` pins the three literals, and `::test_every_nosec_carries_a_reason` refuses a bare suppression anywhere in `src`. **If either fails, this dismissal is wrong.** |
+| `B105` / `B107` `hardcoded_password` (bandit, low × 4) | `backend.py`, `_tools/web_packages.py`, `_tools/credentials.py` | **False positives, name-heuristic.** All three are RFC 7591 vocabulary or prose: the `token_endpoint_auth_method` values `"none"` and `"client_secret_post"`, and a warning message whose *variable name* contained "SECRET". None is a credential. The variable was renamed to `_SHOWN_ONCE_WARNING`, which removed one hit honestly rather than suppressing it; the other two are annotated `# nosec` with a reason, because `token_endpoint_auth_method` is Skilljar's own parameter name and ADR-006 forbids renaming it. A
+fourth arrived with Block 10: `token_type_hint="refresh_token"`, which is RFC 7009 §2.1
+vocabulary. Counter-evidence: `tests/test_zero_defect.py::test_the_dismissed_literals_are_what_they_claim_to_be` pins the three literals, and `::test_every_nosec_carries_a_reason` refuses a bare suppression anywhere in `src`. **If either fails, this dismissal is wrong.** |
 | `py/clear-text-logging-sensitive-data` (CodeQL, high) | `src/csa_skilljar/mcp/cli.py` startup warning | **False positive.** `os.environ` is a taint source, and CodeQL does not distinguish a value *read from* the environment from a module constant *selected because of* it. The printed strings are module-level constants naming environment **variables**, never their values. Three structural rewrites were attempted first - narrowing `Settings` to two booleans, deriving presence from env keys rather than values, and making the messages module constants so only control flow depends on env - and none shifted the alert. The counter-evidence is `tests/test_zero_defect.py::test_no_credential_value_can_reach_the_cli_output`, which runs the real CLI with distinctive credential values and asserts none reach stdout or stderr. **If that test fails, this dismissal is wrong and the alert must be reopened.** |
 
 ## Destructive-tool review — Block 6 (students), 2026-08-27
@@ -181,7 +215,8 @@ from the blocked release.
 
 ## Review schedule
 
-- **Last reviewed:** 2026-08-27 (Block 9 — credential-returning tools; see section above)
+- **Last reviewed:** 2026-08-27 (Block 10 — credential administration; see section above)
+- **Previously:** 2026-08-27 (Block 9 — credential-returning tools)
 - **Previously:** 2026-08-27 (Block 6 — first destructive tools)
 - **Previously:** 2026-08-26 (initial, pre-implementation)
 - **Next review:** at the first release — `WAITING-FOR-002` — when a real v2 credential exists

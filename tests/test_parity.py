@@ -20,10 +20,24 @@ from csa_skilljar.mcp.server import create_server
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OFFICIAL = set(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text()))
 
-# Tools that are ours, not Skilljar's. Every one is server management: none of them
-# touches the Skilljar API surface, so none of them can diverge from it. Listed
-# explicitly so "extra" cannot quietly become a dumping ground.
-OURS = {"check_access", "describe_capabilities", "report_a_problem"}
+# Tools that are ours, not Skilljar's, in TWO kinds - because they carry different
+# risks and collapsing them would hide that.
+#
+# Server management touches no Skilljar API at all, so it cannot diverge from one.
+SERVER_MANAGEMENT = {"check_access", "describe_capabilities", "report_a_problem"}
+
+# Beyond-parity API tools DO call Skilljar, at endpoints the official server omits. They
+# can drift with the vendor exactly like a parity tool can, and they are listed here so
+# "extra" stays a deliberate register rather than a dumping ground.
+BEYOND_PARITY = {
+    # Block 10: Skilljar's server ships the tool that MINTS a credential and withholds
+    # every tool that audits or remediates one. These are that second half.
+    "list_oauth_clients", "get_oauth_client", "create_oauth_client",
+    "update_oauth_client", "deactivate_oauth_client", "rotate_oauth_client_secret",
+    "list_oauth_scopes", "revoke_refresh_token",
+}
+
+OURS = SERVER_MANAGEMENT | BEYOND_PARITY
 
 
 def registered():
@@ -53,8 +67,22 @@ def test_nothing_extra_ships_without_being_declared():
     assert not extra, f"undeclared tools beyond the official surface: {extra}"
 
 
-def test_our_additions_are_all_server_management():
+def test_our_additions_are_registered_and_correctly_classified():
     assert OURS <= set(registered())
+    # The two kinds must stay disjoint: a tool that is both "touches no API" and
+    # "calls an endpoint the official server omits" is a contradiction, and would mean
+    # one of the two lists has stopped meaning what it says.
+    assert not (SERVER_MANAGEMENT & BEYOND_PARITY)
+
+
+def test_beyond_parity_tools_are_all_admin_gated():
+    """Everything past parity so far is credential administration. If a future block adds
+    a beyond-parity tool that is NOT admin-gated, this fails and the decision gets made
+    deliberately rather than by omission."""
+    from csa_skilljar import policy as P
+    not_admin = sorted(n for n in BEYOND_PARITY
+                       if P._GATES.get(n) != "admin.credentials")
+    assert not not_admin, f"beyond-parity tools outside the admin gate: {not_admin}"
 
 
 @pytest.mark.parametrize("name", sorted(OFFICIAL))

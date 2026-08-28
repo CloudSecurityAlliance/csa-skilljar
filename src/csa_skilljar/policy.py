@@ -151,6 +151,17 @@ _GATES: dict[str, str | None] = {
     # `admin` profile named explicitly (ADR-005), and RACI puts credential issuance
     # outside what an AI decides on its own.
     "register_oauth_client": ADMIN_CREDENTIALS,
+    # Block 10. Everything that audits, constrains, rotates or revokes a credential.
+    # Same gate as register_oauth_client: a tool that can enumerate and rotate every
+    # credential in an organization is not something to have on by default.
+    "list_oauth_clients": ADMIN_CREDENTIALS,
+    "get_oauth_client": ADMIN_CREDENTIALS,
+    "create_oauth_client": ADMIN_CREDENTIALS,
+    "update_oauth_client": ADMIN_CREDENTIALS,
+    "deactivate_oauth_client": ADMIN_CREDENTIALS,
+    "rotate_oauth_client_secret": ADMIN_CREDENTIALS,
+    "list_oauth_scopes": ADMIN_CREDENTIALS,
+    "revoke_refresh_token": ADMIN_CREDENTIALS,
 }
 
 

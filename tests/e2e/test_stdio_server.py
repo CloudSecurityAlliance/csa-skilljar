@@ -170,11 +170,23 @@ def test_the_handshake_reports_a_real_version(server):
     assert version == __version__
 
 
-def test_all_seventy_six_tools_are_published_over_the_wire(server):
-    """In-process registration and what a client actually receives are two facts."""
+def test_every_registered_tool_is_published_over_the_wire(server):
+    """In-process registration and what a client actually receives are two facts.
+
+    Counted against the live registry rather than a literal: the number moved twice in
+    one day, and a hardcoded one turns every new block into an edit here that teaches
+    nothing."""
+    from csa_skilljar.mcp._config import settings_from_env
+    from csa_skilljar.mcp.server import create_server
+
+    def unreachable():
+        raise AssertionError("counting tools must not construct a client")
+
+    expected = len(create_server(unreachable,
+                                 settings=settings_from_env({}))._tool_manager._tools)
     server.handshake()
     tools = server.call("tools/list")["tools"]
-    assert len(tools) == 76
+    assert len(tools) == expected
     names = {t["name"] for t in tools}
     assert "list_courses" in names and "register_oauth_client" in names
 

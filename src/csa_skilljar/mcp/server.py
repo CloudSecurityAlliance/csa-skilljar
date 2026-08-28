@@ -8,6 +8,7 @@ from ._config import ClientProvider, Settings
 from ._tools import (
     register_access_tools,
     register_course_tools,
+    register_credential_tools,
     register_enrolment_tools,
     register_feedback_tools,
     register_group_tools,
@@ -77,4 +78,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_signup_field_tools(app, get_client)
     register_publishing_tools(app, get_client)
     register_web_package_tools(app, get_client)
+    register_credential_tools(app, get_client)
     return app

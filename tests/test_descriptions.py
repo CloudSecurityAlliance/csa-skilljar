@@ -149,6 +149,23 @@ REQUIREMENTS = {
     "register_oauth_client": ["mints a credential", "unauthenticated", "client_name",
                               "cannot be retrieved again", "no organization is bound",
                               "admin"],
+    # Block 10 — credential administration. Every phrase is something a model would
+    # otherwise get wrong in a way the response cannot correct.
+    "list_oauth_clients": ["clients:read", "admin", "no secrets", "not paginated"],
+    "get_oauth_client": ["clients:read", "admin", "is_active", "scope_codenames",
+                         "no way to read one back"],
+    "list_oauth_scopes": ["clients:read", "admin", "presets", "before creating"],
+    "create_oauth_client": ["clients:write", "admin", "not `register_oauth_client`",
+                            "bound to your organization", "reads nothing", "not both",
+                            "shown once"],
+    "update_oauth_client": ["clients:write", "admin", "replaces", "next token",
+                            "rotate the secret"],
+    "deactivate_oauth_client": ["clients:write", "admin", "deactivation, not a deletion",
+                                "do not report it as deleted"],
+    "rotate_oauth_client_secret": ["clients:write", "admin", "immediately",
+                                   "shown once", "revoke_refresh_token"],
+    "revoke_refresh_token": ["admin", "not evidence", "rfc 7009", "typo",
+                             "sends no credentials"],
 }
 
 

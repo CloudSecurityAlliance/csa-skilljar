@@ -247,6 +247,27 @@ class Backend(Protocol):
                               token_endpoint_auth_method: str = "client_secret_post",
                               resource: str = "") -> Envelope: ...
 
+    def list_oauth_clients(self) -> Envelope: ...
+
+    def get_oauth_client(self, *, client_id: str) -> Envelope: ...
+
+    def create_oauth_client(self, *, name: str, description: str | None = None,
+                            scope_codenames: list[str] | None = None,
+                            scope_preset: str | None = None,
+                            ip_allowlist: list[str] | None = None) -> Envelope: ...
+
+    def update_oauth_client(self, *, client_id: str,
+                            changes: dict[str, Any]) -> Envelope: ...
+
+    def deactivate_oauth_client(self, *, client_id: str) -> Envelope: ...
+
+    def rotate_oauth_client_secret(self, *, client_id: str) -> Envelope: ...
+
+    def list_oauth_scopes(self) -> Envelope: ...
+
+    def revoke_refresh_token(self, *, token: str,
+                             token_type_hint: str | None = None) -> Envelope: ...
+
 
 class FakeBackend:
     """In-memory double. Powers the entire offline suite - no network, no credentials.
@@ -269,7 +290,8 @@ class FakeBackend:
                  signup_field_values: list[dict[str, Any]] | None = None,
                  published_courses: list[dict[str, Any]] | None = None,
                  domains: list[dict[str, Any]] | None = None,
-                 web_packages: list[dict[str, Any]] | None = None) -> None:
+                 web_packages: list[dict[str, Any]] | None = None,
+                 oauth_clients: list[dict[str, Any]] | None = None) -> None:
         # DEEP copy. `list(rows)` copies the list but shares every row dict, so an
         # update through the fake silently rewrites the caller's fixture - which it did:
         # a module-level ROWS constant was mutated to "Renamed" by one test and broke a
@@ -300,6 +322,10 @@ class FakeBackend:
         # Lesson content_url values that reference a package in a LIVE course. Deleting
         # a referenced package is a 409, so the double needs somewhere to model it.
         self.live_package_refs: set[str] = set()
+        self._clients = copy.deepcopy(list(oauth_clients or []))
+        # Every refresh token this double has been asked to revoke. The endpoint answers
+        # 200 either way, so a test needs somewhere to see what actually happened.
+        self.revoked_tokens: list[str] = []
 
     def list_courses(self, *, title: str | None = None, cursor: str | None = None,
                      page_size: int | None = None) -> Envelope:
@@ -1401,6 +1427,89 @@ class FakeBackend:
             "scope": scope or ""}}
 
 
+    # --- credential administration (Block 10) -----------------------------------------
+
+    _SCOPE_CATALOGUE = (
+        ("courses:read", "Read courses", "content"),
+        ("courses:write", "Create and change courses", "content"),
+        ("students:read", "Read learner records", "people"),
+        ("clients:read", "List and inspect API clients", "administration"),
+        ("clients:write", "Create, change and rotate API clients", "administration"),
+    )
+    _SCOPE_PRESETS = {"read_only": ["courses:read", "students:read"],
+                      "authoring": ["courses:read", "courses:write"]}
+
+    def list_oauth_clients(self) -> Envelope:
+        return {"data": list(self._clients)}
+
+    def get_oauth_client(self, *, client_id: str) -> Envelope:
+        for row in self._clients:
+            if row.get("id") == client_id:
+                return {"data": row}
+        raise exc.NotFoundError(f"no OAuth client with id {client_id}")
+
+    def create_oauth_client(self, *, name: str, description: str | None = None,
+                            scope_codenames: list[str] | None = None,
+                            scope_preset: str | None = None,
+                            ip_allowlist: list[str] | None = None) -> Envelope:
+        scopes = list(scope_codenames or [])
+        if scope_preset:
+            scopes = list(self._SCOPE_PRESETS.get(scope_preset, []))
+        new_id = f"cl{len(self._clients) + 1}"
+        # Annotated: without it mypy infers a union value type and `row["attributes"]`
+        # stops being known as a dict, so the ** below is rejected.
+        row: dict[str, Any] = {"type": "clients", "id": new_id,
+               "attributes": {"name": name, "description": description,
+                              "client_id": f"cid-{new_id}", "is_active": True,
+                              "scope_codenames": scopes,
+                              "ip_allowlist": list(ip_allowlist or [])}}
+        self._clients.append(row)
+        # The one-time secret is in the CREATE response and nowhere else - it is not
+        # stored on the row, because it is not retrievable afterwards.
+        out = {"type": "clients", "id": new_id,
+               "attributes": {**row["attributes"], "client_secret": f"secret-{new_id}"}}
+        return {"data": out}
+
+    def update_oauth_client(self, *, client_id: str,
+                            changes: dict[str, Any]) -> Envelope:
+        row = self.get_oauth_client(client_id=client_id)["data"]
+        if changes.get("scope_preset"):
+            changes = {k: v for k, v in changes.items() if k != "scope_preset"}
+            changes["scope_codenames"] = list(
+                self._SCOPE_PRESETS.get(str(changes.get("scope_preset")), []))
+        row["attributes"].update(changes)
+        return {"data": row}
+
+    def deactivate_oauth_client(self, *, client_id: str) -> Envelope:
+        """DELETE upstream, but the summary says "Deactivate client". The row survives."""
+        row = self.get_oauth_client(client_id=client_id)["data"]
+        row["attributes"]["is_active"] = False
+        return {"data": row}
+
+    def rotate_oauth_client_secret(self, *, client_id: str) -> Envelope:
+        row = self.get_oauth_client(client_id=client_id)["data"]
+        n = len(self.revoked_tokens) + 1
+        return {"data": {"type": "clients", "id": client_id,
+                         "attributes": {**row["attributes"],
+                                        "client_secret": f"rotated-{client_id}-{n}"}}}
+
+    def list_oauth_scopes(self) -> Envelope:
+        return {"data": [{"type": "scopes", "id": c,
+                          "attributes": {"codename": c, "description": d, "category": cat}}
+                         for c, d, cat in self._SCOPE_CATALOGUE],
+                "meta": {"presets": dict(self._SCOPE_PRESETS)}}
+
+    def revoke_refresh_token(self, *, token: str,
+                             token_type_hint: str | None = None) -> Envelope:
+        """RFC 7009: answer 200 whether or not the token existed.
+
+        Deliberately records the attempt and reports nothing about it. A double that
+        said "not found" for an unknown token would let a test assert behaviour the real
+        endpoint does not have, which is how a fake teaches a wrong lesson.
+        """
+        self.revoked_tokens.append(token)
+        return {"data": {"type": "revocations", "id": "ok"}}
+
 class V2Backend:
     """The v2 API. JSON:API envelopes, cursor pagination, per-operation OAuth scopes.
 
@@ -1958,7 +2067,7 @@ class V2Backend:
                               scope: str | None = None,
                               token_endpoint_auth_method: str = "client_secret_post",
                               resource: str = "") -> Envelope:
-        """The ONLY unauthenticated call. See `_register`."""
+        """One of two unauthenticated calls. See `_unauthenticated`."""
         body: dict[str, Any] = {"client_name": client_name,
                                 "redirect_uris": list(redirect_uris or []),
                                 "token_endpoint_auth_method":
@@ -1968,23 +2077,30 @@ class V2Backend:
             body["grant_types"] = grant_types
         if scope is not None:
             body["scope"] = scope
-        return self._register(body)
+        return self._unauthenticated("/v2/oauth/register", body)
 
-    def _register(self, body: dict[str, Any]) -> Envelope:
-        """RFC 7591 Dynamic Client Registration. Unauthenticated, by design.
+    def _unauthenticated(self, spec_path: str, body: dict[str, Any]) -> Envelope:
+        """POST to an endpoint that must NOT receive our credentials.
+
+        Two operations qualify, both by upstream design:
+
+          POST /v2/oauth/register   RFC 7591 Dynamic Client Registration
+          POST /v2/auth/revoke      RFC 7009 token revocation
+
+        Verified against live Skilljar: revoke answers 200 with no Authorization header
+        at all.
 
         Deliberately NOT routed through `_send`, for two independent reasons:
 
         1. `_send` attaches `Authorization: Bearer <our token>`. Sending the
-           organization's access token to a registration endpoint that does not want it
-           leaks a live credential into a request that has no need of it - and would
-           make the call fail outright when no credential is configured, which is
-           exactly the situation someone registering a client is in.
-        2. RFC 7591 errors are `{error, error_description}`, not api_v2's JSON:API
-           envelope. `_receive` would report the status code and throw the description
-           away.
+           organization's access token to an endpoint that does not want it leaks a live
+           credential into a request that has no need of it - and would make the call
+           fail outright when no credential is configured, which is exactly the
+           situation someone registering or revoking is in.
+        2. These endpoints use RFC 7591/7009 error shapes - `{error, error_description}`,
+           not api_v2's JSON:API envelope. `_receive` would report the status code and
+           throw the description away.
         """
-        spec_path = "/v2/oauth/register"
         self._check_scope("POST", spec_path)      # known-operation check still applies
         try:
             r = self._http.post(f"{self._base}{spec_path}", json=body,
@@ -1995,17 +2111,70 @@ class V2Backend:
         try:
             payload = r.json()
         except ValueError as e:
+            # A 200 with an EMPTY body is correct for revoke (RFC 7009 returns no
+            # content), so an unparseable body is only an error when the status is not
+            # a success. Treating every non-JSON 200 as a failure would make every
+            # successful revocation look broken.
+            if 200 <= r.status_code < 300:
+                return {"data": {"type": "acknowledgement", "id": spec_path}}
             raise exc.ApiError(
-                f"client registration returned HTTP {r.status_code} with a "
-                f"non-JSON body", status=r.status_code) from e
+                f"{spec_path} returned HTTP {r.status_code} with a non-JSON body",
+                status=r.status_code) from e
         if not isinstance(payload, dict):
             raise exc.ApiError(
-                f"client registration returned HTTP {r.status_code} with a "
+                f"{spec_path} returned HTTP {r.status_code} with a "
                 f"{type(payload).__name__}, not an object", status=r.status_code)
         if r.status_code >= 400 or "error" in payload:
             # RFC 7591 shape. error_description is the only useful part, so surface it
             # rather than the status code alone.
             detail = payload.get("error_description") or payload.get("error") or "no detail"
-            raise exc.ApiError(f"client registration refused: {detail}",
+            raise exc.ApiError(f"{spec_path} refused the request: {detail}",
                                status=r.status_code)
         return {"data": payload}
+
+    # --- credential administration (Block 10) -----------------------------------------
+
+    def list_oauth_clients(self) -> Envelope:
+        return self._get("/v2/clients/")
+
+    def get_oauth_client(self, *, client_id: str) -> Envelope:
+        return self._get(f"/v2/clients/{client_id}", template="/v2/clients/{id}")
+
+    def create_oauth_client(self, *, name: str, description: str | None = None,
+                            scope_codenames: list[str] | None = None,
+                            scope_preset: str | None = None,
+                            ip_allowlist: list[str] | None = None) -> Envelope:
+        body: dict[str, Any] = {"name": name}
+        if description is not None:
+            body["description"] = description
+        if scope_codenames is not None:
+            body["scope_codenames"] = scope_codenames
+        if scope_preset is not None:
+            body["scope_preset"] = scope_preset
+        if ip_allowlist is not None:
+            body["ip_allowlist"] = ip_allowlist
+        return self._send("POST", "/v2/clients/", body)
+
+    def update_oauth_client(self, *, client_id: str,
+                            changes: dict[str, Any]) -> Envelope:
+        return self._send("PATCH", f"/v2/clients/{client_id}", changes,
+                          template="/v2/clients/{id}")
+
+    def deactivate_oauth_client(self, *, client_id: str) -> Envelope:
+        return self._send("DELETE", f"/v2/clients/{client_id}", {},
+                          template="/v2/clients/{id}")
+
+    def rotate_oauth_client_secret(self, *, client_id: str) -> Envelope:
+        return self._send("POST", f"/v2/clients/{client_id}/rotate-secret", {},
+                          template="/v2/clients/{id}/rotate-secret")
+
+    def list_oauth_scopes(self) -> Envelope:
+        return self._get("/v2/scopes/")
+
+    def revoke_refresh_token(self, *, token: str,
+                             token_type_hint: str | None = None) -> Envelope:
+        """The second unauthenticated call. See `_unauthenticated`."""
+        body: dict[str, Any] = {"token": token}
+        if token_type_hint is not None:
+            body["token_type_hint"] = token_type_hint
+        return self._unauthenticated("/v2/auth/revoke", body)
