@@ -259,10 +259,18 @@ and `bandit`, checks the tag against the packaged version, builds, and refuses t
 an artifact containing anything matching `.env`, `token`, `secret`, `credential`,
 `analysis/` or `docs-html/`, or missing `py.typed`.
 
-It then waits: the `pypi` environment has a **required reviewer**, so the upload does not
-happen until a human approves it in the Actions run. Worth knowing that GitHub creates a
-missing environment *unprotected* on first use — so `environment: pypi` in a workflow is
-a claim, not a control, until the environment actually exists with rules on it.
+It then waits: the `publish` job's `pypi` environment has a **required reviewer**, so the
+upload does not happen until a human approves it in the Actions run.
+
+The split into two jobs is deliberate. An environment gates a *whole* job, so a single
+gated job asked for approval **before** any test ran. Now `build` does every check
+ungated and uploads the artifact; `publish` downloads that exact artifact and does
+nothing but upload it. The reviewer approves something already built and verified, and
+`publish` has no build step that could produce something different.
+
+Worth knowing that GitHub creates a missing environment *unprotected* on first use — so
+`environment: pypi` in a workflow is a claim, not a control, until the environment
+actually exists with rules on it.
 
 ## Licence
 
