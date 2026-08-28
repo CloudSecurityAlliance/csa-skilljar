@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.12.0] — 2026-08-28
+
 ### Added
 - **Block 13 — commerce, read-only.** `list_promo_codes`, `list_promo_code_pools`,
   `list_offers`, `list_training_credit_codes`, `get_purchase`. **v2 has no commerce
