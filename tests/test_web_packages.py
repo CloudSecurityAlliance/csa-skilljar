@@ -257,15 +257,18 @@ def test_registration_never_sends_our_bearer_token():
     assert captured["spec_path"] == "/v2/oauth/register"
 
 
-def test_no_other_call_reaches_the_unauthenticated_path():
-    """Enumerates the backend: `_register` must be used by registration alone. The
-    failure mode is a later refactor routing something else through it and dropping that
-    call's authentication."""
+def test_only_the_two_known_calls_reach_the_unauthenticated_path():
+    """Enumerates the backend. Two operations legitimately send no credentials, both by
+    upstream design - RFC 7591 registration and RFC 7009 revocation. Anything else
+    routed through that path would silently lose its authentication.
+
+    Named rather than counted: `len(callers) == 2` would pass if registration were
+    swapped for something else entirely."""
     import re
     from pathlib import Path
     source = Path("src/csa_skilljar/backend.py").read_text()
-    callers = re.findall(r"return self\._register\(", source)
-    assert len(callers) == 1, f"_register is called {len(callers)} times, expected 1"
+    callers = re.findall(r'return self\._unauthenticated\("([^"]+)"', source)
+    assert sorted(callers) == ["/v2/auth/revoke", "/v2/oauth/register"], callers
 
 
 def test_rfc7591_error_shape_is_surfaced_not_swallowed():

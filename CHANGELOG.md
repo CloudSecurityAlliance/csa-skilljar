@@ -6,7 +6,43 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **Block 10 — credential administration. The first work past parity.** Eight tools, and
+  the asymmetry they close is the point: Skilljar's own MCP server ships the tool that
+  **mints** a credential and withholds every tool that **audits or remediates** one.
+  Through it you can create an OAuth client and then cannot list what exists, see what a
+  client may do, narrow it, rotate a leaked secret, or turn it off.
+- `list_oauth_clients`, `get_oauth_client`, `list_oauth_scopes`, `create_oauth_client`,
+  `update_oauth_client`, `deactivate_oauth_client`, `rotate_oauth_client_secret`,
+  `revoke_refresh_token` — all gated by `admin.credentials`, **including the reads**.
+  Enumerating an organization's credentials is the reconnaissance step, so
+  `list_oauth_clients` is gated exactly as hard as rotation.
+- `create_oauth_client` states at length that it is **not** `register_oauth_client`: this
+  one is authenticated and **bound to the organization**, while the official server's
+  dynamic-registration tool binds none — its client authenticates fine and then reads
+  nothing, forever, with no error that says why. Two ways to create a credential, one of
+  which silently does not work, is the trap most worth a long description.
+- `revoke_refresh_token` reports that revocation was **requested**, never confirmed. RFC
+  7009 §2.2 requires the endpoint to answer success whether or not the token existed, so
+  a typo and a real revocation are indistinguishable. Verified live against a deliberately
+  invalid token: `200`, empty body, no `Authorization` header needed.
+- It is the **second unauthenticated call**. `_register` became `_unauthenticated()`,
+  shared with `register_oauth_client`, and the guard that enumerates the backend now
+  asserts the two paths **by name** rather than by count — `len(callers) == 2` would pass
+  if registration were swapped for something else entirely.
+- `deactivate_oauth_client` is named for what it does. Skilljar's endpoint is a `DELETE`
+  verb whose own summary reads "Deactivate client": the record survives with `is_active`
+  false, and the description says not to report it as deleted.
+- `rotate_oauth_client_secret` warns that the old secret dies **immediately**, so
+  everything still using it breaks the moment the call returns.
+
+### Fixed
+- Two brittle literal counts became derived. `tests/e2e` asserted "76 tools" and the
+  parity test lumped every addition into one "server management" set. The first turns
+  each block into an edit that teaches nothing; the second would have quietly
+  reclassified eight API tools as not touching an API. Beyond-parity tools are now their
+  own register, and a test asserts each is admin-gated so a future one cannot arrive
+  ungated by omission.
 
 ## [0.8.0] — 2026-08-27
 

@@ -106,7 +106,11 @@ PAGINATED = {
 
 # Deliberately not paginated upstream, so they must NOT grow paging arguments.
 NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
-                 "list_web_packages"}
+                 "list_web_packages",
+                 # Block 10. The client list is a small bounded set and the scope
+                 # catalogue is served from in-memory constants; neither endpoint
+                 # offers paging parameters.
+                 "list_oauth_clients", "list_oauth_scopes"}
 
 
 def test_every_list_tool_is_classified():

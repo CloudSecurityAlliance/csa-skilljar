@@ -317,3 +317,35 @@ class SkilljarClient:
             client_name=client_name, redirect_uris=redirect_uris,
             grant_types=grant_types, scope=scope,
             token_endpoint_auth_method=token_endpoint_auth_method, resource=resource)
+
+    def list_oauth_clients(self) -> dict[str, Any]:
+        return self._backend.list_oauth_clients()
+
+    def get_oauth_client(self, *, client_id: str) -> dict[str, Any]:
+        return self._backend.get_oauth_client(client_id=client_id)
+
+    def create_oauth_client(self, *, name: str, description: str | None = None,
+                            scope_codenames: list[str] | None = None,
+                            scope_preset: str | None = None,
+                            ip_allowlist: list[str] | None = None) -> dict[str, Any]:
+        return self._backend.create_oauth_client(
+            name=name, description=description, scope_codenames=scope_codenames,
+            scope_preset=scope_preset, ip_allowlist=ip_allowlist)
+
+    def update_oauth_client(self, *, client_id: str,
+                            changes: dict[str, Any]) -> dict[str, Any]:
+        return self._backend.update_oauth_client(client_id=client_id, changes=changes)
+
+    def deactivate_oauth_client(self, *, client_id: str) -> dict[str, Any]:
+        return self._backend.deactivate_oauth_client(client_id=client_id)
+
+    def rotate_oauth_client_secret(self, *, client_id: str) -> dict[str, Any]:
+        return self._backend.rotate_oauth_client_secret(client_id=client_id)
+
+    def list_oauth_scopes(self) -> dict[str, Any]:
+        return self._backend.list_oauth_scopes()
+
+    def revoke_refresh_token(self, *, token: str,
+                             token_type_hint: str | None = None) -> dict[str, Any]:
+        return self._backend.revoke_refresh_token(token=token,
+                                                  token_type_hint=token_type_hint)

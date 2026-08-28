@@ -24,9 +24,9 @@ file plus open GitHub Issues finds everything.
   needs yet — dropping them removes the last write path rather than guarding it.
 
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
-- Phase 2 — the v2 capabilities the official server does not expose → `ROADMAP.md`.
-  `/v2/clients/` (list, get, patch, delete, rotate-secret) is in the v2 spec and absent
-  from the official 73; it is the first candidate.
+- Block 11 — v1 foundation + per-lesson learner progress → `ROADMAP.md`. The largest
+  functional gap in v2 (ADR-007). Note `GET /v1/lessons` requires `course_id`, so
+  enumerating lessons org-wide is impossible on v1 and the description must say so.
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 
@@ -62,6 +62,8 @@ work landed, and leaving them would make the sweep lie.
   upstream scope.
 - ~~Block 9 — web packages & OAuth client (6 tools), shipped to `main` 2026-08-27~~ —
   **73-tool parity complete and asserted by `tests/test_parity.py`.**
+- ~~Block 10 — credential administration (8 tools), shipped to `main` 2026-08-27~~ —
+  first work past parity; closes the mint-without-audit asymmetry.
 - ~~End-to-end stdio suite (`tests/e2e/`), shipped to `main` 2026-08-27~~ — found an
   empty `serverInfo.version`, and a stale pipx install that the first draft of the
   suite was happily testing instead of this checkout.

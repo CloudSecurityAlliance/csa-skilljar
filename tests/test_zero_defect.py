@@ -172,9 +172,12 @@ def test_every_nosec_carries_a_reason():
 
 
 def test_the_dismissed_literals_are_what_they_claim_to_be():
-    """The three B105/B107 hits are RFC 7591 vocabulary and one warning message, not
-    credentials. If any of them is ever changed into something that IS a secret, this
-    fails and the dismissal must be revisited."""
+    """The B105/B107 hits are RFC 7591/7009 vocabulary and prose, not credentials. If any
+    of them is ever changed into something that IS a secret, this fails and the dismissal
+    must be revisited."""
+    import inspect
+
+    from csa_skilljar.mcp._tools import credentials as cr
     from csa_skilljar.mcp._tools import web_packages as wp
 
     # RFC 7591 section 2: token_endpoint_auth_method values.
@@ -182,6 +185,11 @@ def test_the_dismissed_literals_are_what_they_claim_to_be():
     # The warning is prose for a human, and must not contain anything secret-shaped.
     assert wp._SHOWN_ONCE_WARNING.startswith("If a client_secret is present")
     assert "=" not in wp._SHOWN_ONCE_WARNING
+    # RFC 7009 section 2.1: token_type_hint takes "refresh_token" or "access_token".
+    # The flagged literal is that default, reachable only through the tool's signature.
+    src = inspect.getsource(cr.register_credential_tools)
+    assert 'token_type_hint: str | None = "refresh_token"' in src
+    assert "access_token" not in src or "refresh_token" in src
 
 
 def test_a_registered_client_secret_is_never_logged_or_repeated(caplog):

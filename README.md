@@ -11,9 +11,9 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–9 implemented — full 73-tool parity — not yet released.**
+> **Status: Blocks 1–10. Full 73-tool parity, plus credential administration. v0.8.0 on PyPI.**
 >
-> **76 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
+> **84 tools** over Skilljar's v2 API. Install from source until the first PyPI release:
 > `pipx install git+https://github.com/CloudSecurityAlliance/csa-skilljar`
 > | | |
 > |---|---|
@@ -37,7 +37,7 @@ tools.
 > | **Groups (destructive)** | `delete_groups` — a hard delete that cascades to memberships and course visibility; gated on `groups.delete` |
 > | **Publishing (public-facing)** | `unpublish_published_course` · `republish_published_course` · `delete_published_course` — gated on `publishing.write`, which `authoring` does not grant |
 > | **Web packages (destructive)** | `delete_web_package` — refused while a live lesson uses the package |
-> | **Credentials** | `register_oauth_client` — mints an OAuth client; off unless the `admin` profile is named |
+> | **Credentials** | `register_oauth_client` · `list_oauth_clients` · `get_oauth_client` · `create_oauth_client` · `update_oauth_client` · `deactivate_oauth_client` · `rotate_oauth_client_secret` · `list_oauth_scopes` · `revoke_refresh_token` — all off unless the `admin` profile is named |
 >
 > All 73 official tools are present — asserted by `tests/test_parity.py`, not claimed. The three extra tools are our own server management. See [ROADMAP.md](ROADMAP.md).
 

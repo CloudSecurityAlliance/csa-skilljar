@@ -97,7 +97,12 @@ EXPECTED_BY_CAPABILITY = {
                           "delete_web_package"},
     # Mints a credential, so it needs `admin` named explicitly - the official server
     # ships it enabled.
-    "admin.credentials": {"register_oauth_client"},
+    "admin.credentials": {"register_oauth_client",
+                          # Block 10 - audit and remediation, gated as hard as minting.
+                          "list_oauth_clients", "get_oauth_client",
+                          "create_oauth_client", "update_oauth_client",
+                          "deactivate_oauth_client", "rotate_oauth_client_secret",
+                          "list_oauth_scopes", "revoke_refresh_token"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -153,6 +158,12 @@ CALL_ARGS = {
     "create_web_packages": {"items": []}, "update_web_packages": {"items": []},
     "delete_web_package": {"web_package_id": "wp1"},
     "register_oauth_client": {"client_name": "c"},
+    "list_oauth_clients": {}, "get_oauth_client": {"client_id": "cl1"},
+    "create_oauth_client": {"name": "c"},
+    "update_oauth_client": {"client_id": "cl1", "changes": {"name": "c"}},
+    "deactivate_oauth_client": {"client_id": "cl1"},
+    "rotate_oauth_client_secret": {"client_id": "cl1"},
+    "list_oauth_scopes": {}, "revoke_refresh_token": {"token": "t"},
 }
 
 

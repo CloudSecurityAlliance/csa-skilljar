@@ -211,7 +211,7 @@ a login is a test that does not run.
 
 ## Later — beyond parity
 
-### Block 10 — Remaining v2: credential administration · Planned · 8 tools
+### Block 10 — Remaining v2: credential administration · Done · 8 tools
 
 `GET /v2/scopes/` and the six `/v2/clients/` operations, plus `auth/revoke`. Everything the
 official server omits.
@@ -219,7 +219,7 @@ official server omits.
 Skilljar exposes the tool that *mints* a credential and withholds the ones that *audit and
 remediate* — this block restores the second half. All of it sits behind `admin`, off by default.
 
-**Ships:** v0.9.0
+**Ships:** v0.9.0 — first work past parity.
 
 ### Block 11 — v1 foundation + learner progress · Planned
 
