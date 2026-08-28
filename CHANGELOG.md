@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.10.0] — 2026-08-28
+
+The second API. Skilljar has two, and until now this server spoke only to v2.
+
 ### Added
 - **Block 11 — the v1 backend, and the first capability served by it.** `V1Backend` is a
   second API in every respect: HTTP Basic with the key as the **username** and an empty
