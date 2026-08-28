@@ -110,7 +110,11 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
                  # Block 10. The client list is a small bounded set and the scope
                  # catalogue is served from in-memory constants; neither endpoint
                  # offers paging parameters.
-                 "list_oauth_clients", "list_oauth_scopes"}
+                 "list_oauth_clients", "list_oauth_scopes",
+                 # v1-only, and v1 pages by NUMBER with a total rather than by v2's
+                 # opaque cursor - so these must not offer page_cursor/page_size, which
+                 # would imply a control they cannot honour.
+                 "list_learner_progress"}
 
 
 def test_every_list_tool_is_classified():

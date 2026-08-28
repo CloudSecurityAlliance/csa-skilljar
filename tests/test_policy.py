@@ -3,6 +3,7 @@ import pytest
 from csa_skilljar import exceptions as exc
 from csa_skilljar import policy as P
 from csa_skilljar.backend import Backend, FakeBackend
+from csa_skilljar.v1backend import FakeV1Backend
 
 ROWS = [{"type": "courses", "id": "c1", "attributes": {"title": "t"}}]
 
@@ -87,6 +88,8 @@ EXPECTED_BY_CAPABILITY = {
     "groups.delete": {"delete_groups"},
     "publishing.read": {"list_published_courses", "get_published_course",
                         "list_domains", "get_domain"},
+    # v1-only, and gated by the SAME table as every v2 method.
+    "progress.read": {"find_learner", "list_learner_progress", "get_learner_progress"},
     # Deliberately NOT reachable from `authoring`: these change what anonymous visitors
     # to a customer-facing site can see.
     "publishing.write": {"publish_courses", "update_published_courses",
@@ -164,6 +167,9 @@ CALL_ARGS = {
     "deactivate_oauth_client": {"client_id": "cl1"},
     "rotate_oauth_client_secret": {"client_id": "cl1"},
     "list_oauth_scopes": {}, "revoke_refresh_token": {"token": "t"},
+    "find_learner": {"email": "a@b.c"},
+    "list_learner_progress": {"user_id": "u1"},
+    "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
 }
 
 
@@ -175,12 +181,35 @@ def test_the_matrix_covers_every_gated_method():
     )
 
 
+class BothBackends(FakeBackend):
+    """A v2 fake that also answers the v1 method names.
+
+    The matrix tests the GATE, not the backend, and `PolicyBackend` refuses before it
+    delegates - so what matters here is that every gated name is reachable. Since Block
+    11 the gate table covers two APIs, and a v2-only double made every v1 row raise
+    AttributeError before the gate could be observed at all.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._v1 = FakeV1Backend()
+
+    def find_learner(self, **kw):
+        return self._v1.find_learner(**kw)
+
+    def list_learner_progress(self, **kw):
+        return self._v1.list_learner_progress(**kw)
+
+    def get_learner_progress(self, **kw):
+        return self._v1.get_learner_progress(**kw)
+
+
 def test_one_capability_at_a_time_matrix():
     """Enable exactly one capability; assert precisely which operations become possible."""
     every_method = set().union(*EXPECTED_BY_CAPABILITY.values())
     for cap in P.ALL_CAPABILITIES:
         allowed = EXPECTED_BY_CAPABILITY.get(cap, set())
-        pb = P.PolicyBackend(FakeBackend(courses=ROWS), P.Policy(frozenset({cap})))
+        pb = P.PolicyBackend(BothBackends(courses=ROWS), P.Policy(frozenset({cap})))
         for name in sorted(every_method):
             if name in allowed:
                 try:

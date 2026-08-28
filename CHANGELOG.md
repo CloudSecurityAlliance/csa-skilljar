@@ -6,6 +6,45 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Block 11 — the v1 backend, and the first capability served by it.** `V1Backend` is a
+  second API in every respect: HTTP Basic with the key as the **username** and an empty
+  password, DRF envelopes, page-number pagination with a total, and `{"detail": …}`
+  errors. Separate module, no fallback either way (ADR-002).
+- `find_learner`, `list_learner_progress`, `get_learner_progress` — lesson counts against
+  course totals, required-lesson counts, credits earned, latest activity, and
+  re-enrolment history. v2's `EnrollmentAttributes` carries **none** of these, so "how
+  far through is this learner, in lessons" is answerable only through v1. A test asserts
+  that claim against the v2 spec, so if v2 ever grows the fields, ADR-002 says the
+  capability moves and the test says so first.
+- **ADR-002 is now a passing test.** `test_no_capability_is_served_by_both_backends`
+  asserts the two backends' method sets are disjoint; a capability answered by both would
+  return a JSON:API shape or a DRF shape depending on which replied.
+- One `_GATES` table covers both APIs, so a capability cannot be gated in one and open in
+  the other. The v1 backend is policy-wrapped with the same policy.
+- The v1 key is optional. Without it the v1-only tools raise a typed error naming the
+  variable and stating it is a **separate credential** from the v2 client — the likeliest
+  confusion — while the whole v2 surface keeps working.
+
+### Fixed
+- **Two upstream behaviours found by probing, neither in Skilljar's published v1
+  document.** First: **per-lesson progress does not exist.** The documented endpoint
+  returns 404 on the live API — verified by walking the prefix, with 401/404 controls
+  proving the key was not the problem. Every alternative route 404s too. No tool claims
+  to provide it, and both progress tools say "COUNTS ONLY, NOT WHICH LESSONS" so a model
+  cannot report the counts as per-lesson detail.
+- Second: **the by-id fetch resolves by the underlying course, not the publication.** A
+  course published to two domains returns the wrong one with a `200` and no indication
+  anything was substituted — 53 of 54 enrolments matched, which is what made it
+  dangerous. `get_learner_progress` selects from the unpaginated listing instead: same
+  single request, cannot return the wrong publication.
+- **v1 answers in two envelope shapes** — the DRF envelope and a bare JSON array — and a
+  reader assuming one silently returns nothing for the other. `parse_page` normalises
+  both plus the single-object form, and `FakeV1Backend` stores the **raw** shapes so the
+  double exercises the same normalisation rather than teaching a lesson the API does not.
+- The README still said "install from source until the first PyPI release". 0.9.0 has
+  been on PyPI since this morning.
+
 ### Fixed
 - **The release artifact guard refused a real release.** It matched the substring
   `"credential"` against every filename, so Block 10's `_tools/credentials.py` — a module

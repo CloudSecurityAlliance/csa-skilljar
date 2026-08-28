@@ -221,17 +221,30 @@ remediate* — this block restores the second half. All of it sits behind `admin
 
 **Ships:** v0.9.0 — first work past parity.
 
-### Block 11 — v1 foundation + learner progress · Planned
+### Block 11 — v1 foundation + learner progress · Done
 
 `V1Backend` (HTTP Basic, DRF envelope, cursor pagination with a total count), v1 error
 translation, and the first v1 family: per-lesson learner progress.
 
-The **largest functional gap in v2**, and first by evidence (ADR-007). Note `GET /v1/lessons`
-requires `course_id` — enumerating lessons org-wide is impossible on v1, and the description must
-say so.
+The **largest functional gap in v2**, and first by evidence (ADR-007).
 
-**Done when:** per-lesson progress is readable for a learner in a course, through a tool whose
-name carries no version marker; the two backends coexist with no fallback path (ADR-002).
+**Correction, 2026-08-28: per-lesson progress does not exist.**
+`GET /v1/users/{user_id}/published-courses/{published_course_id}/lessons` is in Skilljar's
+published v1 document and returns **404** on the live API. Verified by walking the prefix — the
+parent resolves 200, only the sub-resource 404s — with 401/404 controls proving the key is not
+the problem. Every alternative route (`/v1/course-progress/{id}/lessons`,
+`/v1/enrollments/{id}/lessons`, `/v1/lesson-progress?…`) also 404s, and `/v1/progresstokens`
+returns zero rows, matching ADR-007.
+
+So the capability delivered is **per-course** progress, which is real, populated, and genuinely
+absent from v2: lesson counts against course totals, required-lesson counts, credits earned,
+latest activity, and re-enrolment history. v2's `EnrollmentAttributes` carries none of them.
+
+**Done when:** ~~per-lesson progress is readable~~ **per-course progress is readable** for a
+learner in a course, through a tool whose name carries no version marker; the two backends
+coexist with no fallback path (ADR-002). — **met**, and ADR-002 is now a passing test rather
+than a rule: `test_no_capability_is_served_by_both_backends` asserts the two backends' method
+sets are disjoint.
 **Ships:** v0.10.0
 
 ### Blocks 12–17 — the remaining v1 families · Planned

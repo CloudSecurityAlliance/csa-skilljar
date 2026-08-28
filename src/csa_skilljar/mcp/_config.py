@@ -20,6 +20,7 @@ from ..auth import V2Credentials
 from ..backend import V2Backend
 from ..client import SkilljarClient
 from ..policy import Policy, PolicyBackend
+from ..v1backend import V1Backend, V1Credentials
 
 V2_ID_VAR = "CSA_SKILLJAR_V2_CLIENT_ID"
 V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable name, not a secret
@@ -35,8 +36,9 @@ V2_MISSING_WARNING = (
     f"Call `check_access` for details."
 )
 V1_MISSING_WARNING = (
-    f"{V1_KEY_VAR} not set - v1-only capabilities are unavailable (none are implemented "
-    f"yet). Call `check_access` for details."
+    f"{V1_KEY_VAR} not set - the v1-only capabilities are unavailable. Learner progress "
+    f"(lesson counts, credits, re-enrolment history) is v1-only; everything else works "
+    f"without it. Call `check_access` for details."
 )
 
 
@@ -134,9 +136,17 @@ class ClientProvider:
                 f"{V2_ID_VAR} and {V2_SECRET_VAR} in your MCP client configuration and "
                 f"restart the server. Obtain a v2 API client from the Skilljar Dashboard. "
                 f"Call `check_access` to see what is currently available.")
+        policy = Policy.from_profile(s.profile)
         creds = V2Credentials(s.v2_client_id, s.v2_client_secret, base_url=s.base_url)
-        backend = PolicyBackend(V2Backend(creds, base_url=s.base_url),
-                                Policy.from_profile(s.profile))
-        client = SkilljarClient(backend)
+        backend = PolicyBackend(V2Backend(creds, base_url=s.base_url), policy)
+        # The v1 backend is OPTIONAL and policy-wrapped with the SAME policy: one gate
+        # table covers both APIs, so a capability cannot be gated in one and open in the
+        # other. Absent, the v1-only tools raise a typed error naming the variable to
+        # set - a v1 key is not needed for any of the v2 surface.
+        v1 = None
+        if s.v1_api_key:
+            v1 = PolicyBackend(
+                V1Backend(V1Credentials(s.v1_api_key), base_url=s.base_url), policy)
+        client = SkilljarClient(backend, v1=v1)
         self._local.client = client
         return client

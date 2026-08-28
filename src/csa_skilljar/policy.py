@@ -18,6 +18,7 @@ from typing import Any
 
 from . import exceptions as exc
 from .backend import Backend
+from .v1backend import V1Backend
 
 READ_CONTENT = "content.read"
 READ_PEOPLE = "people.read"
@@ -44,6 +45,9 @@ DELETE_GROUPS = "groups.delete"
 READ_PUBLISHING = "publishing.read"
 WRITE_PUBLISHING = "publishing.write"
 READ_WEB_PACKAGES = "webpackages.read"
+# v1-only. A read of learner progress is no more sensitive than list_enrollments, which
+# `parity` already grants - so it goes in the same profiles rather than a stricter one.
+READ_PROGRESS = "progress.read"
 WRITE_WEB_PACKAGES = "webpackages.write"
 ADMIN_CREDENTIALS = "admin.credentials"
 
@@ -51,20 +55,20 @@ ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
-    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES,
+    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
 # pressure and everybody can pick a word. `parity` is the default.
 PROFILES: dict[str, tuple[str, ...]] = {
     "parity": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, READ_GROUPS,
-               READ_PUBLISHING, READ_WEB_PACKAGES),
+               READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "authoring": (READ_CONTENT, WRITE_CONTENT, READ_WEB_PACKAGES,
                   WRITE_WEB_PACKAGES),
     "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
     "reporting": (READ_REPORTING, READ_CONTENT),
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
-                   READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES),
+                   READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "admin": (ADMIN_CREDENTIALS,),
     "full": ALL_CAPABILITIES,
 }
@@ -162,6 +166,11 @@ _GATES: dict[str, str | None] = {
     "rotate_oauth_client_secret": ADMIN_CREDENTIALS,
     "list_oauth_scopes": ADMIN_CREDENTIALS,
     "revoke_refresh_token": ADMIN_CREDENTIALS,
+    # Block 11 - served by V1Backend, not V2Backend. One gate table covers both, so a
+    # capability cannot be gated in one backend and open in the other.
+    "find_learner": READ_PROGRESS,
+    "list_learner_progress": READ_PROGRESS,
+    "get_learner_progress": READ_PROGRESS,
 }
 
 
@@ -186,9 +195,14 @@ class Policy:
 
 
 class PolicyBackend:
-    """Wraps a Backend and refuses anything the policy does not permit."""
+    """Wraps a backend and refuses anything the policy does not permit.
 
-    def __init__(self, backend: Backend, policy: Policy) -> None:
+    Either backend: the v2 `Backend` protocol or the v1 one. `_GATES` is a single table
+    covering both, deliberately - a capability gated in one API and open in the other
+    would be a hole nobody could see by reading either backend alone.
+    """
+
+    def __init__(self, backend: Backend | V1Backend, policy: Policy) -> None:
         self._backend = backend; self._policy = policy
 
     @property
