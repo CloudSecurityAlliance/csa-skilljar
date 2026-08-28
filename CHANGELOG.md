@@ -6,7 +6,35 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **Block 12 — the asset library.** `list_assets` and `get_asset`: the files courses are
+  built from. **v2 has no assets endpoint at all**, so this is the only way to resolve
+  the `content_asset_id` that `list_lessons` returns.
+- The ADR-002 split here is not the obvious one. v1 also has web-package endpoints, and
+  they are **not** added: v2 owns list, get and delete (Block 9). Only
+  `/v1/web-packages/{id}/lessons` is a v1-only capability there. Adding the rest "for
+  completeness" would put one capability on two backends with two data shapes.
+
+### Security
+- **`get_asset` returns a credential-free download link, and that is a new egress path.**
+  `download_url` is a presigned S3 URL: verified against the live API with a ranged GET
+  carrying **no authorization header** — `206`, `application/pdf`. It works for about an
+  hour, changes on every fetch, and needs no Skilljar credentials at all.
+- So the URL is a **bearer capability, not a reference**: anyone who reads it can download
+  the content, and none of this project's controls reach that far — not the capability
+  profile, not the OAuth scope, not the v1 key. Recorded in `SECURITY-RESOURCES.md` as its
+  own section and in the accepted-risk table, and in `DATA-RESOURCES.md`'s connections
+  table, because it compounds the transcript problem already noted for demonstrations.
+- Three things bound it: the **listing carries no link** (upstream's design, kept rather
+  than smoothed over), the warning **travels in the payload** rather than only the
+  docstring, and it **expires**. Nothing prevents a model repeating the URL, which is
+  stated plainly rather than claimed as handled.
+- `aspect_ratio` is deliberately **not** surfaced. It is `16:9` on all 157 assets in the
+  reference org, PDFs included — a default, not a measurement, and returning it invites a
+  model to report a document's aspect ratio as a fact about it.
+- `type` is renamed to `asset_type` on the way out, because every v2 resource carries a
+  JSON:API `type` and one word meaning two things across two backends is how a caller
+  reads the wrong field.
 
 ## [0.10.0] — 2026-08-28
 

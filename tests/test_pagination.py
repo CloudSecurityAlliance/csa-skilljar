@@ -114,7 +114,9 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
                  # v1-only, and v1 pages by NUMBER with a total rather than by v2's
                  # opaque cursor - so these must not offer page_cursor/page_size, which
                  # would imply a control they cannot honour.
-                 "list_learner_progress"}
+                 "list_learner_progress",
+                 # v1 returns the whole asset library in one response.
+                 "list_assets"}
 
 
 def test_every_list_tool_is_classified():

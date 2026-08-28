@@ -124,6 +124,8 @@ EXERCISE = {
     "find_learner": {"email": "ada@example.org"},
     "list_learner_progress": {"user_id": "u1"},
     "get_learner_progress": {"user_id": "u1", "published_course_id": "pc1"},
+    "list_assets": {},
+    "get_asset": {"id": "a1"},
 }
 
 
@@ -165,6 +167,9 @@ QUESTION_ROWS = [{"type": "questions", "id": "qu1", "attributes": {
 
 V1_USERS = [{"user": {"id": "u1", "email": "ada@example.org"},
              "registration_count": 1, "completion_count": 0}]
+V1_ASSETS = [{"id": "a1", "name": "Module 1.pdf", "type": "PDF", "aspect_ratio": "16:9",
+              "embed_link_url": "", "sync_completion": False,
+              "download_url": "https://everpath-course-content.s3.amazonaws.com/x?Signature=s"}]
 V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
                        "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
                        "course_progress": {"completed_lesson_count": 4},
@@ -186,7 +191,7 @@ def build(profile="full", env=None):
         # Since Block 11 a client carries BOTH backends, policy-wrapped with the same
         # policy. The protocol suite exercises every registered tool, and three of them
         # are served by v1.
-        v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS), policy))
+        v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS, assets=V1_ASSETS), policy))
     return create_server(lambda: client, settings=settings)
 
 

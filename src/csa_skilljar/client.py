@@ -388,3 +388,9 @@ class SkilljarClient:
                              published_course_id: str) -> dict[str, Any]:
         return self._require_v1().get_learner_progress(
             user_id=user_id, published_course_id=published_course_id)
+
+    def list_assets(self, *, page: int | None = None) -> dict[str, Any]:
+        return self._require_v1().list_assets(page=page)
+
+    def get_asset(self, *, asset_id: str) -> dict[str, Any]:
+        return self._require_v1().get_asset(asset_id=asset_id)

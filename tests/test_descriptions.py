@@ -176,6 +176,12 @@ REQUIREMENTS = {
                              "counts only, not which lessons", "not-found"],
     "find_learner": ["csa_skilljar_v1_api_key", "both apis", "exact",
                      "empty list", "total"],
+    # Block 12 — the presigned-URL properties, which land outside this system.
+    "list_assets": ["csa_skilljar_v1_api_key", "no download links here",
+                    "content_asset_id", "pdf", "one response"],
+    "get_asset": ["csa_skilljar_v1_api_key", "is the file, not a reference to it",
+                  "no skilljar credentials", "different every time",
+                  "do not store or cache it"],
 }
 
 

@@ -253,7 +253,7 @@ Ordered by usage evidence in the reference org, not by API size.
 
 | # | Block | Why here |
 |---|---|---|
-| 12 | Assets & media | 157 assets, 533 web packages. v2 has **no file upload at all** |
+| 12 | Assets & media | **Done.** 157 assets. v2 has no assets endpoint at all. Only `/v1/web-packages/{id}/lessons` is v1-only there — list/get/delete are v2's (Block 9) |
 | 13 | Commerce (read-biased) | 13,687 promo codes, 4,278 pools — the volume leader. Reads yes, bulk creation no |
 | 14 | Learning paths | 10 published paths, 14 course series |
 | 15 | Events & webhooks | Only 3 subscribed, but the cleanest compression: 10 `sample-*` endpoints → one `preview_event_payload(event_type)` |
