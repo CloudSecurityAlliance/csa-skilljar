@@ -207,6 +207,20 @@ _GATES: dict[str, str | None] = {
     # Gated by the BACKEND method name; the tool is called
     # `preview_event_payload`, which is the compression of ten endpoints.
     "get_sample_event_payload": READ_EVENTS,
+    # Block 16. Sessions and their schedule are content; who attended is people.
+    "list_ilt_sessions": READ_CONTENT,
+    "list_vilt_session_events": READ_CONTENT,
+    # An instructor's email is a real person's contact detail, and a registration
+    # carries a learner's name and email on every row.
+    "list_ilt_instructors": READ_PEOPLE,
+    "list_vilt_registrations": READ_PEOPLE,
+    # Block 17 - the last v1 family. Taxonomy is content metadata.
+    "list_labels": READ_CONTENT,
+    "list_tags": READ_CONTENT,
+    "list_course_labels": READ_CONTENT,
+    # A group category organises student groups, so it belongs with groups.read - the
+    # same capability that reads the groups it categorises.
+    "list_group_categories": READ_GROUPS,
 }
 
 

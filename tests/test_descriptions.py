@@ -214,6 +214,23 @@ REQUIREMENTS = {
                     "csa_skilljar_v1_api_key"],
     "preview_event_payload": ["example", "not a real event", "course_completion",
                               "ten", "csa_skilljar_v1_api_key"],
+    # Block 16 — sessions, occurrences, and a listing full of real people.
+    "list_ilt_sessions": ["not a date", "list_vilt_session_events", "seats_total",
+                          "joining link", "csa_skilljar_v1_api_key"],
+    "list_vilt_session_events": ["date", "timezone", "registration_count",
+                                 "seats_total", "csa_skilljar_v1_api_key"],
+    "list_vilt_registrations": ["name and email", "filter_session_id", "attended",
+                                "different facts", "csa_skilljar_v1_api_key"],
+    "list_ilt_instructors": ["name and email", "providers", "instructor_email",
+                             "csa_skilljar_v1_api_key"],
+    # Block 17 — internal versus public taxonomy.
+    "list_labels": ["internal", "not shown to learners", "list_tags",
+                    "csa_skilljar_v1_api_key"],
+    "list_tags": ["public", "slug", "list_labels", "csa_skilljar_v1_api_key"],
+    "list_course_labels": ["not a published course", "same on every domain",
+                           "csa_skilljar_v1_api_key"],
+    "list_group_categories": ["groups groups, not content", "filter_category_id",
+                              "csa_skilljar_v1_api_key"],
 }
 
 

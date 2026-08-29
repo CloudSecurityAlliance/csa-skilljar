@@ -94,6 +94,18 @@ def v1_backend():
         webhooks=[{"id": f"w{i}", "event_type": "COURSE_COMPLETION", "active": True,
                    "target_url": "https://x/h", "additional_headers": {}}
                   for i in range(N)],
+        instructors=[{"name": f"I{i}", "email": f"i{i}@x.org", "providers": []}
+                     for i in range(N)],
+        ilt_sessions=[{"id": f"is{i}", "display_name": f"S{i}"} for i in range(N)],
+        vilt_events=[{"id": f"ve{i}", "starts_at": "2026-01-01T00:00:00Z",
+                      "vilt_session": {"id": f"is{i}"}} for i in range(N)],
+        vilt_registrations=[{"id": f"vr{i}", "attended": True,
+                             "user": {"id": f"u{i}"}, "vilt_session": {"id": "is0"}}
+                            for i in range(N)],
+        labels=[{"id": f"lb{i}", "name": f"L{i}"} for i in range(N)],
+        tags=[{"id": f"tg{i}", "name": f"T{i}", "slug": f"t{i}"} for i in range(N)],
+        group_categories=[{"id": f"gc{i}", "name": f"C{i}"} for i in range(N)],
+        course_labels={"c1": [{"id": "lb0", "name": "L0"}]},
     )
 
 
@@ -143,7 +155,9 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
                  # v1 returns the whole asset library in one response.
                  "list_assets",
                  # One learner's path enrolments: a small bounded set, no paging offered.
-                 "list_learner_path_enrollments"}
+                 "list_learner_path_enrollments",
+                 # One course's labels: a small bounded set, no paging offered.
+                 "list_course_labels"}
 
 # A THIRD kind, which the original two categories had no room for. v1 pages by NUMBER
 # with a total; v2 pages by opaque cursor with none. Lumping these in with "not
@@ -156,6 +170,9 @@ V1_PAGE_NUMBER = {
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {},
     "list_webhooks": {},
+    "list_ilt_instructors": {}, "list_ilt_sessions": {},
+    "list_vilt_session_events": {}, "list_vilt_registrations": {},
+    "list_labels": {}, "list_tags": {}, "list_group_categories": {},
     "list_paths": {}, "list_path_items": {"path_id": "pa0"},
     "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
 }

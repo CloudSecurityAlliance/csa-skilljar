@@ -257,11 +257,13 @@ Ordered by usage evidence in the reference org, not by API size.
 | 13 | Commerce (read-biased) | **Done, reads only.** Re-counted 2026-08-28: **13,708** codes, **4,290** pools, 376 offers — grown since ADR-007's probe. `license-packages` and `access-code-pools` are still empty and were skipped. Purchases are **by id only**; v1 has no listing |
 | 14 | Learning paths | **Done.** 10 paths, 10 published paths, 14 series. Three similar words that are not the same thing: a *path* is a sequence, a *published path* is that sequence on a domain, a *series* is an unordered catalog grouping |
 | 15 | Events & webhooks | **Done.** The compression landed: 10 `sample-*` endpoints → one `preview_event_payload(event_type)`. Also a redaction problem — `/v1/webhooks` returns live secrets three ways |
-| 16 | vILT / ILT | 341 registrations; ILT proper is thin (9 instructors) |
-| 17 | Labels & tags | Small, self-contained, finishes the set |
+| 16 | vILT / ILT | **Done.** 103 sessions, 103 occurrences, 341 registrations, 9 instructors. `ilt-multi-session-events` is empty and skipped. Registrations carry learner name and email, so they sit behind `people.read` |
+| 17 | Labels & tags | **Done.** 50 labels, 17 tags, 7 group categories. Labels are internal, tags are public and carry a slug |
 
 **Ships:** v1.0.0 on completion of Block 17 — the point at which every capability CSA's org
-actually uses is reachable.
+actually uses is reachable. **All seventeen blocks are now done.** What v1.0.0 still waits on is
+live write verification (`WAITING-FOR-003`): every read is exercised against production, and no
+write has been.
 
 ---
 

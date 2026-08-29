@@ -436,3 +436,27 @@ class SkilljarClient:
 
     def get_sample_event_payload(self, *, slug: str) -> dict[str, Any]:
         return self._require_v1().get_sample_event_payload(slug=slug)
+
+    def list_ilt_instructors(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_ilt_instructors(**kw)
+
+    def list_ilt_sessions(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_ilt_sessions(**kw)
+
+    def list_vilt_session_events(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_vilt_session_events(**kw)
+
+    def list_vilt_registrations(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_vilt_registrations(**kw)
+
+    def list_labels(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_labels(**kw)
+
+    def list_tags(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_tags(**kw)
+
+    def list_group_categories(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_group_categories(**kw)
+
+    def list_course_labels(self, *, course_id: str) -> dict[str, Any]:
+        return self._require_v1().list_course_labels(course_id=course_id)

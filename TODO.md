@@ -24,9 +24,10 @@ file plus open GitHub Issues finds everything.
   needs yet — dropping them removes the last write path rather than guarding it.
 
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
-- Blocks 16–17 — the last two v1 families → `ROADMAP.md`. vILT/ILT (103 sessions, 341
-  registrations, 9 instructors) then labels and tags (50 labels, 17 tags, 7 categories).
-  `ilt-multi-session-events` is empty and can be skipped.
+- **All seventeen blocks are done.** What v1.0.0 waits on is live write verification →
+  `WAITING-FOR-003`. Every read is exercised against production; no write has been.
+- `demonstration_plan` — the tour that is also the end-to-end test. Now overdue: there
+  are 111 tools and the CINO research note on it is marked `[proven]`.
 - `license-packages` and `access-code-pools` are still empty in the reference org and
   were skipped in Block 13. Worth a tool only if they ever get used.
 - `/v1/web-packages/{id}/lessons` — attaching a package to lessons, the one v1-only

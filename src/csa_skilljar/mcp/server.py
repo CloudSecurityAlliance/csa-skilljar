@@ -24,6 +24,8 @@ from ._tools import (
     register_quiz_tools,
     register_signup_field_tools,
     register_student_tools,
+    register_taxonomy_tools,
+    register_vilt_tools,
     register_web_package_tools,
 )
 
@@ -89,4 +91,6 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_commerce_tools(app, get_client)
     register_path_tools(app, get_client)
     register_event_tools(app, get_client)
+    register_vilt_tools(app, get_client)
+    register_taxonomy_tools(app, get_client)
     return app

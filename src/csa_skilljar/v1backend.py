@@ -310,6 +310,59 @@ class V1Backend:
         """One of the ten `/v1/webhooks/sample-*` endpoints, chosen by slug."""
         return parse_page(self._get(f"/v1/webhooks/sample-{slug}"))
 
+    # --- instructor-led training (v2 has no ILT/vILT surface) ---------------------------
+
+    def list_ilt_instructors(self, *, email: str | None = None,
+                             provider: str | None = None, page: int | None = None,
+                             page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/ilt-instructors", {
+            "email": email, "provider": provider,
+            "page": page, "page_size": page_size}))
+
+    def list_ilt_sessions(self, *, page: int | None = None,
+                          page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/ilt-sessions",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_vilt_session_events(self, *, starts_after: str | None = None,
+                                 ends_before: str | None = None,
+                                 lesson_id: str | None = None,
+                                 course_id: str | None = None,
+                                 page: int | None = None,
+                                 page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/vilt-session-events", {
+            "starts_at__gte": starts_after, "ends_at__lte": ends_before,
+            "session__lesson__id": lesson_id,
+            "session__lesson__course__id": course_id,
+            "page": page, "page_size": page_size}))
+
+    def list_vilt_registrations(self, *, session_id: str | None = None,
+                                page: int | None = None,
+                                page_size: int | None = None) -> Envelope:
+        """CARRIES LEARNER PII - name and email on every row."""
+        return parse_page(self._get("/v1/vilt-session-registrations", {
+            "session__id": session_id, "page": page, "page_size": page_size}))
+
+    # --- labels, tags and group categories (the last v1 family) -------------------------
+
+    def list_labels(self, *, page: int | None = None,
+                    page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/labels",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_tags(self, *, page: int | None = None,
+                  page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/tags",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_group_categories(self, *, page: int | None = None,
+                              page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/group-categories",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_course_labels(self, *, course_id: str) -> Envelope:
+        return parse_page(self._get(f"/v1/courses/{course_id}/labels"))
+
     def find_learner(self, *, email: str) -> Envelope:
         """Resolve an email to a learner id, using the DRF-enveloped `/v1/users`.
 
@@ -342,7 +395,15 @@ class FakeV1Backend:
                  course_series: list[dict[str, Any]] | None = None,
                  path_enrollments: dict[str, list[dict[str, Any]]] | None = None,
                  webhooks: list[dict[str, Any]] | None = None,
-                 samples: dict[str, Any] | None = None) -> None:
+                 samples: dict[str, Any] | None = None,
+                 instructors: list[dict[str, Any]] | None = None,
+                 ilt_sessions: list[dict[str, Any]] | None = None,
+                 vilt_events: list[dict[str, Any]] | None = None,
+                 vilt_registrations: list[dict[str, Any]] | None = None,
+                 labels: list[dict[str, Any]] | None = None,
+                 tags: list[dict[str, Any]] | None = None,
+                 group_categories: list[dict[str, Any]] | None = None,
+                 course_labels: dict[str, list[dict[str, Any]]] | None = None) -> None:
         import copy
         # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
         # what the real listing does and what a reader looking for a top-level `id`
@@ -366,6 +427,15 @@ class FakeV1Backend:
         # pre-redacted would hide the whole point of the tool layer.
         self._webhooks = copy.deepcopy(list(webhooks or []))
         self._samples = copy.deepcopy(dict(samples or {}))
+        self._instructors = copy.deepcopy(list(instructors or []))
+        self._ilt_sessions = copy.deepcopy(list(ilt_sessions or []))
+        self._vilt_events = copy.deepcopy(list(vilt_events or []))
+        # Carries learner name and email on every row, as the real endpoint does.
+        self._vilt_registrations = copy.deepcopy(list(vilt_registrations or []))
+        self._labels = copy.deepcopy(list(labels or []))
+        self._tags = copy.deepcopy(list(tags or []))
+        self._group_categories = copy.deepcopy(list(group_categories or []))
+        self._course_labels = copy.deepcopy(dict(course_labels or {}))
 
     def __repr__(self) -> str:
         return f"FakeV1Backend(users={len(self._users)})"
@@ -435,6 +505,48 @@ class FakeV1Backend:
             if r.get("id") == purchase_id:
                 return parse_page(dict(r))
         raise exc.NotFoundError(f"v1 returned 404 for /v1/purchases/{purchase_id}.")
+
+    def list_ilt_instructors(self, *, email=None, provider=None, page=None,
+                             page_size=None) -> Envelope:
+        rows = self._instructors
+        if email is not None:
+            rows = [r for r in rows if r.get("email") == email]
+        if provider is not None:
+            rows = [r for r in rows if provider in (r.get("providers") or [])]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_ilt_sessions(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._ilt_sessions, page, page_size)
+
+    def list_vilt_session_events(self, *, starts_after=None, ends_before=None,
+                                 lesson_id=None, course_id=None, page=None,
+                                 page_size=None) -> Envelope:
+        rows = self._vilt_events
+        if starts_after is not None:
+            rows = [r for r in rows if str(r.get("starts_at", "")) >= starts_after]
+        if ends_before is not None:
+            rows = [r for r in rows if str(r.get("ends_at", "")) <= ends_before]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_vilt_registrations(self, *, session_id=None, page=None,
+                                page_size=None) -> Envelope:
+        rows = self._vilt_registrations
+        if session_id is not None:
+            rows = [r for r in rows
+                    if (r.get("vilt_session") or {}).get("id") == session_id]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_labels(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._labels, page, page_size)
+
+    def list_tags(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._tags, page, page_size)
+
+    def list_group_categories(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._group_categories, page, page_size)
+
+    def list_course_labels(self, *, course_id: str) -> Envelope:
+        return parse_page(self._course_labels.get(course_id, []))
 
     def list_webhooks(self, *, page=None, page_size=None) -> Envelope:
         return self._commerce_page(self._webhooks, page, page_size)
