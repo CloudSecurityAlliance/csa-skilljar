@@ -52,6 +52,11 @@ READ_PROGRESS = "progress.read"
 # Its own capability rather than content.read, so a content-reading credential does not
 # also see what everything costs and who bought it.
 READ_COMMERCE = "commerce.read"
+# Webhook configuration carries SECRETS - a shared-secret header value, a token in the
+# target URL query string, a Basic-auth password. Its own capability, so a
+# content-reading credential does not also learn where events go and with what
+# authentication.
+READ_EVENTS = "events.read"
 WRITE_WEB_PACKAGES = "webpackages.write"
 ADMIN_CREDENTIALS = "admin.credentials"
 
@@ -59,7 +64,7 @@ ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
-    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS, READ_COMMERCE,
+    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS, READ_COMMERCE, READ_EVENTS,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
@@ -196,6 +201,12 @@ _GATES: dict[str, str | None] = {
     "list_course_series": READ_CONTENT,
     # A learner's enrolments in paths is progress, not content.
     "list_learner_path_enrollments": READ_PROGRESS,
+    # Block 15.
+    "list_webhooks": READ_EVENTS,
+    "get_webhook": READ_EVENTS,
+    # Gated by the BACKEND method name; the tool is called
+    # `preview_event_payload`, which is the compression of ten endpoints.
+    "get_sample_event_payload": READ_EVENTS,
 }
 
 

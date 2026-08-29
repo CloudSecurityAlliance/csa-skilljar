@@ -4,6 +4,7 @@ from .commerce import register_commerce_tools
 from .courses import register_course_tools
 from .credentials import register_credential_tools
 from .enrolment import register_enrolment_tools
+from .events import register_event_tools
 from .feedback import register_feedback_tools
 from .groups import register_group_tools
 from .lessons import register_lesson_tools
@@ -24,6 +25,7 @@ __all__ = [
     "register_course_tools",
     "register_credential_tools",
     "register_enrolment_tools",
+    "register_event_tools",
     "register_feedback_tools",
     "register_group_tools",
     "register_lesson_tools",

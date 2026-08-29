@@ -12,6 +12,7 @@ from ._tools import (
     register_course_tools,
     register_credential_tools,
     register_enrolment_tools,
+    register_event_tools,
     register_feedback_tools,
     register_group_tools,
     register_lesson_tools,
@@ -87,4 +88,5 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_asset_tools(app, get_client)
     register_commerce_tools(app, get_client)
     register_path_tools(app, get_client)
+    register_event_tools(app, get_client)
     return app

@@ -294,6 +294,22 @@ class V1Backend:
     def list_learner_path_enrollments(self, *, user_id: str) -> Envelope:
         return parse_page(self._get(f"/v1/users/{user_id}/published-path-enrollments"))
 
+    # --- webhooks and event payloads ----------------------------------------------------
+
+    def list_webhooks(self, *, page: int | None = None,
+                      page_size: int | None = None) -> Envelope:
+        """CARRIES SECRETS in three places. See `_tools/events.py`; the tool redacts."""
+        return parse_page(self._get("/v1/webhooks",
+                                    {"page": page, "page_size": page_size}))
+
+    def get_webhook(self, *, webhook_id: str) -> Envelope:
+        """CARRIES SECRETS. See `_tools/events.py`."""
+        return parse_page(self._get(f"/v1/webhooks/{webhook_id}"))
+
+    def get_sample_event_payload(self, *, slug: str) -> Envelope:
+        """One of the ten `/v1/webhooks/sample-*` endpoints, chosen by slug."""
+        return parse_page(self._get(f"/v1/webhooks/sample-{slug}"))
+
     def find_learner(self, *, email: str) -> Envelope:
         """Resolve an email to a learner id, using the DRF-enveloped `/v1/users`.
 
@@ -324,7 +340,9 @@ class FakeV1Backend:
                  path_items: dict[str, list[dict[str, Any]]] | None = None,
                  published_paths: list[dict[str, Any]] | None = None,
                  course_series: list[dict[str, Any]] | None = None,
-                 path_enrollments: dict[str, list[dict[str, Any]]] | None = None) -> None:
+                 path_enrollments: dict[str, list[dict[str, Any]]] | None = None,
+                 webhooks: list[dict[str, Any]] | None = None,
+                 samples: dict[str, Any] | None = None) -> None:
         import copy
         # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
         # what the real listing does and what a reader looking for a top-level `id`
@@ -344,6 +362,10 @@ class FakeV1Backend:
         self._published_paths = copy.deepcopy(list(published_paths or []))
         self._course_series = copy.deepcopy(list(course_series or []))
         self._path_enrollments = copy.deepcopy(dict(path_enrollments or {}))
+        # Stored WITH their secrets, exactly as the API returns them. A fake that
+        # pre-redacted would hide the whole point of the tool layer.
+        self._webhooks = copy.deepcopy(list(webhooks or []))
+        self._samples = copy.deepcopy(dict(samples or {}))
 
     def __repr__(self) -> str:
         return f"FakeV1Backend(users={len(self._users)})"
@@ -413,6 +435,22 @@ class FakeV1Backend:
             if r.get("id") == purchase_id:
                 return parse_page(dict(r))
         raise exc.NotFoundError(f"v1 returned 404 for /v1/purchases/{purchase_id}.")
+
+    def list_webhooks(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._webhooks, page, page_size)
+
+    def get_webhook(self, *, webhook_id: str) -> Envelope:
+        for w in self._webhooks:
+            if w.get("id") == webhook_id:
+                return parse_page(dict(w))
+        raise exc.NotFoundError(f"v1 returned 404 for /v1/webhooks/{webhook_id}.")
+
+    def get_sample_event_payload(self, *, slug: str) -> Envelope:
+        if slug not in self._samples:
+            raise exc.NotFoundError(f"v1 returned 404 for /v1/webhooks/sample-{slug}.")
+        # A LIST of one, which is what the real endpoint sends - verified live. A fake
+        # returning the bare object would have let `parse_page` reject the real shape.
+        return parse_page({"results": [self._samples[slug]]})
 
     def list_paths(self, *, page=None, page_size=None) -> Envelope:
         return self._commerce_page(self._paths, page, page_size)

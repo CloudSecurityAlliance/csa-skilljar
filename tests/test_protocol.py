@@ -133,6 +133,8 @@ EXERCISE = {
     "list_published_paths": {"domain_name": "learn.example.org"},
     "list_course_series": {"domain_name": "learn.example.org"},
     "list_learner_path_enrollments": {"user_id": "u1"},
+    "list_webhooks": {}, "get_webhook": {"id": "w1"},
+    "preview_event_payload": {"event_type": "COURSE_COMPLETION"},
 }
 
 
@@ -192,6 +194,10 @@ V1_PUB_PATHS = [{"id": "pp1", "_domain": "learn.example.org", "path": V1_PATHS[0
                  "hidden": False, "offer": None}]
 V1_SERIES = [{"id": "cs1", "title": "Series", "published_course_count": 2}]
 V1_PATH_ENROL = {"u1": [{"id": "pe1"}]}
+V1_WEBHOOKS = [{"id": "w1", "event_type": "COURSE_COMPLETION", "active": True,
+                "target_url": "https://x/hook?auth=t", "additional_headers": {"X-S": "v"},
+                "basic_auth_username": "", "basic_auth_password": ""}]
+V1_SAMPLES = {"course-completion": {"event_type": "course-completion"}}
 V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
                        "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
                        "course_progress": {"completed_lesson_count": 4},
@@ -218,7 +224,8 @@ def build(profile="full", env=None):
                       offers=V1_OFFERS, credit_codes=V1_CREDITS,
                       purchases=V1_PURCHASES, paths=V1_PATHS,
                       path_items=V1_PATH_ITEMS, published_paths=V1_PUB_PATHS,
-                      course_series=V1_SERIES, path_enrollments=V1_PATH_ENROL), policy))
+                      course_series=V1_SERIES, path_enrollments=V1_PATH_ENROL,
+                      webhooks=V1_WEBHOOKS, samples=V1_SAMPLES), policy))
     return create_server(lambda: client, settings=settings)
 
 

@@ -185,6 +185,12 @@ def test_the_dismissed_literals_are_what_they_claim_to_be():
     # The warning is prose for a human, and must not contain anything secret-shaped.
     assert wp._SHOWN_ONCE_WARNING.startswith("If a client_secret is present")
     assert "=" not in wp._SHOWN_ONCE_WARNING
+    # Block 15's note is prose too. Named _WITHHELD_NOTE rather than _SECRET_NOTE for
+    # the same reason _SHOWN_ONCE_WARNING was renamed: bandit reads the NAME, and a
+    # rename removes the finding honestly where a suppression only hides it.
+    from csa_skilljar.mcp._tools import events as ev
+    assert ev._WITHHELD_NOTE.startswith("Webhook secrets are WITHHELD")
+    assert "=" not in ev._WITHHELD_NOTE
     # RFC 7009 section 2.1: token_type_hint takes "refresh_token" or "access_token".
     # The flagged literal is that default, reachable only through the tool's signature.
     src = inspect.getsource(cr.register_credential_tools)
