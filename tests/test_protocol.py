@@ -135,6 +135,10 @@ EXERCISE = {
     "list_learner_path_enrollments": {"user_id": "u1"},
     "list_webhooks": {}, "get_webhook": {"id": "w1"},
     "preview_event_payload": {"event_type": "COURSE_COMPLETION"},
+    "list_ilt_instructors": {}, "list_ilt_sessions": {},
+    "list_vilt_session_events": {}, "list_vilt_registrations": {},
+    "list_labels": {}, "list_tags": {}, "list_group_categories": {},
+    "list_course_labels": {"course_id": "c1"},
 }
 
 
@@ -198,6 +202,19 @@ V1_WEBHOOKS = [{"id": "w1", "event_type": "COURSE_COMPLETION", "active": True,
                 "target_url": "https://x/hook?auth=t", "additional_headers": {"X-S": "v"},
                 "basic_auth_username": "", "basic_auth_password": ""}]
 V1_SAMPLES = {"course-completion": {"event_type": "course-completion"}}
+V1_INSTRUCTORS = [{"name": "Ada", "email": "a@x.org", "providers": ["zoom.meeting"]}]
+V1_ILT = [{"id": "is1", "display_name": "Live", "seats_total": 10,
+           "instructor_email": "a@x.org", "event_link": "", "description": ""}]
+V1_VILT_EVENTS = [{"id": "ve1", "starts_at": "2026-09-01T09:00:00Z",
+                   "ends_at": "2026-09-01T17:00:00Z", "timezone": "UTC",
+                   "vilt_session": {"id": "is1", "registration_count": 1,
+                                    "seats_total": 10}}]
+V1_VILT_REGS = [{"id": "vr1", "attended": True, "vilt_session": {"id": "is1"},
+                 "user": {"id": "u1", "email": "l@x.org"}}]
+V1_LABELS = [{"id": "lb1", "name": "Internal"}]
+V1_TAGS = [{"id": "tg1", "name": "Public", "slug": "public"}]
+V1_CATEGORIES = [{"id": "gc1", "name": "Partners"}]
+V1_COURSE_LABELS = {"c1": [{"id": "lb1", "name": "Internal"}]}
 V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
                        "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
                        "course_progress": {"completed_lesson_count": 4},
@@ -225,7 +242,12 @@ def build(profile="full", env=None):
                       purchases=V1_PURCHASES, paths=V1_PATHS,
                       path_items=V1_PATH_ITEMS, published_paths=V1_PUB_PATHS,
                       course_series=V1_SERIES, path_enrollments=V1_PATH_ENROL,
-                      webhooks=V1_WEBHOOKS, samples=V1_SAMPLES), policy))
+                      webhooks=V1_WEBHOOKS, samples=V1_SAMPLES,
+                      instructors=V1_INSTRUCTORS, ilt_sessions=V1_ILT,
+                      vilt_events=V1_VILT_EVENTS, vilt_registrations=V1_VILT_REGS,
+                      labels=V1_LABELS, tags=V1_TAGS,
+                      group_categories=V1_CATEGORIES,
+                      course_labels=V1_COURSE_LABELS), policy))
     return create_server(lambda: client, settings=settings)
 
 

@@ -13,7 +13,7 @@ tools.
 
 > **Status: Blocks 1–11. Full 73-tool parity, credential administration, and the first v1-only capability. v0.9.0 on PyPI.**
 >
-> **103 tools** — 84 over Skilljar's v2 API, and nineteen over v1.
+> **111 tools** — 84 over Skilljar's v2 API, and twenty-seven over v1.
 >
 > ```
 > pipx install csa-skilljar
@@ -45,6 +45,8 @@ tools.
 > | **Commerce** (v1, read-only) | `list_promo_codes` · `list_promo_code_pools` · `list_offers` · `list_training_credit_codes` · `get_purchase` — v2 has no commerce surface at all |
 > | **Learning paths** (v1) | `list_paths` · `get_path` · `list_path_items` · `list_published_paths` · `list_course_series` · `list_learner_path_enrollments` — v2 has no path surface at all |
 > | **Webhooks** (v1) | `list_webhooks` · `get_webhook` · `preview_event_payload` — webhook secrets are withheld; one tool covers all ten event types |
+> | **Instructor-led** (v1) | `list_ilt_sessions` · `list_vilt_session_events` · `list_vilt_registrations` · `list_ilt_instructors` |
+> | **Taxonomy** (v1) | `list_labels` · `list_tags` · `list_course_labels` · `list_group_categories` — labels are internal, tags are public |
 > | **Credentials** | `register_oauth_client` · `list_oauth_clients` · `get_oauth_client` · `create_oauth_client` · `update_oauth_client` · `deactivate_oauth_client` · `rotate_oauth_client_secret` · `list_oauth_scopes` · `revoke_refresh_token` — all off unless the `admin` profile is named |
 >
 > All 73 official tools are present — asserted by `tests/test_parity.py`, not claimed. The three extra tools are our own server management. See [ROADMAP.md](ROADMAP.md).

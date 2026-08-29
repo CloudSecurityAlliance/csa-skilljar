@@ -51,7 +51,10 @@ V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
            "list_published_paths", "list_course_series",
            "list_learner_path_enrollments",
            # Block 15 - webhooks and event payloads.
-           "list_webhooks", "get_webhook", "preview_event_payload"}
+           "list_webhooks", "get_webhook", "preview_event_payload",
+           # Blocks 16-17 - vILT/ILT and taxonomy, neither in v2.
+           "list_ilt_sessions", "list_vilt_session_events", "list_vilt_registrations", "list_ilt_instructors",
+           "list_labels", "list_tags", "list_course_labels", "list_group_categories"}
 
 OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 

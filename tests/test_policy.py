@@ -58,13 +58,18 @@ EXPECTED_BY_CAPABILITY = {
                      "list_assets", "get_asset",
                      # Block 14 - a path is a course sequence, i.e. content.
                      "list_paths", "get_path", "list_path_items",
-                     "list_published_paths", "list_course_series"},
+                     "list_published_paths", "list_course_series",
+                     # Blocks 16-17
+                     "list_ilt_sessions", "list_vilt_session_events",
+                     "list_labels", "list_tags", "list_course_labels"},
     "reporting.read": {"list_enrollments", "get_enrollment", "list_certificates",
                        "get_certificate", "get_course_analytics",
                        "list_course_ratings"},
     "enrolment.write": {"update_enrollments", "complete_enrollments",
                         "bulk_enroll"},
-    "people.read": {"list_students", "get_student"},
+    "people.read": {"list_students", "get_student",
+                    # Instructor emails and learner registrations are both personal data.
+                    "list_ilt_instructors", "list_vilt_registrations"},
     "people.write": {"create_students", "update_students"},
     # Deliberately NOT in people.write: a credential for routine learner administration
     # must not be able to erase anyone or take over their account.
@@ -84,7 +89,9 @@ EXPECTED_BY_CAPABILITY = {
                     "list_signup_field_values", "get_signup_field_value",
                     # Visibility overrides live here, not under publishing.*: upstream
                     # gates them with student-groups:* and hangs them off the group.
-                    "list_visibility_overrides"},
+                    "list_visibility_overrides",
+                    # Categories organise student GROUPS, so they sit with groups.read.
+                    "list_group_categories"},
     "groups.write": {"create_groups", "update_groups",
                      "add_group_memberships", "remove_group_memberships",
                      "create_signup_field_values", "update_signup_field_values",
@@ -184,6 +191,10 @@ CALL_ARGS = {
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {}, "get_purchase": {"purchase_id": "pur1"},
     "list_webhooks": {}, "get_webhook": {"webhook_id": "w1"},
+    "list_ilt_instructors": {}, "list_ilt_sessions": {},
+    "list_vilt_session_events": {}, "list_vilt_registrations": {},
+    "list_labels": {}, "list_tags": {}, "list_group_categories": {},
+    "list_course_labels": {"course_id": "c1"},
     "get_sample_event_payload": {"slug": "course-completion"},
     "list_paths": {}, "get_path": {"path_id": "p1"},
     "list_path_items": {"path_id": "p1"},
@@ -242,6 +253,30 @@ class BothBackends(FakeBackend):
 
     def get_purchase(self, **kw):
         return self._v1.get_purchase(**kw)
+
+    def list_ilt_instructors(self, **kw):
+        return self._v1.list_ilt_instructors(**kw)
+
+    def list_ilt_sessions(self, **kw):
+        return self._v1.list_ilt_sessions(**kw)
+
+    def list_vilt_session_events(self, **kw):
+        return self._v1.list_vilt_session_events(**kw)
+
+    def list_vilt_registrations(self, **kw):
+        return self._v1.list_vilt_registrations(**kw)
+
+    def list_labels(self, **kw):
+        return self._v1.list_labels(**kw)
+
+    def list_tags(self, **kw):
+        return self._v1.list_tags(**kw)
+
+    def list_group_categories(self, **kw):
+        return self._v1.list_group_categories(**kw)
+
+    def list_course_labels(self, **kw):
+        return self._v1.list_course_labels(**kw)
 
     def list_webhooks(self, **kw):
         return self._v1.list_webhooks(**kw)
