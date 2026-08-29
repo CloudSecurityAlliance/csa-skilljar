@@ -166,6 +166,39 @@ Not a control, and worth being plain about: nothing prevents a model from includ
 URL in its answer. This is a procedural limit like the demonstration allowlist, and it is
 listed in the risk table below rather than claimed as handled.
 
+## Webhook configuration carries live secrets — Block 15, 2026-08-28
+
+`/v1/webhooks` returns credentials, in three places at once. Verified against CSA's
+production organization:
+
+| Where | What | State |
+|---|---|---|
+| `additional_headers` values | a 32-character `X-Skilljar-Secret` | **plaintext** |
+| `target_url` query string | an `auth` parameter, on 2 of 3 targets | **plaintext** |
+| `basic_auth_password` | the field exists on every row | empty here, populated elsewhere |
+
+These are credentials for whatever the webhook authenticates *to* — a CSA endpoint, in
+these cases. A tool that passed the response through would hand a model the shared secret
+that a receiving service uses to decide a request is genuinely from Skilljar.
+
+`list_webhooks` and `get_webhook` therefore return the **shape** and never the values:
+
+- header **names**, never header values
+- the target URL's **scheme, host and path**, never its query string — but the query
+  **parameter names**, because "the URL carries an `auth` parameter" is useful and its
+  value is the credential
+- `basic_auth_password` **replaced** with a marker rather than omitted, because omitting
+  it silently would read as "no password is set", which is a different fact
+- a note saying secrets were withheld and to read them in the Dashboard, so nobody
+  concludes the webhook has none and goes hunting for a bug
+
+Verified live: three secret values present in the raw backend response, **zero** in the
+tool output, for both the listing and the detail view.
+
+Gated by its own `events.read` capability rather than `content.read` — webhook
+configuration is where events go and how they authenticate, which is not a content
+question.
+
 ## Known gaps and accepted risks
 
 | Gap | Rationale | Owner |
@@ -255,7 +288,8 @@ from the blocked release.
 
 ## Review schedule
 
-- **Last reviewed:** 2026-08-28 (Block 12 — presigned asset links; see section above)
+- **Last reviewed:** 2026-08-28 (Block 15 — webhook secrets; see section above)
+- **Previously:** 2026-08-28 (Block 12 — presigned asset links)
 - **Previously:** 2026-08-27 (Block 10 — credential administration)
 - **Previously:** 2026-08-27 (Block 9 — credential-returning tools)
 - **Previously:** 2026-08-27 (Block 6 — first destructive tools)

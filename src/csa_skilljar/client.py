@@ -427,3 +427,12 @@ class SkilljarClient:
 
     def list_learner_path_enrollments(self, *, user_id: str) -> dict[str, Any]:
         return self._require_v1().list_learner_path_enrollments(user_id=user_id)
+
+    def list_webhooks(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_webhooks(**kw)
+
+    def get_webhook(self, *, webhook_id: str) -> dict[str, Any]:
+        return self._require_v1().get_webhook(webhook_id=webhook_id)
+
+    def get_sample_event_payload(self, *, slug: str) -> dict[str, Any]:
+        return self._require_v1().get_sample_event_payload(slug=slug)

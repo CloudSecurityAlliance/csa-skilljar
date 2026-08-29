@@ -24,10 +24,9 @@ file plus open GitHub Issues finds everything.
   needs yet — dropping them removes the last write path rather than guarding it.
 
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
-- Blocks 15–17 — the remaining v1 families → `ROADMAP.md`. Next is events and webhooks.
-  **`/v1/webhooks` returns live secrets** — an `X-Skilljar-Secret` header value in
-  plaintext, and an `auth` token in two `target_url` query strings. The listing tool must
-  redact all of it.
+- Blocks 16–17 — the last two v1 families → `ROADMAP.md`. vILT/ILT (103 sessions, 341
+  registrations, 9 instructors) then labels and tags (50 labels, 17 tags, 7 categories).
+  `ilt-multi-session-events` is empty and can be skipped.
 - `license-packages` and `access-code-pools` are still empty in the reference org and
   were skipped in Block 13. Worth a tool only if they ever get used.
 - `/v1/web-packages/{id}/lessons` — attaching a package to lessons, the one v1-only

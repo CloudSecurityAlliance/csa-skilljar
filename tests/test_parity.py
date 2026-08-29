@@ -49,7 +49,9 @@ V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
            # Block 14 - v2 has no path or series surface at all.
            "list_paths", "get_path", "list_path_items",
            "list_published_paths", "list_course_series",
-           "list_learner_path_enrollments"}
+           "list_learner_path_enrollments",
+           # Block 15 - webhooks and event payloads.
+           "list_webhooks", "get_webhook", "preview_event_payload"}
 
 OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 

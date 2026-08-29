@@ -91,6 +91,9 @@ def v1_backend():
                          for i in range(N)],
         course_series=[{"id": f"cs{i}", "title": f"Series {i}"} for i in range(N)],
         path_enrollments={"u1": [{"id": "pe1"}]},
+        webhooks=[{"id": f"w{i}", "event_type": "COURSE_COMPLETION", "active": True,
+                   "target_url": "https://x/h", "additional_headers": {}}
+                  for i in range(N)],
     )
 
 
@@ -152,6 +155,7 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
 V1_PAGE_NUMBER = {
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {},
+    "list_webhooks": {},
     "list_paths": {}, "list_path_items": {"path_id": "pa0"},
     "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
 }

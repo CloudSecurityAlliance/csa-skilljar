@@ -92,6 +92,7 @@ EXPECTED_BY_CAPABILITY = {
     # Deliberately NOT in groups.write: deleting a group is a HARD delete and takes its
     # memberships and course-visibility overrides with it at the database level.
     "groups.delete": {"delete_groups"},
+    "events.read": {"list_webhooks", "get_webhook", "get_sample_event_payload"},
     "commerce.read": {"list_promo_codes", "list_promo_code_pools", "list_offers",
                       "list_training_credit_codes", "get_purchase"},
     "publishing.read": {"list_published_courses", "get_published_course",
@@ -182,6 +183,8 @@ CALL_ARGS = {
     "list_assets": {}, "get_asset": {"asset_id": "a1"},
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {}, "get_purchase": {"purchase_id": "pur1"},
+    "list_webhooks": {}, "get_webhook": {"webhook_id": "w1"},
+    "get_sample_event_payload": {"slug": "course-completion"},
     "list_paths": {}, "get_path": {"path_id": "p1"},
     "list_path_items": {"path_id": "p1"},
     "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
@@ -239,6 +242,15 @@ class BothBackends(FakeBackend):
 
     def get_purchase(self, **kw):
         return self._v1.get_purchase(**kw)
+
+    def list_webhooks(self, **kw):
+        return self._v1.list_webhooks(**kw)
+
+    def get_webhook(self, **kw):
+        return self._v1.get_webhook(**kw)
+
+    def get_sample_event_payload(self, **kw):
+        return self._v1.get_sample_event_payload(**kw)
 
     def list_paths(self, **kw):
         return self._v1.list_paths(**kw)

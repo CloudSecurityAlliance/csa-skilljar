@@ -206,6 +206,14 @@ REQUIREMENTS = {
     "list_learner_path_enrollments": ["separate from enrolment in the courses",
                                       "list_learner_progress",
                                       "csa_skilljar_v1_api_key"],
+    # Block 15 — the redaction and the ten-into-one compression.
+    "list_webhooks": ["secrets are withheld", "plain text", "header names",
+                      "deactivate_reason", "skilljar dashboard",
+                      "csa_skilljar_v1_api_key"],
+    "get_webhook": ["secrets are withheld", "query string", "deactivate_reason",
+                    "csa_skilljar_v1_api_key"],
+    "preview_event_payload": ["example", "not a real event", "course_completion",
+                              "ten", "csa_skilljar_v1_api_key"],
 }
 
 
