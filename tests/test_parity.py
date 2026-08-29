@@ -44,7 +44,12 @@ V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
            # Block 12 - v2 has no assets endpoint at all.
            "list_assets", "get_asset",
            # Block 13 - v2 has no commerce surface at all.
-           "list_promo_codes", "list_promo_code_pools", "list_offers", "list_training_credit_codes", "get_purchase"}
+           "list_promo_codes", "list_promo_code_pools", "list_offers",
+           "list_training_credit_codes", "get_purchase",
+           # Block 14 - v2 has no path or series surface at all.
+           "list_paths", "get_path", "list_path_items",
+           "list_published_paths", "list_course_series",
+           "list_learner_path_enrollments"}
 
 OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
 

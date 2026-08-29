@@ -128,6 +128,11 @@ EXERCISE = {
     "get_asset": {"id": "a1"},
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {}, "get_purchase": {"id": "pur1"},
+    "list_paths": {}, "get_path": {"id": "pa1"},
+    "list_path_items": {"path_id": "pa1"},
+    "list_published_paths": {"domain_name": "learn.example.org"},
+    "list_course_series": {"domain_name": "learn.example.org"},
+    "list_learner_path_enrollments": {"user_id": "u1"},
 }
 
 
@@ -180,6 +185,13 @@ V1_OFFERS = [{"id": "o1", "sku": "CCSK", "offer_type": "COURSE", "active": True,
 V1_CREDITS = [{"id": "tc1", "training_credit_code": "ACME", "credits_total": 10,
                "credits_used": 1, "tracking_identifier": "PO-1"}]
 V1_PURCHASES = [{"id": "pur1", "total_cents": 39500}]
+V1_PATHS = [{"id": "pa1", "title": "Track", "path_item_count": 1,
+             "course_name_singular": "module", "header_html": "<p>x</p>"}]
+V1_PATH_ITEMS = {"pa1": [{"id": "it1", "slug": "s", "course": {"id": "c1"}}]}
+V1_PUB_PATHS = [{"id": "pp1", "_domain": "learn.example.org", "path": V1_PATHS[0],
+                 "hidden": False, "offer": None}]
+V1_SERIES = [{"id": "cs1", "title": "Series", "published_course_count": 2}]
+V1_PATH_ENROL = {"u1": [{"id": "pe1"}]}
 V1_PROGRESS = {"u1": [{"published_course_id": "pc1", "domain_name": "learn.example.org",
                        "course": {"id": "c1", "title": "Zero Trust", "lesson_count": 10},
                        "course_progress": {"completed_lesson_count": 4},
@@ -204,7 +216,9 @@ def build(profile="full", env=None):
         v1=PolicyBackend(FakeV1Backend(users=V1_USERS, progress=V1_PROGRESS, assets=V1_ASSETS,
                       promo_codes=V1_CODES, promo_code_pools=V1_POOLS,
                       offers=V1_OFFERS, credit_codes=V1_CREDITS,
-                      purchases=V1_PURCHASES), policy))
+                      purchases=V1_PURCHASES, paths=V1_PATHS,
+                      path_items=V1_PATH_ITEMS, published_paths=V1_PUB_PATHS,
+                      course_series=V1_SERIES, path_enrollments=V1_PATH_ENROL), policy))
     return create_server(lambda: client, settings=settings)
 
 

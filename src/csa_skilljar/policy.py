@@ -188,6 +188,14 @@ _GATES: dict[str, str | None] = {
     "list_offers": READ_COMMERCE,
     "list_training_credit_codes": READ_COMMERCE,
     "get_purchase": READ_COMMERCE,
+    # Block 14. A path is a course sequence - content, under the same gate as courses.
+    "list_paths": READ_CONTENT,
+    "get_path": READ_CONTENT,
+    "list_path_items": READ_CONTENT,
+    "list_published_paths": READ_CONTENT,
+    "list_course_series": READ_CONTENT,
+    # A learner's enrolments in paths is progress, not content.
+    "list_learner_path_enrollments": READ_PROGRESS,
 }
 
 

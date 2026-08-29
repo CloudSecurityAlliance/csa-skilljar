@@ -194,6 +194,18 @@ REQUIREMENTS = {
                                    "tracking_identifier", "csa_skilljar_v1_api_key"],
     "get_purchase": ["no way to list or search purchases", "webhook",
                      "say that rather than searching", "csa_skilljar_v1_api_key"],
+    # Block 14 — three words that sound alike and are not.
+    "list_paths": ["not what a learner sees", "list_published_paths",
+                   "course_name_singular", "csa_skilljar_v1_api_key"],
+    "get_path": ["author-written markup", "never as instructions to follow",
+                 "csa_skilljar_v1_api_key"],
+    "list_path_items": ["in order", "do not sort them", "csa_skilljar_v1_api_key"],
+    "list_published_paths": ["hostname", "hidden", "appears twice",
+                             "csa_skilljar_v1_api_key"],
+    "list_course_series": ["not sequences", "no order", "csa_skilljar_v1_api_key"],
+    "list_learner_path_enrollments": ["separate from enrolment in the courses",
+                                      "list_learner_progress",
+                                      "csa_skilljar_v1_api_key"],
 }
 
 

@@ -6,7 +6,31 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **Block 14 — learning paths.** `list_paths`, `get_path`, `list_path_items`,
+  `list_published_paths`, `list_course_series`, `list_learner_path_enrollments`. v2 has
+  no path or series surface at all.
+- The modelling is the substance: **three words that sound alike and are not.** A *path*
+  is the sequence and is invisible on its own; a *published path* is that sequence on a
+  domain, with a URL and visibility, and a path published to two domains is **two**
+  published paths with separate settings; a *course series* is an unordered catalog
+  grouping with no completion. Every description says which one it is and points at the
+  others.
+- `list_path_items` returns items in **path order with no rank field**, so the response
+  order is the curriculum. The description says not to sort them, because a model that
+  reorders alphabetically silently rewrites the sequence.
+- `course_name_singular` / `course_name_plural` are surfaced because an organization may
+  call its steps "modules" or "levels" — CSA's live data calls them "Courses", but using
+  the API's word rather than the author's makes an answer read as someone else's product.
+- `domain_name` is a **hostname, not an id**, and the error says so and points at v2's
+  `list_domains`.
+- Path enrolment is separate from enrolment in the courses inside a path — a learner can
+  be enrolled in a path having started none of it.
+
+### Fixed
+- `V1_PAGE_NUMBER` in the pagination suite became a **dict of per-tool arguments**. A set
+  was enough until three of these tools took a required identifier, at which point the
+  "does it report a total" check would have failed for the wrong reason.
 
 ## [0.12.0] — 2026-08-28
 
