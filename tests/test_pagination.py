@@ -84,6 +84,13 @@ def v1_backend():
         offers=[{"id": f"o{i}", "sku": f"SKU{i}"} for i in range(N)],
         credit_codes=[{"id": f"t{i}", "training_credit_code": f"T{i}"} for i in range(N)],
         assets=[{"id": f"a{i}", "name": f"a{i}.pdf", "type": "PDF"} for i in range(N)],
+        paths=[{"id": f"pa{i}", "title": f"Path {i}"} for i in range(N)],
+        path_items={f"pa{i}": [{"id": f"it{j}", "slug": f"s{j}"} for j in range(N)]
+                    for i in range(N)},
+        published_paths=[{"id": f"pp{i}", "_domain": "d", "path": {"id": "pa0"}}
+                         for i in range(N)],
+        course_series=[{"id": f"cs{i}", "title": f"Series {i}"} for i in range(N)],
+        path_enrollments={"u1": [{"id": "pe1"}]},
     )
 
 
@@ -131,24 +138,32 @@ NOT_PAGINATED = {"list_quiz_question_bank_assignments", "list_course_ratings",
                  # would imply a control they cannot honour.
                  "list_learner_progress",
                  # v1 returns the whole asset library in one response.
-                 "list_assets"}
+                 "list_assets",
+                 # One learner's path enrolments: a small bounded set, no paging offered.
+                 "list_learner_path_enrollments"}
 
 # A THIRD kind, which the original two categories had no room for. v1 pages by NUMBER
 # with a total; v2 pages by opaque cursor with none. Lumping these in with "not
 # paginated" would have asserted they take no paging arguments, which is false, and
 # lumping them in with the cursor-paginated set would have demanded a `page_cursor` they
 # do not have. Neither would have described what these tools actually do.
-V1_PAGE_NUMBER = {"list_promo_codes", "list_promo_code_pools", "list_offers",
-                  "list_training_credit_codes"}
+# name -> the arguments needed to reach a populated collection. A set was enough until
+# Block 14, where three of these take a required identifier.
+V1_PAGE_NUMBER = {
+    "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
+    "list_training_credit_codes": {},
+    "list_paths": {}, "list_path_items": {"path_id": "pa0"},
+    "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
+}
 
 
 def test_every_list_tool_is_classified():
     """Fail-closed. A list tool added next block lands in neither set and fails here,
     rather than shipping unpaginated-and-untested like five of these did."""
     registered = {n for n in tools()[0] if n.startswith("list_")}
-    unclassified = sorted(registered - set(PAGINATED) - NOT_PAGINATED - V1_PAGE_NUMBER)
+    unclassified = sorted(registered - set(PAGINATED) - NOT_PAGINATED - set(V1_PAGE_NUMBER))
     assert not unclassified, f"new list tools with no pagination verdict: {unclassified}"
-    stale = sorted((set(PAGINATED) | NOT_PAGINATED | V1_PAGE_NUMBER) - registered)
+    stale = sorted((set(PAGINATED) | NOT_PAGINATED | set(V1_PAGE_NUMBER)) - registered)
     assert not stale, f"classified tools that no longer exist: {stale}"
 
 
@@ -209,5 +224,5 @@ def test_v1_tools_page_by_number_not_cursor(name):
 def test_v1_tools_report_a_total(name):
     """The reason page numbers are tolerable here: v1 gives a count, so "how many" is
     answerable from one small page. v2 never provides one."""
-    out = tools()[0][name]()
+    out = tools()[0][name](**V1_PAGE_NUMBER[name])
     assert "total" in out, f"{name} must surface v1's count"

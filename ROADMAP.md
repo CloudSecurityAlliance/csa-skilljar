@@ -255,7 +255,7 @@ Ordered by usage evidence in the reference org, not by API size.
 |---|---|---|
 | 12 | Assets & media | **Done.** 157 assets. v2 has no assets endpoint at all. Only `/v1/web-packages/{id}/lessons` is v1-only there — list/get/delete are v2's (Block 9) |
 | 13 | Commerce (read-biased) | **Done, reads only.** Re-counted 2026-08-28: **13,708** codes, **4,290** pools, 376 offers — grown since ADR-007's probe. `license-packages` and `access-code-pools` are still empty and were skipped. Purchases are **by id only**; v1 has no listing |
-| 14 | Learning paths | 10 published paths, 14 course series |
+| 14 | Learning paths | **Done.** 10 paths, 10 published paths, 14 series. Three similar words that are not the same thing: a *path* is a sequence, a *published path* is that sequence on a domain, a *series* is an unordered catalog grouping |
 | 15 | Events & webhooks | Only 3 subscribed, but the cleanest compression: 10 `sample-*` endpoints → one `preview_event_payload(event_type)` |
 | 16 | vILT / ILT | 341 registrations; ILT proper is thin (9 instructors) |
 | 17 | Labels & tags | Small, self-contained, finishes the set |

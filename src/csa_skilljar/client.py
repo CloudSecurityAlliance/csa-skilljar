@@ -409,3 +409,21 @@ class SkilljarClient:
 
     def get_purchase(self, *, purchase_id: str) -> dict[str, Any]:
         return self._require_v1().get_purchase(purchase_id=purchase_id)
+
+    def list_paths(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_paths(**kw)
+
+    def get_path(self, *, path_id: str) -> dict[str, Any]:
+        return self._require_v1().get_path(path_id=path_id)
+
+    def list_path_items(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_path_items(**kw)
+
+    def list_published_paths(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_published_paths(**kw)
+
+    def list_course_series(self, **kw: Any) -> dict[str, Any]:
+        return self._require_v1().list_course_series(**kw)
+
+    def list_learner_path_enrollments(self, *, user_id: str) -> dict[str, Any]:
+        return self._require_v1().list_learner_path_enrollments(user_id=user_id)

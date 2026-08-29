@@ -55,7 +55,10 @@ EXPECTED_BY_CAPABILITY = {
                      "list_bank_assignments",
                      # v1-only: an asset IS content, and list_lessons already returns
                      # content_asset_id under this same capability.
-                     "list_assets", "get_asset"},
+                     "list_assets", "get_asset",
+                     # Block 14 - a path is a course sequence, i.e. content.
+                     "list_paths", "get_path", "list_path_items",
+                     "list_published_paths", "list_course_series"},
     "reporting.read": {"list_enrollments", "get_enrollment", "list_certificates",
                        "get_certificate", "get_course_analytics",
                        "list_course_ratings"},
@@ -94,7 +97,8 @@ EXPECTED_BY_CAPABILITY = {
     "publishing.read": {"list_published_courses", "get_published_course",
                         "list_domains", "get_domain"},
     # v1-only, and gated by the SAME table as every v2 method.
-    "progress.read": {"find_learner", "list_learner_progress", "get_learner_progress"},
+    "progress.read": {"find_learner", "list_learner_progress", "get_learner_progress",
+                      "list_learner_path_enrollments"},
     # Deliberately NOT reachable from `authoring`: these change what anonymous visitors
     # to a customer-facing site can see.
     "publishing.write": {"publish_courses", "update_published_courses",
@@ -178,6 +182,10 @@ CALL_ARGS = {
     "list_assets": {}, "get_asset": {"asset_id": "a1"},
     "list_promo_codes": {}, "list_promo_code_pools": {}, "list_offers": {},
     "list_training_credit_codes": {}, "get_purchase": {"purchase_id": "pur1"},
+    "list_paths": {}, "get_path": {"path_id": "p1"},
+    "list_path_items": {"path_id": "p1"},
+    "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
+    "list_learner_path_enrollments": {"user_id": "u1"},
 }
 
 
@@ -231,6 +239,24 @@ class BothBackends(FakeBackend):
 
     def get_purchase(self, **kw):
         return self._v1.get_purchase(**kw)
+
+    def list_paths(self, **kw):
+        return self._v1.list_paths(**kw)
+
+    def get_path(self, **kw):
+        return self._v1.get_path(**kw)
+
+    def list_path_items(self, **kw):
+        return self._v1.list_path_items(**kw)
+
+    def list_published_paths(self, **kw):
+        return self._v1.list_published_paths(**kw)
+
+    def list_course_series(self, **kw):
+        return self._v1.list_course_series(**kw)
+
+    def list_learner_path_enrollments(self, **kw):
+        return self._v1.list_learner_path_enrollments(**kw)
 
 
 def test_one_capability_at_a_time_matrix():

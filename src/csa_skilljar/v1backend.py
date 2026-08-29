@@ -266,6 +266,34 @@ class V1Backend:
         a fulfillment webhook, or an order reference someone already has."""
         return parse_page(self._get(f"/v1/purchases/{purchase_id}"))
 
+    # --- learning paths (v2 has no path or series surface at all) -----------------------
+
+    def list_paths(self, *, page: int | None = None,
+                   page_size: int | None = None) -> Envelope:
+        return parse_page(self._get("/v1/paths",
+                                    {"page": page, "page_size": page_size}))
+
+    def get_path(self, *, path_id: str) -> Envelope:
+        return parse_page(self._get(f"/v1/paths/{path_id}"))
+
+    def list_path_items(self, *, path_id: str, page: int | None = None,
+                        page_size: int | None = None) -> Envelope:
+        return parse_page(self._get(f"/v1/paths/{path_id}/path-items",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_published_paths(self, *, domain_name: str, page: int | None = None,
+                             page_size: int | None = None) -> Envelope:
+        return parse_page(self._get(f"/v1/domains/{domain_name}/published-paths",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_course_series(self, *, domain_name: str, page: int | None = None,
+                           page_size: int | None = None) -> Envelope:
+        return parse_page(self._get(f"/v1/domains/{domain_name}/course-series",
+                                    {"page": page, "page_size": page_size}))
+
+    def list_learner_path_enrollments(self, *, user_id: str) -> Envelope:
+        return parse_page(self._get(f"/v1/users/{user_id}/published-path-enrollments"))
+
     def find_learner(self, *, email: str) -> Envelope:
         """Resolve an email to a learner id, using the DRF-enveloped `/v1/users`.
 
@@ -291,7 +319,12 @@ class FakeV1Backend:
                  promo_code_pools: list[dict[str, Any]] | None = None,
                  offers: list[dict[str, Any]] | None = None,
                  credit_codes: list[dict[str, Any]] | None = None,
-                 purchases: list[dict[str, Any]] | None = None) -> None:
+                 purchases: list[dict[str, Any]] | None = None,
+                 paths: list[dict[str, Any]] | None = None,
+                 path_items: dict[str, list[dict[str, Any]]] | None = None,
+                 published_paths: list[dict[str, Any]] | None = None,
+                 course_series: list[dict[str, Any]] | None = None,
+                 path_enrollments: dict[str, list[dict[str, Any]]] | None = None) -> None:
         import copy
         # `users` is stored in the DRF shape: the learner NESTS under `user`, which is
         # what the real listing does and what a reader looking for a top-level `id`
@@ -306,6 +339,11 @@ class FakeV1Backend:
         self._offers = copy.deepcopy(list(offers or []))
         self._credit_codes = copy.deepcopy(list(credit_codes or []))
         self._purchases = copy.deepcopy(list(purchases or []))
+        self._paths = copy.deepcopy(list(paths or []))
+        self._path_items = copy.deepcopy(dict(path_items or {}))
+        self._published_paths = copy.deepcopy(list(published_paths or []))
+        self._course_series = copy.deepcopy(list(course_series or []))
+        self._path_enrollments = copy.deepcopy(dict(path_enrollments or {}))
 
     def __repr__(self) -> str:
         return f"FakeV1Backend(users={len(self._users)})"
@@ -375,6 +413,32 @@ class FakeV1Backend:
             if r.get("id") == purchase_id:
                 return parse_page(dict(r))
         raise exc.NotFoundError(f"v1 returned 404 for /v1/purchases/{purchase_id}.")
+
+    def list_paths(self, *, page=None, page_size=None) -> Envelope:
+        return self._commerce_page(self._paths, page, page_size)
+
+    def get_path(self, *, path_id: str) -> Envelope:
+        for r in self._paths:
+            if r.get("id") == path_id:
+                return parse_page(dict(r))
+        raise exc.NotFoundError(f"v1 returned 404 for /v1/paths/{path_id}.")
+
+    def list_path_items(self, *, path_id: str, page=None, page_size=None) -> Envelope:
+        self.get_path(path_id=path_id)
+        return self._commerce_page(self._path_items.get(path_id, []), page, page_size)
+
+    def list_published_paths(self, *, domain_name: str, page=None,
+                             page_size=None) -> Envelope:
+        rows = [r for r in self._published_paths
+                if r.get("_domain", domain_name) == domain_name]
+        return self._commerce_page(rows, page, page_size)
+
+    def list_course_series(self, *, domain_name: str, page=None,
+                           page_size=None) -> Envelope:
+        return self._commerce_page(self._course_series, page, page_size)
+
+    def list_learner_path_enrollments(self, *, user_id: str) -> Envelope:
+        return parse_page(self._path_enrollments.get(user_id, []))
 
     def find_learner(self, *, email: str) -> Envelope:
         rows = [u for u in self._users

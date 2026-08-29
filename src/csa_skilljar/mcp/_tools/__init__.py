@@ -7,6 +7,7 @@ from .enrolment import register_enrolment_tools
 from .feedback import register_feedback_tools
 from .groups import register_group_tools
 from .lessons import register_lesson_tools
+from .paths import register_path_tools
 from .progress import register_progress_tools
 from .publishing import register_publishing_tools
 from .question_banks import register_question_bank_tools
@@ -26,6 +27,7 @@ __all__ = [
     "register_feedback_tools",
     "register_group_tools",
     "register_lesson_tools",
+    "register_path_tools",
     "register_progress_tools",
     "register_publishing_tools",
     "register_question_bank_tools",
