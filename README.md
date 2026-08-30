@@ -13,14 +13,14 @@ tools.
 
 > **Status: Blocks 1–11. Full 73-tool parity, credential administration, and the first v1-only capability. v0.9.0 on PyPI.**
 >
-> **111 tools** — 84 over Skilljar's v2 API, and twenty-seven over v1.
+> **112 tools** — 84 over Skilljar's v2 API, twenty-seven over v1, and `demonstration_plan`.
 >
 > ```
 > pipx install csa-skilljar
 > ```
 > | | |
 > |---|---|
-> | **Server** | `check_access` · `describe_capabilities` · `report_a_problem` |
+> | **Server** | `check_access` · `describe_capabilities` · `report_a_problem` · `demonstration_plan` — a guided tour that is also the end-to-end test, in read-only or read/write mode |
 > | **Courses** | `list_courses` · `get_course` · `create_courses` · `update_courses` |
 > | **Lessons** | `list_lessons` · `get_lesson` · `create_lessons` · `update_lessons` |
 > | **Quizzes** | `list_quizzes` · `get_quiz` · `create_quizzes` · `update_quizzes` · `delete_quizzes` |

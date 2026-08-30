@@ -26,8 +26,9 @@ file plus open GitHub Issues finds everything.
 - **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
 - **All seventeen blocks are done.** What v1.0.0 waits on is live write verification →
   `WAITING-FOR-003`. Every read is exercised against production; no write has been.
-- `demonstration_plan` — the tour that is also the end-to-end test. Now overdue: there
-  are 111 tools and the CINO research note on it is marked `[proven]`.
+- Run `demonstration_plan(mode="read_write")` once `WAITING-FOR-003` closes. The
+  read-only half has been executed against production - 52 of 61 steps, 2 refusals both
+  correctly predicted. The write half has never run anywhere but the fake.
 - `license-packages` and `access-code-pools` are still empty in the reference org and
   were skipped in Block 13. Worth a tool only if they ever get used.
 - `/v1/web-packages/{id}/lessons` — attaching a package to lessons, the one v1-only

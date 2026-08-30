@@ -231,6 +231,8 @@ REQUIREMENTS = {
                            "csa_skilljar_v1_api_key"],
     "list_group_categories": ["groups groups, not content", "filter_category_id",
                               "csa_skilljar_v1_api_key"],
+    "demonstration_plan": ["it does not run them", "read_only", "read_write",
+                           "refuse", "coverage", "named accounts"],
 }
 
 

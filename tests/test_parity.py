@@ -24,7 +24,10 @@ OFFICIAL = set(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").
 # risks and collapsing them would hide that.
 #
 # Server management touches no Skilljar API at all, so it cannot diverge from one.
-SERVER_MANAGEMENT = {"check_access", "describe_capabilities", "report_a_problem"}
+SERVER_MANAGEMENT = {"check_access", "describe_capabilities", "report_a_problem",
+                     # Returns a plan for exercising this server; touches
+                     # no Skilljar API of its own.
+                     "demonstration_plan"}
 
 # Beyond-parity API tools DO call Skilljar, at endpoints the official server omits. They
 # can drift with the vendor exactly like a parity tool can, and they are listed here so
