@@ -139,6 +139,7 @@ EXERCISE = {
     "list_vilt_session_events": {}, "list_vilt_registrations": {},
     "list_labels": {}, "list_tags": {}, "list_group_categories": {},
     "list_course_labels": {"course_id": "c1"},
+    "demonstration_plan": {},
 }
 
 

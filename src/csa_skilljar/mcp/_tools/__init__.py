@@ -3,6 +3,7 @@ from .assets import register_asset_tools
 from .commerce import register_commerce_tools
 from .courses import register_course_tools
 from .credentials import register_credential_tools
+from .demo import register_demo_tools
 from .enrolment import register_enrolment_tools
 from .events import register_event_tools
 from .feedback import register_feedback_tools
@@ -26,6 +27,7 @@ __all__ = [
     "register_commerce_tools",
     "register_course_tools",
     "register_credential_tools",
+    "register_demo_tools",
     "register_enrolment_tools",
     "register_event_tools",
     "register_feedback_tools",

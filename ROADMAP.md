@@ -269,7 +269,10 @@ write has been.
 
 ## Aspirational
 
-- **The narrated demonstration that is also the end-to-end test.** Worth building once there are
+- ~~**The narrated demonstration that is also the end-to-end test.**~~ **Built 2026-08-29** as
+  `demonstration_plan`, in read-only and read/write modes. Coverage is computed from the
+  registry and reaches zero gaps in both. Its first live run found a gap in itself: it
+  predicted capability refusals but not OAuth-scope ones. Originally worth building once there are
   enough tools for a tour to be worth taking — probably after Block 5. Returns the *plan*, not
   the result, so the model calls the tools.
   Its two load-bearing properties arrive earlier: **Block 1 already computes coverage from the

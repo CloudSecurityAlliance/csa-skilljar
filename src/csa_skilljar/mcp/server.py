@@ -11,6 +11,7 @@ from ._tools import (
     register_commerce_tools,
     register_course_tools,
     register_credential_tools,
+    register_demo_tools,
     register_enrolment_tools,
     register_event_tools,
     register_feedback_tools,
@@ -93,4 +94,7 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_event_tools(app, get_client)
     register_vilt_tools(app, get_client)
     register_taxonomy_tools(app, get_client)
+    # LAST: coverage is computed from the registry, so every other tool
+    # must already be registered when this one is added.
+    register_demo_tools(app, get_client)
     return app
