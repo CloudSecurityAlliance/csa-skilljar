@@ -13,8 +13,10 @@ are made in a separate context; record the fix and its reasoning in
 noted.
 
 Locations are `file:line` at `280c8e8`. The audit read a **pinned detached
-worktree**, so these were stable for its whole duration and `main` had not moved
-at the time of this commit — but re-verify against the tree you work on.
+worktree**, so these were stable for its whole duration. `main` moved to
+`ed97ee3` (v0.14.0) while the audit ran; the only `src/` change is a version bump
+in `__init__.py`, so every citation below still resolves there — verified, not
+assumed. Re-verify against the tree you work on regardless.
 
 Ids are `THREAT_MODEL.md` T-numbers, the durable namespace.
 
