@@ -5,8 +5,8 @@ date_completed: 2026-08-31T17:10Z
 target: csa-skilljar
 target_commit: 280c8e8                   # pinned detached worktree; the tree could not move under the audit
 target_version: 0.13.0
-main_at_record_commit: 280c8e8           # no drift during this audit
-commits_landed_during_audit: 0
+main_at_record_commit: ed97ee3           # main moved after the swarm; the worktree stayed pinned
+commits_landed_during_audit: 2           # 6c74ff8, ed97ee3 — neither touched a cited file except a version bump
 
 tool: claude-code
 tool_harness: anthropics/defending-code-reference-harness
@@ -105,12 +105,23 @@ See front matter for the machine-readable version. Three limitations matter:
   does not take the vendor's documentation for that, correctly. Resolving it
   needs an empirical round trip against an isolated course. Stated at the upper
   bound with the assumption named, rather than guessed in either direction.
-- **The tree was pinned.** Unlike the sibling audit — where three commits landed
-  mid-run and `_apply.py`'s citations went stale — this audit read a **detached
-  worktree at `280c8e8`** for its entire duration, so `target_commit` is true by
-  construction and no citation could drift. `main` was still `280c8e8` at the
-  time of this commit. This was a direct fix for the sibling audit's worst
-  methodological limitation.
+- **The tree was pinned, and it mattered.** Unlike the sibling audit — where
+  three commits landed mid-run and one file's citations went stale — this audit
+  read a **detached worktree at `280c8e8`** for its entire duration, so
+  `target_commit` is true by construction and no citation could drift. Two
+  commits *did* land on `main` while the audit ran (`6c74ff8`, `ed97ee3`,
+  releasing v0.14.0), and the only `src/` change between them is a version bump
+  in `__init__.py` — so every citation in `FINDINGS.md` still resolves at
+  `ed97ee3`. Verified rather than assumed. The pinning is what made that a
+  one-command check instead of a re-audit.
+
+  **One of those commits overlaps a finding.** `6c74ff8` — *"docs: record that
+  two v1-credential messages contradict each other"* — independently documents
+  the same contradiction as **T12**, arrived at by someone else while this audit
+  was in progress. T12 is therefore partly already acknowledged upstream; the
+  remediation context should read that commit before starting, and the finding's
+  remaining content is that a v1-only install can call no tool at all, which is
+  the part the commit does not cover.
 
 ## 3. Method
 

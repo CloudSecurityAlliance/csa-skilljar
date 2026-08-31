@@ -472,6 +472,12 @@ against `main` before editing.
 > This is the tool the server `INSTRUCTIONS` designates as the trusted diagnostic
 > when everything else fails (`server.py:37-40`).
 >
+> **Partly acknowledged already:** commit `6c74ff8` records the same contradiction
+> independently, and landed while the audit was running. Read it first. The part it
+> does not cover — and the substance of this issue — is that **a v1-only install
+> can call no tool at all**, because the provider raises before the v1 backend is
+> constructed.
+>
 > **Fix:** correct both strings, and decide whether a v1-only configuration should
 > work at all — if it should, the provider needs to construct the v1 backend
 > independently of the v2 credential.

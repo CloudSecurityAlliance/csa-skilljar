@@ -332,6 +332,13 @@ v1-backed families (progress, assets, commerce, paths, events, vILT, taxonomy).
 This is the tool the server `INSTRUCTIONS` designates as the trusted diagnostic
 when everything else fails (`server.py:37-40`).
 
+**Partly acknowledged upstream already.** Commit `6c74ff8` — *"docs: record that
+two v1-credential messages contradict each other"* — landed on `main` while this
+audit was running and documents the same contradiction independently. Read it
+first. What it does not cover, and what remains the substance of this finding, is
+that **a v1-only install can call no tool at all** because the provider raises
+before the v1 backend is constructed.
+
 **T33 · `demonstration_plan` predicts refusals from the wrong table keys.**
 `demo.py:460` does `P._GATES.get(step["tool"])` — but `_GATES` is keyed by
 **backend method name** while `step["tool"]` is the **MCP tool name**, and
