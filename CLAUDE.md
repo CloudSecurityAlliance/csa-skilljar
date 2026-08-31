@@ -8,8 +8,14 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 **both** Skilljar REST APIs. It reproduces the official Skilljar MCP server's 73-tool surface
 exactly, then adds the capabilities that exist only in v1.
 
-**Status: design complete, nothing implemented.** The repository holds the design spec, upstream
-API snapshots, and surface analysis. Do not describe features as working; there is no `src/` yet.
+**Status: shipped and in use.** All seventeen roadmap blocks are on `main` — **112 tools** (84
+over v2, 27 over v1, plus `demonstration_plan`) across 37 modules in `src/`, with 52 test files.
+Released to PyPI through **v0.15.0**; installed on staff machines by DesktopSetup.
+
+Still true, and the thing to keep honest: **no write has ever run against real Skilljar.** Every
+read is exercised against the production organization; the write half has only ever run against
+`FakeBackend`. That is what `v1.0.0` waits on — see `WAITING-FOR-003`. Do not describe writes as
+verified.
 
 ## Where things live
 
@@ -19,6 +25,9 @@ API snapshots, and surface analysis. Do not describe features as working; there 
 - **`specs/`** — upstream OpenAPI snapshots, fetched 2026-08-26. `skilljar-v1-openapi.yml`
   (3.0.3, 160 paths / 340 ops) and `skilljar-v2-openapi.json` (3.1.0, 44 paths / 82 ops).
   These are *snapshots of someone else's moving target* — see "Upstream drift" below.
+  **Already drifted:** live v2 had **46** paths on 2026-08-31. The two new ones are
+  `/v2/assets/` and `/v2/assets/{id}` — the first time the ADR-002 retirement trigger has
+  fired. See `TODO.md`.
 - **`analysis/`** — the 66-entity reconciliation of both APIs (`entity-inventory.csv`/`.json`),
   the live OAuth scope catalogue, and a browsable surface map.
 - **`docs-html/`** — the rendered vendor doc pages, kept for provenance. Low value; the specs
