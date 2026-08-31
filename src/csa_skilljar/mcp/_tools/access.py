@@ -14,6 +14,56 @@ from .._config import V1_KEY_VAR, V2_ID_VAR, V2_SECRET_VAR, ClientProvider, Sett
 from .._schemas import AccessOut, CapabilitiesOut, CredentialState
 from ._base import READ, translate_errors
 
+DASHBOARD = "https://dashboard.skilljar.com"
+
+
+def v2_credential_detail(configured: bool) -> str:
+    """What to tell a user about the v2 credential. Extracted so it is directly testable.
+
+    Scopes are named deliberately. They are the part people get wrong, and the failure is
+    confusing: this server pre-checks scopes locally, so a missing one refuses *before*
+    any HTTP call, which looks like the tool is unsupported rather than under-scoped. The
+    first live demonstration run predicted zero refusals and hit two for exactly this
+    reason - the profile allowed the calls and the token did not carry the scope.
+
+    It also says there is no browser sign-in. Absence of a login is indistinguishable
+    from a missing feature, and `csa-google-workspace` - installed on the same machines
+    by the same script - does have one. See FRICTION-004.
+    """
+    if configured:
+        return "Configured. Covers courses, lessons, assessments, learners, enrolment."
+    return (
+        f"Set {V2_ID_VAR} and {V2_SECRET_VAR} in your MCP client configuration and "
+        f"restart the server. Create an API client in the Skilljar Dashboard "
+        f"({DASHBOARD}). It is an OAuth client used with the `client_credentials` "
+        f"grant, so there is no browser sign-in and nothing to log in to - the "
+        f"credential is the identity. Scope it for the tools you need: this server "
+        f"checks scopes locally and refuses before calling, so a missing scope looks "
+        f"like an unsupported tool, and adding one needs the client re-issued rather "
+        f"than a restart."
+    )
+
+
+def v1_credential_detail(configured: bool) -> str:
+    """What to tell a user about the v1 credential.
+
+    This message said "No v1-backed tools are implemented yet, so this is not currently
+    needed" for seven blocks after 27 of them shipped - and `_require_v1` routes a user
+    whose v1 tool just refused to read exactly this. The one message they were sent to
+    was the one talking them out of the fix. The registry-derived test now catches the
+    contradiction so it cannot recur.
+    """
+    if configured:
+        return "Configured."
+    return (
+        f"Set {V1_KEY_VAR} to a Skilljar v1 organization API key, issued from the "
+        f"Skilljar Dashboard ({DASHBOARD}). It unlocks the capabilities v2 has no "
+        f"endpoints for - learning paths, webhooks and event payloads, the asset "
+        f"library, commerce, instructor-led training and taxonomy. It is a separate "
+        f"credential from the v2 client id and secret, and neither substitutes for the "
+        f"other."
+    )
+
 
 def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: Settings) -> None:
 

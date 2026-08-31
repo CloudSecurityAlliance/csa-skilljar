@@ -6,6 +6,51 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-08-31
+
+### Fixed
+- **`check_access` talked users out of the fix.** Its v1 detail said *"No v1-backed tools
+  are implemented yet, so this is not currently needed"* — while **27** v1-backed tools
+  were shipping. `_require_v1` correctly routes a user whose v1 tool just refused to call
+  `check_access`, so the one message they were deliberately sent to was the one saying the
+  credential was unnecessary. A silent gap would have been better; they would have kept
+  looking. `--help` carried the same claim as `(no v1 tools yet)`.
+- **A registry-derived guard so it cannot recur.** The new test enumerates the live tool
+  registry, and fails if any registered tool requires `CSA_SKILLJAR_V1_API_KEY` while the
+  guidance claims none do. Mutation-tested by restoring the original wording. The previous
+  check (`scripts/check_docs.py`) could never have caught this: it ties *documentation* to
+  artifacts, and the claim lived in a Python string.
+- **`CSA_SKILLJAR_ENV_FILE` was set by the installers and ignored by the server.** Both
+  `csa-skilljar-setup.sh` and `.ps1` write the credential to an owner-only file and point
+  the registration at it by path. `mcp-launch.sh` honours that variable, but it is a repo
+  script, is not shipped in the wheel, and is not what the installers register — they
+  register the console script. So the file would be written, `chmod 0600`, announced as
+  "Skilljar credential installed", and then ignored. It had not fired only because
+  CSA-Plugins carries no credential yet. `env_with_file()` matches `mcp-launch.sh`'s
+  contract exactly: an exported variable wins, the file is parsed and never sourced, and
+  only `CSA_SKILLJAR_*` is taken from it — importing `PATH` or another service's key would
+  be a privilege-escalation seam, not a convenience.
+
+### Added
+- **Guidance on how to obtain each credential**, which did not previously exist for v1 and
+  was one vague line for v2. Both now name the Skilljar Dashboard.
+- The v2 guidance names **scopes**, because that is the part people get wrong and the
+  failure is confusing: this server checks scopes locally and refuses *before* calling, so
+  an under-scoped client looks like an unsupported tool — and adding a scope needs the
+  client re-issued, not a restart.
+- **The server now says there is no sign-in**, in `check_access` and in the `INSTRUCTIONS`
+  the model reads. Absence of a login is indistinguishable from a missing feature, and
+  `csa-google-workspace` — installed on the same machines by the same script — does have
+  an `authenticate` tool. Resolves FRICTION-004.
+
+### Notes
+- The v1 key is `CSA_SKILLJAR_V1_API_KEY`. Three documents named it
+  `CINO_READ_ONLY_TESTING_KEY`, which nothing in the code has ever read.
+- Recorded in the spec: Skilljar's own discovery document advertises only
+  `authorization_code` and `refresh_token` and **does not list `client_credentials`**,
+  which its token endpoint nevertheless accepts. The natural way to check whether this
+  architecture is supported says no.
+
 ## [0.14.0] — 2026-08-30
 
 ### Added

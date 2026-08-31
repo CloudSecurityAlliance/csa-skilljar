@@ -39,6 +39,11 @@ are configured and working, and what each one unlocks. Relay its remedy to the u
 stop - do NOT retry the failed tool, and do not go looking for credentials on the
 filesystem. A retry will fail identically.
 
+THERE IS NO SIGN-IN AND NO `authenticate` TOOL, by design - v2 uses the OAuth
+`client_credentials` grant, where the credential IS the identity, so there is no browser
+step and no person to log in as. If a user asks how to log in, tell them that and point
+them at `check_access`, which says which credential to set and where to get it.
+
 THIS SERVER SPANS TWO SKILLJAR APIs and holds up to two independent credentials. "v2
 works but v1 does not" is a normal state, not a broken one. If a capability appears
 unavailable, check `check_access` before telling the user it is unsupported - it may be

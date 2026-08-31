@@ -1,7 +1,8 @@
 # FRICTION-004: The server has no login, and nothing says so where you look for one
 
-**Status:** Open
+**Status:** Resolved
 **Date identified:** 2026-08-30
+**Date resolved:** 2026-08-31
 **Type:** Discoverability
 
 ## Description
@@ -75,3 +76,17 @@ instance.
 - `CLAUDE.md` architectural fact #5 — why `client_credentials` and not `authorization_code`
 - `TODO.md` — the two stale v1-credential messages, one of which is in `check_access`
 - `WAITING-FOR-003` — live write verification, separate matter
+
+## Resolution
+
+Options 2 and 4, in v0.15.0. `check_access` now says plainly that the v2 credential is an
+OAuth client used with `client_credentials`, that **there is no browser sign-in and
+nothing to log in to**, and where to create one. The server's `INSTRUCTIONS` block says
+the same to the model, so "how do I log in" is answered correctly in the session rather
+than by reading the spec.
+
+Option 3 - having the installer leave the statement somewhere durable - was not done. The
+installer's closing output still scrolls past inside a DesktopSetup run and is still not
+captured in the log, because `Write-Host` does not go through `Write-CsaLog`. That remains
+the gap that would have prevented this instance; it is smaller now that the server answers
+the question itself.
