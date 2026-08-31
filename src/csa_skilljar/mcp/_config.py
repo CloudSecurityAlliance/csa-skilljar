@@ -11,9 +11,11 @@ Two design points, both easy to "fix" into bugs:
 """
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 
 from .. import exceptions as exc
 from ..auth import V2Credentials
@@ -21,6 +23,8 @@ from ..backend import V2Backend
 from ..client import SkilljarClient
 from ..policy import Policy, PolicyBackend
 from ..v1backend import V1Backend, V1Credentials
+
+log = logging.getLogger(__name__)
 
 V2_ID_VAR = "CSA_SKILLJAR_V2_CLIENT_ID"
 V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable name, not a secret
@@ -55,6 +59,78 @@ class Settings:
                 f"v2_client_secret={'set' if self.v2_client_secret else 'unset'}, "
                 f"v1_api_key={'set' if self.v1_api_key else 'unset'}, "
                 f"profile={self.profile!r})")
+
+
+ENV_FILE_VAR = "CSA_SKILLJAR_ENV_FILE"
+
+# Our own prefix, so a file that is somebody's general-purpose `.env` cannot inject PATH,
+# LD_PRELOAD or another service's key into this process. A convenience that imports
+# arbitrary names is a privilege-escalation seam, not a convenience.
+_OUR_PREFIX = "CSA_SKILLJAR_"
+
+
+def env_with_file(env: Mapping[str, str]) -> Mapping[str, str]:
+    """`env`, plus any `CSA_SKILLJAR_*` set in the file `CSA_SKILLJAR_ENV_FILE` names.
+
+    The installers write the credential to an owner-only file and point the MCP
+    registration at it by PATH, rather than baking values into the registration - so a
+    rotation is one file edit instead of re-registering on every desktop. This is what
+    makes that work. `scripts/mcp-launch.sh` implements the same contract for a
+    developer checkout, but it is a repo script and is not shipped in the wheel, while
+    the installers register the console script; without this the file was written,
+    announced, and then silently ignored.
+
+    Contract, matching `mcp-launch.sh` exactly:
+
+    * **An already-set variable wins.** An override must not require editing the file.
+    * **Parsed, never executed.** `source` would run the file, so a stray backtick in a
+      secret becomes a command. This reads lines.
+    * **Only `CSA_SKILLJAR_*`.** See `_OUR_PREFIX`.
+
+    Returns `env` itself when the variable is unset, so the common path allocates
+    nothing. Never raises: a credential problem must surface as a tool reporting its
+    setup steps, not as a server that failed to start.
+    """
+    path = env.get(ENV_FILE_VAR)
+    if not path:
+        return env
+
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError as e:
+        # Named, not swallowed (ZD-1). The distinction matters: "you pointed me at a file
+        # that is not there" and "I cannot read the file you pointed me at" have different
+        # remedies. Chained cause, generic message - the path may itself be revealing.
+        log.warning("%s was set but the file could not be read (%s); "
+                    "continuing without it", ENV_FILE_VAR, type(e).__name__)
+        return env
+
+    merged = dict(env)
+    found = 0
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export "):].strip()
+        if not key.startswith(_OUR_PREFIX):
+            continue
+        found += 1
+        if key in env and env[key].strip():
+            continue                    # already set wins
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        merged[key] = value
+
+    if not found:
+        # ZD-17. A file that yields nothing must not look identical to one that worked -
+        # that is precisely how the installer's "credential installed" became a lie.
+        log.warning("%s points at a file containing no %s* variables; "
+                    "continuing without it", ENV_FILE_VAR, _OUR_PREFIX)
+    return merged
 
 
 def settings_from_env(env: Mapping[str, str]) -> Settings:

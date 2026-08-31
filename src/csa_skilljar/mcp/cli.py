@@ -19,6 +19,7 @@ from ._config import (
     V2_MISSING_WARNING,
     ClientProvider,
     Settings,
+    env_with_file,
     presence_from_env,
     settings_from_env,
 )
@@ -36,6 +37,8 @@ environment:
                                  commerce, ILT, taxonomy)
   CSA_SKILLJAR_PROFILE           parity (default) | authoring | people | reporting
                                  | operations | admin | full
+  CSA_SKILLJAR_ENV_FILE          path to a file holding any of the above, one KEY=VALUE
+                                 per line. An already-set variable wins over the file.
 """
 
 
@@ -72,6 +75,11 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         print(f"unknown argument: {argv[0]}\n\n{USAGE}", file=sys.stderr); return 2
 
     _configure_logging()
+    # Before settings AND before presence, so the startup warning cannot contradict the
+    # tools: a credential that arrived through the file must count as configured, or the
+    # server announces "not set" and then works, which is the confusing half of a bug
+    # rather than the useful half.
+    env = env_with_file(env)
     settings = settings_from_env(env)
     # stderr, never stdout. Most MCP clients surface a server's stderr in their logs,
     # which is the only place to say this before the first tool call.
