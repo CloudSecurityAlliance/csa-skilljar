@@ -204,7 +204,7 @@ question.
 | Gap | Rationale | Owner |
 |---|---|---|
 | v1 API keys are organisation-wide and unscopeable | Skilljar offers no per-scope v1 credential. Accepted: v1 tools are used only where v2 has no equivalent, and the profile system still gates which of them an install exposes. | Kurt Seifried |
-| `CINO_READ_ONLY_TESTING_KEY` reaches all of v1 against production | Read-only, so the exposure is disclosure rather than damage. Open question in `TODO.md` on whether the integration suite should use something narrower. | Kurt Seifried |
+| `CSA_SKILLJAR_V1_API_KEY` reaches all of v1 against production | Read-only, so the exposure is disclosure rather than damage. Open question in `TODO.md` on whether the integration suite should use something narrower. | Kurt Seifried |
 | `get_asset` returns a credential-free download link | Presigned S3 URLs are how Skilljar serves asset content; there is no alternative endpoint that returns bytes through the API. Bounded by a ~60 minute expiry, kept out of listings, and carried with a warning in the payload. Nothing stops a model repeating the URL. | Kurt Seifried |
 | Demo PII restriction is procedural, not enforced | `students:read` is all-or-nothing and Skilljar offers no domain filter, so nothing stops an unfiltered listing except the operator following `DATA-RESOURCES.md`. `demonstration_plan` should default to the allowlist when built. | Kurt Seifried |
 | Prompt-injection defence is configuration, not enforcement | An operator who grants every scope and enables `full` has the same exposure as the official server. Mitigation is documentation and a conservative default, which is a real but partial control. | Kurt Seifried |
