@@ -13,7 +13,7 @@ testing.
 
 Phase 1 is entirely v2. We currently have two credentials, and neither is usable for building it:
 
-- `CINO_READ_ONLY_TESTING_KEY` — a **v1** organisation API key. Verified working across every v1
+- `CSA_SKILLJAR_V1_API_KEY` — a **v1** organisation API key. Verified working across every v1
   family, but v1 only.
 - The official Skilljar MCP server, authorised interactively in a Claude Code session. That grants
   access to *their* server, not a credential we can drive our own client with. Its authorization
