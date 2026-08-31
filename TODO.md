@@ -36,19 +36,6 @@ file plus open GitHub Issues finds everything.
 - **Per-lesson progress is not available from Skilljar.** The documented v1 endpoint
   404s; see the Block 11 correction in `ROADMAP.md`. Worth re-probing if Skilljar ships
   it, since it is the one thing a progress question usually means.
-- **Two v1-credential messages still say v1 has no tools.** There are 27. Both date from
-  before Block 11 and survived Blocks 11-17:
-  - `src/csa_skilljar/mcp/cli.py:35` — `v1 organization API key (no v1 tools yet)`
-  - `src/csa_skilljar/mcp/_tools/access.py:47` — "No v1-backed tools are implemented
-    yet, so this is not currently needed."
-  The second is the damaging one. `_require_v1` in `client.py:44` correctly tells a user
-  whose v1 tool just refused to call `check_access` — and `check_access` then tells them
-  the credential **is not needed**, closing the loop with a confident wrong answer. The
-  two messages contradict each other, and the one the user is sent to is the wrong one.
-  Found on Kurt's first Windows install, 2026-08-30. Fix both, and add a check that ties
-  the claim to the tool registry so it cannot drift again — `scripts/check_docs.py` never
-  saw this because the claim lives in a Python string, not a doc file.
-
 - Model-in-the-loop cold-use test for tool descriptions (contract documented in
   `tests/test_descriptions.py`; harness lands with Block 2)
 

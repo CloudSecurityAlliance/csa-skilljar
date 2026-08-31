@@ -33,7 +33,8 @@ USAGE = """usage: csa-skilljar-mcp [--version]
 environment:
   CSA_SKILLJAR_V2_CLIENT_ID      v2 OAuth client id
   CSA_SKILLJAR_V2_CLIENT_SECRET  v2 OAuth client secret
-  CSA_SKILLJAR_V1_API_KEY        v1 organization API key (no v1 tools yet)
+  CSA_SKILLJAR_V1_API_KEY        v1 organization API key (paths, webhooks, assets,
+                                 commerce, ILT, taxonomy)
   CSA_SKILLJAR_PROFILE           parity (default) | authoring | people | reporting
                                  | operations | admin | full
   CSA_SKILLJAR_ENV_FILE          path to a file holding any of the above, one KEY=VALUE
