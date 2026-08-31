@@ -182,7 +182,16 @@ profile.
 
 **We use `client_credentials`, which the official MCP server cannot.** `mcp.skilljar.com`
 advertises only `authorization_code` + `refresh_token` because it is remote and acts for a browser
-user. Running locally, we take a client id and secret straight to `/v2/auth/token` — no browser,
+user.
+
+**Neither does the API's own discovery document, and it accepts the grant anyway.**
+`https://api.skilljar.com/.well-known/oauth-authorization-server` lists
+`grant_types_supported: ["authorization_code", "refresh_token"]` — no `client_credentials` —
+while `POST /v2/auth/token` answers a `client_credentials` request with `200` and a Bearer
+token. Recorded explicitly because the omission is a trap for a future reader: the natural
+way to check whether this architecture is supported is to read that document, and it says
+no. The probe wins (FRICTION-002), but only if the next person knows there is a
+disagreement to resolve rather than a plain answer to trust. Running locally, we take a client id and secret straight to `/v2/auth/token` — no browser,
 no redirect URI, no consent flow, no `login` subcommand, no token file. That removes an entire
 subsystem `csa-google-workspace` needed.
 
@@ -409,7 +418,10 @@ suspicion and re-probe.
 | v2 docs URL | `https://api.skilljar.com/v2/docs` — **no trailing slash**; `/v2/docs/` 404s |
 | Official MCP | `https://mcp.skilljar.com/mcp`, 73 tools, OAuth-gated |
 | MCP grants | `authorization_code`, `refresh_token` only — **no** `client_credentials` |
-| API grants | `client_credentials` at `https://api.skilljar.com/v2/auth/token` |
+| API grants | `client_credentials` **works** at `https://api.skilljar.com/v2/auth/token` — HTTP 200, `Bearer`, `expires_in` 900 |
+| API grants, advertised | The API's **own** discovery document lists only `authorization_code`, `refresh_token`. It does **not** advertise `client_credentials`, which it nonetheless accepts. Re-verified 2026-08-30. |
+| Access token | A **JWT**, claims `aud client_id exp iat iss jti organization_id scopes`. The token *response* carries no `scope`/`scopes` field at all — granted scopes live only inside the JWT, which is why `granted_scopes()` decodes it |
+| Token lifetime | **900 seconds.** A `refresh_token` is returned, but `client_credentials` can simply re-grant, so nothing is cached to disk |
 | Scope catalog | 88 advertised; 28 used by the published spec |
 | Roadmap areas | 31 scope areas with no endpoints — all return `404` against a `401`/`404` control |
 | Question banks | Full CRUD in **both** APIs; v1 cannot add a question to a bank or bind a bank to a quiz |
