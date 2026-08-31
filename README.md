@@ -11,7 +11,7 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-> **Status: Blocks 1–11. Full 73-tool parity, credential administration, and the first v1-only capability. v0.9.0 on PyPI.**
+> **Status: all seventeen blocks complete. Full 73-tool parity with Skilljar's official server, plus every capability that exists only in v1. v0.15.0 on PyPI.**
 >
 > **112 tools** — 84 over Skilljar's v2 API, twenty-seven over v1, and `demonstration_plan`.
 >
@@ -123,6 +123,59 @@ should be retired in favour of v2, and this note updated.
 `scripts/check_upstream.py` will automate all three and report drift against the snapshots in
 `specs/`. Until then, run the commands above.
 
+## Installation
+
+Three routes, all installing the same package from PyPI. Pick by what you already use.
+
+```bash
+pipx install csa-skilljar          # recommended
+uv tool install csa-skilljar       # if you already use uv
+```
+
+Both put a `csa-skilljar-mcp` executable on your `PATH` and keep the package's
+dependencies in their own virtual environment. That isolation is the point rather than a
+nicety: this server requires `mcp>=2.1`, and a machine with `mcp` 1.x installed globally
+is exactly the environment that produces the most common MCP failure — 1.x still has
+`mcp.server.fastmcp`, so the wrong version looks plausible right up until it doesn't.
+
+**A plain `pip install` into a system or user Python is the one path we do not support**,
+for that reason. Inside a virtual environment you control, it is fine.
+
+Confirm what landed, and where:
+
+```bash
+csa-skilljar-mcp --version
+command -v csa-skilljar-mcp        # pipx: ~/.local/bin  ·  uv: ~/.local/bin or `uv tool dir`
+```
+
+If the command is not found, the install directory is not on your `PATH` yet — `pipx
+ensurepath` or `uv tool update-shell`, then open a new shell. Register the MCP server with
+an **absolute path** either way (see below), so this does not matter to the client.
+
+### CSA staff: DesktopSetup installs it for you
+
+Members of Cloud Security Alliance do not need any of the above.
+[DesktopSetup](https://github.com/CloudSecurityAlliance/DesktopSetup) installs and registers
+this server as part of its normal run, on macOS, Linux and Windows:
+
+```bash
+# macOS / Linux
+bash -c "$(curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/CloudSecurityAlliance/DesktopSetup/HEAD/scripts/macos-ai-tools.sh)"
+```
+
+It installs via pipx, registers the server with `CSA_SKILLJAR_PROFILE=parity` — read-only
+capabilities — and leaves an existing registration alone if you have already narrowed it.
+The step is gated on membership of a private CSA repository, so it does nothing for anyone
+else and prints nothing.
+
+**It does not ship a credential**, and that is deliberate rather than an omission. Skilljar
+uses the `client_credentials` grant, so a credential *is* the organization identity — there
+is no per-user layer, and anyone holding a client secret acts as CSA rather than as
+themselves. Distributing one to every desktop would be a shared organization key, which is
+a different thing from the shared *app* identity that Google Workspace's OAuth client is.
+So the server installs, registers and starts, and every tool then reports the setup step it
+needs. Ask in `#cino` for an API client.
+
 ## Credentials
 
 Two independent credentials, both optional. The server starts with either, both, or neither, and
@@ -138,24 +191,48 @@ we cannot keep current.
 
 ### Connecting it to an MCP client
 
-```bash
-# Recommended: credentials stay in .env, and the client config holds no secret.
-claude mcp add csa-skilljar -- /abs/path/to/csa-skilljar/scripts/mcp-launch.sh
+**If you installed with pipx or uv**, keep the secret out of the client config by putting
+it in a file and naming the file:
 
-# Or pass them directly - note this writes the literal secret into ~/.claude.json,
-# which is not gitignored, and into your shell history.
-claude mcp add csa-skilljar \
-  -e CSA_SKILLJAR_V2_CLIENT_ID=... -e CSA_SKILLJAR_V2_CLIENT_SECRET=... \
-  -- /abs/path/to/csa-skilljar/.venv/bin/csa-skilljar-mcp
+```bash
+mkdir -p ~/.csa_skilljar && chmod 700 ~/.csa_skilljar
+cat > ~/.csa_skilljar/skilljar.env <<'EOF'
+CSA_SKILLJAR_V2_CLIENT_ID=...
+CSA_SKILLJAR_V2_CLIENT_SECRET=...
+CSA_SKILLJAR_V1_API_KEY=...
+EOF
+chmod 600 ~/.csa_skilljar/skilljar.env
+
+claude mcp add csa-skilljar --scope user \
+  -e CSA_SKILLJAR_PROFILE=parity \
+  -e CSA_SKILLJAR_ENV_FILE="$HOME/.csa_skilljar/skilljar.env" \
+  -- "$HOME/.local/bin/csa-skilljar-mcp"
 ```
 
-`scripts/mcp-launch.sh` reads `CSA_SKILLJAR_*` variables from the repository's `.env`
-(override with `CSA_SKILLJAR_ENV_FILE`) and execs the server. It parses the file rather
-than sourcing it: `source` executes it, so a stray `echo` would print to stdout and
-corrupt the JSON-RPC stream before the server ever starts.
+This matters more than it looks: **`~/.claude.json` is world-readable on a default macOS
+install** (mode 644), and it is not gitignored. Naming a `0600` file keeps the credential
+out of it and out of your shell history, and makes rotation one file edit rather than a
+re-registration. An already-exported variable still wins over the file, so an override
+needs no edit.
 
-Use an **absolute path** to the script or to `.venv/bin/csa-skilljar-mcp`. A bare
-`csa-skilljar-mcp` resolves through `PATH`, which may find a different install.
+You can pass the credentials directly instead — `-e CSA_SKILLJAR_V2_CLIENT_ID=...` and so
+on — accepting that the literal secret is then written into `~/.claude.json`.
+
+**If you are working from a source checkout**, `scripts/mcp-launch.sh` does the same thing
+against the repository's own `.env`:
+
+```bash
+claude mcp add csa-skilljar -- /abs/path/to/csa-skilljar/scripts/mcp-launch.sh
+```
+
+Both the launcher and the server parse the file rather than sourcing it: `source` executes
+it, so a stray `echo` would print to stdout and corrupt the JSON-RPC stream before the
+server ever starts. Only `CSA_SKILLJAR_*` names are read from it, so pointing at a
+general-purpose `.env` cannot import `PATH` or another service's key.
+
+Use an **absolute path** to the executable. A bare `csa-skilljar-mcp` resolves through
+`PATH`, which may find a different install — and the client may not have your shell's
+`PATH` at all.
 
 Then call `check_access` first — it is built to work when nothing else does, and reports
 which credentials resolved and which scopes the token carries.
