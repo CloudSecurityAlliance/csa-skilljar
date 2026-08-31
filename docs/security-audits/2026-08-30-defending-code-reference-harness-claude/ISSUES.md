@@ -1,13 +1,46 @@
 # Issues to file · audit 2026-08-30-01
 
-Prepared before the audit branch merged so the permalinks resolve on landing.
-**File these after the merge, not before** — the links point at paths that do not
-exist yet.
+Prepared before the audit branch merged so the permalinks would resolve on
+landing. **Filed** — see the mapping below. Kept as the record of what was filed
+and why, so a later reader can check an issue against the analysis that produced
+it without reconstructing either.
 
 Each issue is one verifiable done-condition. Full per-finding detail lives in
 [`FINDINGS.md`](FINDINGS.md); bodies carry enough to act on and point back rather
 than duplicating, so there is one copy of the analysis to keep correct.
 
+## Filed
+
+All filed 2026-08-31 against `main` at `93eac03`. Tracking issue: **#76**.
+The numbers below are this document's internal ids; the GitHub issue numbers are
+what to reference from a commit or a PR.
+
+| doc | issue | title |
+|---|---|---|
+| #1 | **[#54](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/54)** | Settle whether Skilljar sanitises `content_html` on render |
+| #2 | **[#55](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/55)** | T1 · Unsanitised HTML round-trips through the model into the learner-facing portal |
+| #3 | **[#56](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/56)** | T7 · No URL encoding anywhere, and the v1 path has no local guard |
+| #4 | **[#57](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/57)** | T8 · Profile-gated tool registration does not exist |
+| #5 | **[#58](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/58)** | T9 · The declared delete/write split is not applied; `authoring` can destroy |
+| #6 | **[#59](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/59)** | T10 · The read-only integration guard is dead, and the obvious repair is worse than the defect |
+| #7 | **[#60](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/60)** | T11 · One-directional conformance across a shared gate table |
+| #8 | **[#61](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/61)** | T16 · `send_password_reset` has no confirm gate, and three tools that email real people are marked non-destructive |
+| #9 | **[#62](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/62)** | T17 · `open_world_hint` is set on none of the 112 tools |
+| #10 | **[#63](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/63)** | T12 · `check_access` misreports credential state |
+| #11 | **[#64](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/64)** | T33 · `demonstration_plan` predicts refusals from the wrong table keys |
+| #12 | **[#65](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/65)** | T30 · `CLAUDE.md` says nothing is implemented |
+| #13 | **[#66](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/66)** | Close the class: assert every hand-maintained description against the constants |
+| #14 | **[#67](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/67)** | T14 · `client.credentials` reaches around the capability gate |
+| #15 | **[#68](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/68)** | T24/T26 · No `PROFILES` matrix, and three unasserted "no default profile grants this" claims |
+| #16 | **[#69](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/69)** | T25/T34 · No lockfile; raise the `setuptools` and `pytest` floors |
+| #17 | **[#70](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/70)** | T27 · No retry, backoff or pagination ceiling |
+| #18 | **[#71](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/71)** | T31/T29 · v1 families return raw upstream rows; learner-PII writes gated by `groups.write` |
+| #19 | **[#72](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/72)** | T32/T37 · Three tests that cannot fail, and the `ReadOnlyClient` underscore escape |
+| #20 | **[#73](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/73)** | T22 · Assert the externally-enforced controls |
+| #21 | **[#74](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/74)** | Adopt the audit's threat model as the living `THREAT_MODEL.md` |
+| #22 | **[#75](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/75)** | Generate the audit index from front matter |
+
+---
 **Permalink base** (all bodies use it):
 
 ```
