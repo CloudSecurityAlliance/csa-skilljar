@@ -118,7 +118,7 @@ work landed, and leaving them would make the sweep lie.
 
 Not committed to; recorded so they are not rediscovered.
 
-- Should the integration suite use the broad `CINO_READ_ONLY_TESTING_KEY`, or a narrower key?
+- Should the integration suite use the broad v1 key in `CSA_SKILLJAR_V1_API_KEY`, or a narrower one?
 - Is a `PlaywrightBackend` ever warranted for genuinely API-impossible operations?
 - Should `check_upstream.py` publish its findings somewhere shared rather than one repo's issues?
 - Does the surface-map artefact belong in the repo as generated output, or regenerated on demand?
