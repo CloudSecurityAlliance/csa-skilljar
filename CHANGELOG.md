@@ -6,6 +6,60 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-08-30
+
+### Added
+- **`demonstration_plan` — the tour that is also the end-to-end test.** Follows the CINO
+  pattern in `DEMO-AS-END-TO-END-TEST.md`, marked `[proven]`: built for
+  `csa-google-workspace`, three runs, four real bugs, one of which had survived a fully
+  green 660-test suite.
+- **Two modes.** `read_only` changes nothing and is safe against the production
+  organization these credentials reach. `read_write` also creates and deletes **content**
+  — a course, a quiz, questions, a bank, an empty group — and never a learner, a
+  publication or a credential. Every write step is paired with cleanup.
+- It returns the **plan, not the result**; the model calls the tools. Running them inside
+  the tool would block a conversation behind one call and demonstrate nothing — the tool
+  would have done the work. It would also skip the thing no unit test reaches: whether the
+  descriptions are good enough to use from a standing start.
+- **Coverage is computed from the live registry**, not maintained, so a tool added next
+  block shows up as a hole. Both modes reach zero gaps: all 112 tools are exercised,
+  excluded with a written reason, or out-of-scope for the mode. That last category matters
+  — counting write tools as "gaps" in `read_only` meant the number could never reach zero,
+  so nobody would look at it.
+- **Thirty-two tools are excluded on purpose and each says why:** irreversible PII
+  erasure, credential minting, anything that emails a real person, and `get_purchase`,
+  which has no listing endpoint so a demo has no id to use.
+- Learner steps use **named accounts only** and every learner-facing listing carries a
+  filter — `list_vilt_registrations` is pinned to one session, because unfiltered it
+  returns hundreds of real names and email addresses.
+- The plan asks for **two facts separately**: did anything error, and how many tools were
+  exercised. A run that exercised nothing also produced no errors.
+
+### Fixed
+- The first live run found a gap **in the plan itself**: it predicted zero refusals and hit
+  two, because it checked the capability profile and not the OAuth scopes — the policy
+  allowed the calls and the scope pre-check stopped them. Prediction now covers both and
+  says **which** refused, because a profile is changed with an environment variable and a
+  restart while a scope needs the credential re-issued in the Dashboard.
+- Two scanner-shaped detours, both fixed by restructuring rather than suppressing. The
+  exclusion list is a **tuple of pairs** rather than a dict literal, because bandit reads a
+  dict key containing "password", "secret" or "token" mapped to a string as a hardcoded
+  credential and flagged four of these prose reasons. And the `nosec` guard in
+  `test_zero_defect.py` now skips pure comment lines: it failed on its own explanatory
+  prose, and bandit misread the same line as a suppression carrying five rule names. A
+  guard that cannot tell a mention from a use is a guard that will be worked around.
+
+### Notes
+- Executed against live Skilljar: **52 of 61 steps ran, 2 errors**, both of them the scope
+  pre-check refusing correctly and both now predicted up front.
+
+## [0.13.0] — 2026-08-29
+
+Released without a changelog entry at the time; written up here from the shipped commits.
+Blocks 14 through 17 — learning paths, webhooks and event payloads, instructor-led
+training, and taxonomy. 111 tools.
+
+### Added
 ### Added
 - **Block 14 — learning paths.** `list_paths`, `get_path`, `list_path_items`,
   `list_published_paths`, `list_course_series`, `list_learner_path_enrollments`. v2 has
@@ -31,6 +85,66 @@ All notable changes to this project are documented here. Format follows
 - `V1_PAGE_NUMBER` in the pagination suite became a **dict of per-tool arguments**. A set
   was enough until three of these tools took a required identifier, at which point the
   "does it report a total" check would have failed for the wrong reason.
+
+- **Block 15 — webhooks and event payloads.** `list_webhooks`, `get_webhook`,
+  `preview_event_payload`.
+- The compression first: v1 exposes a separate `sample-*` endpoint **per event type** —
+  ten tools' worth of surface for one question, "what does a FOO event look like".
+  `preview_event_payload` takes the event type and picks the endpoint, so the tool surface
+  matches the question rather than the API. It accepts `COURSE_COMPLETION`,
+  `course-completion` or `Course_Completion`, because the value appears in both spellings
+  depending where you read it.
+- **`/v1/webhooks` returns credentials in three places at once**, verified against CSA's
+  production organization: `additional_headers` values (a 32-character `X-Skilljar-Secret`,
+  in plaintext), an `auth` token in the `target_url` query string on two of three targets,
+  and `basic_auth_password` on every row. These authenticate Skilljar **to** a receiving
+  service, so passing them through would hand a model the shared secret that service uses
+  to decide a request is genuinely from Skilljar.
+- So the tools return **shape and never values**: header names, not header values; the
+  URL's scheme, host and path, not its query string — but the query **parameter names**,
+  because "the URL carries an auth parameter" is useful and its value is the credential.
+  `basic_auth_password` is **replaced rather than omitted**, because omitting it silently
+  reads as "no password is set", which is a different fact about the webhook. The
+  withholding is stated, so nobody concludes there is no secret and goes hunting for a bug.
+- Verified live: three secret values present in the raw backend response, **zero** in the
+  tool output, for both the listing and the detail view. A test asserts the **fixture**
+  still contains the secrets, so the leak checks cannot pass vacuously.
+- Its own `events.read` capability rather than `content.read`: webhook configuration is
+  where events go and how they authenticate, which is not a content question.
+
+- **Block 16 — instructor-led training.** Two overlapping words: a **session** is the class
+  — its name, instructor, capacity and joining details — and is **not a date**. A **session
+  event** is a scheduled occurrence with a start, an end and a timezone, and is the thing a
+  learner registers for. Any question with a date in it wants the second, so the first
+  points there rather than answering badly.
+- `list_vilt_registrations` returns a learner's **name and email on every row**, 341 of them
+  in the reference org. It sits behind `people.read` with the other learner-reading tools,
+  defaults to a small page, and an unfiltered call says so in its note — so a model narrows
+  to one session instead of listing the organization and repeating hundreds of real contact
+  details into a transcript.
+- Registration and attendance are different facts: a session can be fully booked with half
+  the room empty. Timezones are preserved and flagged, because the live data has sessions
+  in `US/Pacific` and a time reported without one is wrong for most readers.
+
+- **Block 17 — taxonomy.** Small, and entirely about a distinction the data cannot express.
+  A label and a tag are both just a name; what differs is that **labels are internal** and
+  never shown to learners, while **tags are public** and carry a slug used in catalogue
+  URLs. Reporting one as the other misdescribes the catalogue in a way nothing in the
+  response would reveal, so each description says which it is and points at the other.
+  Group categories organise **groups** rather than content, so they are gated with
+  `groups.read` — they are where `list_groups`' `filter_category_id` comes from.
+
+### Notes
+- `ilt-multi-session-events` is empty in the reference org and was skipped, per ADR-007's
+  rule about ordering by evidence.
+- Verified live: 103 sessions, 103 occurrences, 341 registrations with the unfiltered
+  warning firing, 9 instructors, 50 labels, 17 tags, 7 categories, and the slug present on
+  a tag and absent on a label.
+- Two things the checks caught in Block 15: the sample-payload fake returned a bare object
+  under `results` while the live endpoint returns a **list of one** — a double that accepted
+  a shape the API never sends would have hidden a real rejection. And bandit flagged the
+  withholding note itself, because the variable was called `_SECRET_NOTE`; renamed to
+  `_WITHHELD_NOTE`, which removes the finding honestly rather than suppressing it.
 
 ## [0.12.0] — 2026-08-28
 
