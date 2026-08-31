@@ -4,7 +4,7 @@ Index of **all** open work on this project. One line per item; detail lives in G
 design spec, or the logs this file points at. Per the CINO todo-index convention, sweeping this
 file plus open GitHub Issues finds everything.
 
-**Status: all seventeen blocks on `main` — 112 tools (84 v2, 27 v1, plus `demonstration_plan`). Released to PyPI through v0.13.0. v1.0.0 waits on live write verification → `WAITING-FOR-003`.**
+**Status: all seventeen blocks on `main` — 112 tools (84 v2, 27 v1, plus `demonstration_plan`). Released to PyPI through v0.15.0. v1.0.0 waits on live write verification → `WAITING-FOR-003`. The largest open body of work is the 23-issue security-audit backlog → [#76](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/76).**
 
 ## Blocked / waiting
 
@@ -16,6 +16,40 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
+- **23 open issues from security audit `2026-08-30-01` → [#76](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/76).**
+  This is the largest body of open work on the project and it is tracked in GitHub, not
+  here, per the todo-index convention. Two things to read before picking any of them off:
+  - **[#54](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/54) gates
+    [#55](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/55).** The top
+    finding's severity depends on whether Skilljar sanitises `content_html` on render,
+    which cannot be settled from this repository. Test it against an isolated *unpublished*
+    course with guaranteed teardown — a payload in a published lesson is a live
+    vulnerability you created.
+  - **[#66](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/66) closes a
+    class.** Five findings are one pattern: a hand-maintained description drifting from the
+    policy it describes. Patching the five leaves the sixth instance equally invisible. The
+    same pattern produced four separate defects between 2026-08-30 and 08-31 — the stale v1
+    credential message, `CSA_SKILLJAR_ENV_FILE` being set and ignored, and two stale status
+    banners — so this is the highest-leverage item in the set.
+  - [#63](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/63) is **half done**:
+    v0.15.0 fixed both stale strings. What remains is that a **v1-only install can call no
+    tool at all** — `ClientProvider.__call__` raises on the missing v2 credential before the
+    v1 backend is constructed. Verified still broken 2026-08-31.
+
+- **Skilljar shipped `/v2/assets/` — ADR-002's retirement trigger has fired for the first
+  time.** Live v2 has 46 paths against 44 in `specs/`; the new ones are `/v2/assets/`
+  (GET, POST, PATCH) and `/v2/assets/{id}` (GET, DELETE). Probed 2026-08-31: **403
+  `permission_denied`, not 404** — it exists and serves, and our client simply lacks the
+  scope. Skilljar now advertises `assets:read` and `assets:write`; our client holds 17
+  scopes and none of them are for assets.
+  - Block 12 built `list_assets` / `get_asset` over **v1 precisely because v2 had no assets
+    endpoint**. ADR-002 says v2 owns every capability v2 has, so they must be re-pointed;
+    ADR-004 says the tool names do not change. This is the exact scenario the
+    no-version-in-tool-names rule exists for.
+  - **Needs Kurt:** the OAuth client re-issued with `assets:read`. Credential issuance is
+    never delegated to AI (`RACI.md`).
+  - Then re-take the snapshot in `specs/` and close the drift issue.
+
 - **Writes to Skilljar are OFF** → `WAITING-FOR-003`. Enforced by `ReadOnlyClient` in
   `tests/integration/conftest.py`, not by convention. Needs Hannah: is there a sandbox,
   or a fixture convention for throwaway courses/students? Until then live tests read only.
@@ -23,7 +57,6 @@ file plus open GitHub Issues finds everything.
   `courses:write`, `lessons:write`, `quizzes:write`, `question-banks:write`, which nothing
   needs yet — dropping them removes the last write path rather than guarding it.
 
-- **Release v0.8.0.** Version bumped, changelog written, artifact build and clean-venv install verified locally, protected `pypi` GitHub environment created. **Blocked on one human step:** register the PyPI Trusted Publisher (pending publisher, since the project does not exist yet) — see README.
 - **All seventeen blocks are done.** What v1.0.0 waits on is live write verification →
   `WAITING-FOR-003`. Every read is exercised against production; no write has been.
 - Run `demonstration_plan(mode="read_write")` once `WAITING-FOR-003` closes. The
