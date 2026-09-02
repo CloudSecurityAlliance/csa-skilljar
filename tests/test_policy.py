@@ -3,6 +3,7 @@ import pytest
 from csa_skilljar import exceptions as exc
 from csa_skilljar import policy as P
 from csa_skilljar.backend import Backend, FakeBackend
+from csa_skilljar.dashboard import FakeDashboard
 from csa_skilljar.v1backend import FakeV1Backend
 
 ROWS = [{"type": "courses", "id": "c1", "attributes": {"title": "t"}}]
@@ -123,6 +124,9 @@ EXPECTED_BY_CAPABILITY = {
                           "create_oauth_client", "update_oauth_client",
                           "deactivate_oauth_client", "rotate_oauth_client_secret",
                           "list_oauth_scopes", "revoke_refresh_token"},
+    # The dashboard tier: a scope-less session credential, gated on its own rather than
+    # folded into content.read or reporting.read.
+    "tasks.read": {"list_tasks", "get_task"},
 }
 
 # Arguments good enough to reach the gate. A NotFound from the fake means the gate
@@ -200,6 +204,7 @@ CALL_ARGS = {
     "list_path_items": {"path_id": "p1"},
     "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
     "list_learner_path_enrollments": {"user_id": "u1"},
+    "list_tasks": {}, "get_task": {"id": "tsk1"},
 }
 
 
@@ -223,6 +228,13 @@ class BothBackends(FakeBackend):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._v1 = FakeV1Backend()
+        self._dashboard = FakeDashboard()
+
+    def list_tasks(self, **kw):
+        return self._dashboard.list_tasks(**kw)
+
+    def get_task(self, **kw):
+        return self._dashboard.get_task(**kw)
 
     def find_learner(self, **kw):
         return self._v1.find_learner(**kw)
@@ -349,3 +361,24 @@ def test_profiles_are_all_subsets_of_full():
 def test_policy_is_reachable_for_inspection():
     pol = P.Policy.from_profile("parity")
     assert P.PolicyBackend(FakeBackend(), pol).policy is pol
+
+
+def test_the_task_reads_are_gated():
+    assert P._GATES["list_tasks"] == P.READ_TASKS
+    assert P._GATES["get_task"] == P.READ_TASKS
+
+
+def test_parity_does_not_gain_task_tools():
+    """`parity` mirrors the official Skilljar server, which has no dashboard tools.
+    Adding to it would quietly change what the word means."""
+    assert P.READ_TASKS not in P.PROFILES["parity"]
+
+
+def test_grading_is_full_only():
+    granting = [n for n, caps in P.PROFILES.items() if P.GRADE_TASKS in caps]
+    assert granting == ["full"]
+
+
+def test_task_reads_are_available_where_people_work_happens():
+    for profile in ("people", "reporting", "full"):
+        assert P.READ_TASKS in P.PROFILES[profile]

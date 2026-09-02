@@ -59,12 +59,19 @@ READ_COMMERCE = "commerce.read"
 READ_EVENTS = "events.read"
 WRITE_WEB_PACKAGES = "webpackages.write"
 ADMIN_CREDENTIALS = "admin.credentials"
+# The dashboard tier. Not in `parity`: that profile mirrors the official Skilljar MCP
+# server, which has no dashboard tools at all. `GRADE_TASKS` is declared now although no
+# method uses it yet, so this profile decision is made once, deliberately, rather than
+# under delivery pressure once `grade_task` lands.
+READ_TASKS = "tasks.read"
+GRADE_TASKS = "tasks.grade"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
     READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS, READ_COMMERCE, READ_EVENTS,
+    READ_TASKS, GRADE_TASKS,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
@@ -74,10 +81,10 @@ PROFILES: dict[str, tuple[str, ...]] = {
                READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "authoring": (READ_CONTENT, WRITE_CONTENT, READ_WEB_PACKAGES,
                   WRITE_WEB_PACKAGES),
-    "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS),
+    "people": (READ_PEOPLE, WRITE_PEOPLE, READ_GROUPS, WRITE_GROUPS, READ_TASKS),
     # Commerce reads are analytical, so they belong with reporting - and
     # NOT with `parity`, which mirrors a server that has no commerce at all.
-    "reporting": (READ_REPORTING, READ_CONTENT, READ_COMMERCE),
+    "reporting": (READ_REPORTING, READ_CONTENT, READ_COMMERCE, READ_TASKS),
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
                    READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "admin": (ADMIN_CREDENTIALS,),
@@ -221,6 +228,11 @@ _GATES: dict[str, str | None] = {
     # A group category organises student groups, so it belongs with groups.read - the
     # same capability that reads the groups it categorises.
     "list_group_categories": READ_GROUPS,
+    # Dashboard tasks. Not content.read or reporting.read: this is a dashboard session
+    # with no scopes at all, so its own capability keeps that credential's reach visible
+    # rather than folded into a gate meant for the OAuth-scoped v2 API.
+    "list_tasks": READ_TASKS,
+    "get_task": READ_TASKS,
 }
 
 
