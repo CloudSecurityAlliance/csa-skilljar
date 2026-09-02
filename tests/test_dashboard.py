@@ -211,3 +211,19 @@ def test_mismatched_question_prompt_response_counts_is_upstream_changed():
     the wrong prompt/response to a question on a page that decides a certification."""
     with pytest.raises(exc.UpstreamChanged):
         _html_backend(GRADE_HTML_MISMATCHED_COUNTS).get_task(id="tsk1")
+
+
+def test_the_fake_stores_raw_ajax_shapes_not_parsed_rows():
+    """Precedent: FakeBackend stores webhooks WITH their secrets, because a fake that
+    pre-parsed would hide the whole point of the parsing layer."""
+    from csa_skilljar.dashboard import FakeDashboard
+    f = FakeDashboard(tasks=[ROW])
+    assert f._raw[0]["type"]["display"].startswith("<a href=")
+    assert f.list_tasks(status="all")["tasks"][0]["id"] == "tsk1"
+
+
+@pytest.mark.parametrize("method", ["list_tasks", "get_task"])
+def test_real_and_fake_expose_the_same_methods(method):
+    from csa_skilljar.dashboard import FakeDashboard
+    assert callable(getattr(DashboardBackend, method))
+    assert callable(getattr(FakeDashboard, method))

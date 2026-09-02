@@ -218,3 +218,32 @@ class DashboardBackend:
         return {"id": id, "csrf_token": tok.group(1),
                 "quiz_response_id": qr.group(1) if qr else None,
                 "questions": questions}
+
+
+class FakeDashboard(DashboardBackend):
+    """In-memory double storing RAW `/ajax` payload shapes.
+
+    Subclasses the real backend so the PARSING is exercised rather than bypassed - only
+    the transport is replaced. A fake that stored parsed rows would let a parser bug pass
+    every offline test.
+    """
+
+    def __init__(self, tasks: list[dict[str, Any]] | None = None,
+                 pages: dict[str, str] | None = None) -> None:
+        import copy
+        self._raw = copy.deepcopy(list(tasks or []))
+        self._pages = dict(pages or {})
+        self._session = DashboardSession({SESSION_COOKIE: "fake"})
+        self._base = DEFAULT_BASE
+        self._http = None
+
+    def _get_json(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+        start = int(params.get("start", 0)); length = int(params.get("length", 25))
+        window = self._raw[start:start + length]
+        return {"recordsTotal": len(self._raw), "recordsFiltered": len(self._raw),
+                "data": window}
+
+    def _get_html(self, path: str) -> str:
+        if path not in self._pages:
+            raise exc.NotFoundError(f"no fake page for {path}")
+        return self._pages[path]
