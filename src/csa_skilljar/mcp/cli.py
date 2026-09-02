@@ -15,6 +15,7 @@ from collections.abc import Mapping, Sequence
 
 from .. import __version__
 from ._config import (
+    DASHBOARD_MISSING_WARNING,
     V1_MISSING_WARNING,
     V2_MISSING_WARNING,
     ClientProvider,
@@ -35,6 +36,8 @@ environment:
   CSA_SKILLJAR_V2_CLIENT_SECRET  v2 OAuth client secret
   CSA_SKILLJAR_V1_API_KEY        v1 organization API key (paths, webhooks, assets,
                                  commerce, ILT, taxonomy)
+  CSA_SKILLJAR_DASHBOARD_SESSION path to a captured dashboard session file (grading
+                                 queue only - see scripts/capture_dashboard_session.py)
   CSA_SKILLJAR_PROFILE           parity (default) | authoring | people | reporting
                                  | operations | admin | full
   CSA_SKILLJAR_ENV_FILE          path to a file holding any of the above, one KEY=VALUE
@@ -91,6 +94,8 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         print(f"csa-skilljar: {V2_MISSING_WARNING}", file=sys.stderr)
     if not presence.v1:
         print(f"csa-skilljar: {V1_MISSING_WARNING}", file=sys.stderr)
+    if not presence.dashboard:
+        print(f"csa-skilljar: {DASHBOARD_MISSING_WARNING}", file=sys.stderr)
 
     # Credentials are never resolved here: a missing one must not stop the server
     # starting, or the client reports an opaque "server failed to start" and the user

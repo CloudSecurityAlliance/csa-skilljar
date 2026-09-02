@@ -45,6 +45,19 @@ def test_startup_warnings_reach_stderr_when_credentials_are_absent(monkeypatch):
     assert "CSA_SKILLJAR_V2_CLIENT_ID" in err
 
 
+def test_startup_warnings_mention_the_dashboard_session_when_absent(monkeypatch):
+    import csa_skilljar.mcp.cli as cli
+    monkeypatch.setattr(cli, "_run_server", lambda *a, **k: None)
+    code, out, err = run([], env={})
+    assert out == ""
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" in err
+
+
+def test_help_documents_the_dashboard_session_variable():
+    code, out, err = run(["--help"])
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" in err
+
+
 def test_logging_is_routed_to_stderr_never_stdout(monkeypatch):
     """The library reports through `logging`; the CLI is what gives it a destination.
 

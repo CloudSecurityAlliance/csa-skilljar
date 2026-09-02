@@ -9,8 +9,16 @@ from mcp.server import MCPServer
 
 from ... import __version__
 from ... import exceptions as exc
+from ...dashboard import DashboardSession
 from ...policy import ALL_CAPABILITIES, PROFILES
-from .._config import V1_KEY_VAR, V2_ID_VAR, V2_SECRET_VAR, ClientProvider, Settings
+from .._config import (
+    DASHBOARD_SESSION_VAR,
+    V1_KEY_VAR,
+    V2_ID_VAR,
+    V2_SECRET_VAR,
+    ClientProvider,
+    Settings,
+)
 from .._schemas import AccessOut, CapabilitiesOut, CredentialState
 from ._base import READ, translate_errors
 
@@ -65,6 +73,26 @@ def v1_credential_detail(configured: bool) -> str:
     )
 
 
+def dashboard_credential_detail(configured: bool) -> str:
+    """What to tell a user about the dashboard session.
+
+    Unlike v1/v2 this is not an API key or an OAuth client - it is a session cookie
+    captured from a real, captcha-protected human login (`DashboardSession`), so the
+    remedy is a script to run rather than a value to obtain from the Dashboard. Kept out
+    of `parity`, so a caller with only v1/v2 configured is not told anything is missing.
+    """
+    if configured:
+        return ("Configured. Covers the grading queue (list_tasks, get_task) - the one "
+                "capability neither Skilljar API exposes.")
+    return (
+        f"Run `python scripts/capture_dashboard_session.py` and log in when the "
+        f"browser opens - the login is captcha-protected, so a human has to do it - "
+        f"then set {DASHBOARD_SESSION_VAR} to the file it writes and restart. It is a "
+        f"session cookie, not an API key or OAuth client, and unlocks only the "
+        f"grading queue; nothing else needs it."
+    )
+
+
 def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: Settings) -> None:
 
     @app.tool(annotations=READ)
@@ -73,10 +101,10 @@ def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: 
         """Which Skilljar credential is configured and working, and what each one unlocks.
 
         Call this first whenever a tool reports a credential problem, and relay what it
-        says rather than retrying - a retry fails identically. This server holds two
-        INDEPENDENT credentials, one per Skilljar API, so "v2 works, v1 does not" is a
-        normal state and a capability that looks unsupported may be one environment
-        variable away.
+        says rather than retrying - a retry fails identically. This server holds up to
+        THREE independent credentials - v2, v1, and a dashboard session - so "v2 works,
+        v1 does not" (or the dashboard does not) is a normal state and a capability that
+        looks unsupported may be one environment variable away.
 
         Needs no credential itself and makes no call to Skilljar when nothing is
         configured, so it answers even when everything else fails. Returns no secret
@@ -85,20 +113,30 @@ def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: 
         v2_ready = bool(settings.v2_client_id and settings.v2_client_secret)
         v2: CredentialState = {
             "configured": v2_ready,
-            "detail": ("Configured. Covers courses, lessons, assessments, learners, enrolment."
-                       if v2_ready else
-                       f"Set {V2_ID_VAR} and {V2_SECRET_VAR} in your MCP client configuration "
-                       f"and restart the server. Obtain a v2 API client from the Skilljar "
-                       f"Dashboard."),
+            "detail": v2_credential_detail(v2_ready),
         }
+        v1_ready = bool(settings.v1_api_key)
         v1: CredentialState = {
-            "configured": bool(settings.v1_api_key),
-            "detail": ("Configured." if settings.v1_api_key else
-                       f"Set {V1_KEY_VAR} to a Skilljar v1 organization API key. No v1-backed "
-                       f"tools are implemented yet, so this is not currently needed."),
+            "configured": v1_ready,
+            "detail": v1_credential_detail(v1_ready),
         }
+        session_path = settings.dashboard_session
+        dashboard: CredentialState = {
+            "configured": bool(session_path),
+            "detail": dashboard_credential_detail(bool(session_path)),
+        }
+        if session_path:
+            # A local file read, not a call to Skilljar - so this still holds the
+            # docstring's promise. Without it a STALE session reports "configured" and
+            # nothing more, which is the exact gap that sent a user with a broken
+            # session to this tool and left them no better informed.
+            try:
+                DashboardSession.from_file(session_path)
+                dashboard["working"] = True
+            except exc.SkilljarError as e:
+                dashboard["working"] = False; dashboard["detail"] = str(e)
         out: AccessOut = {"version": __version__, "profile": settings.profile,
-                          "v2": v2, "v1": v1, "granted_scopes": []}
+                          "v2": v2, "v1": v1, "dashboard": dashboard, "granted_scopes": []}
         if v2_ready:
             try:
                 creds = get_client().credentials

@@ -22,6 +22,7 @@ class AccessOut(TypedDict):
     profile: str
     v2: CredentialState
     v1: CredentialState
+    dashboard: CredentialState
     granted_scopes: list[str]
     # Set only when the token carries no recognised scope claim. Distinct from an empty
     # granted_scopes, which means the client really was issued nothing.
@@ -628,8 +629,11 @@ class TaskOut(TypedDict):
 class TaskListOut(TypedDict):
     tasks: list[TaskOut]
     total: int
-    pending: int
-    completed: int
+    # Page-local, not queue-wide - the DataTables endpoint gives no per-status total,
+    # only a per-page one. Named "_on_page" so a reader cannot mistake either for the
+    # size of the whole queue the way a bare `pending` invites.
+    pending_on_page: int
+    completed_on_page: int
     note: str
 
 

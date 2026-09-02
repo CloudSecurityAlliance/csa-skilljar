@@ -46,6 +46,11 @@ V1_MISSING_WARNING = (
     f"(lesson counts, credits, re-enrolment history) is v1-only; everything else works "
     f"without it. Call `check_access` for details."
 )
+DASHBOARD_MISSING_WARNING = (
+    f"{DASHBOARD_SESSION_VAR} not set - the grading queue (list_tasks, get_task) is "
+    f"unavailable; neither Skilljar API exposes it at all. Run "
+    f"scripts/capture_dashboard_session.py to get one. Call `check_access` for details."
+)
 
 
 @dataclass(frozen=True)
@@ -163,6 +168,7 @@ def presence_from_env(env: Mapping[str, str]) -> CredentialPresence:
     return CredentialPresence(
         v2=_set(V2_ID_VAR) and _set(V2_SECRET_VAR),
         v1=_set(V1_KEY_VAR),
+        dashboard=_set(DASHBOARD_SESSION_VAR),
     )
 
 
@@ -181,6 +187,7 @@ class CredentialPresence:
 
     v2: bool
     v1: bool
+    dashboard: bool
 
 
 def startup_warnings(presence: CredentialPresence) -> list[str]:
@@ -197,6 +204,8 @@ def startup_warnings(presence: CredentialPresence) -> list[str]:
         out.append(V2_MISSING_WARNING)
     if not presence.v1:
         out.append(V1_MISSING_WARNING)
+    if not presence.dashboard:
+        out.append(DASHBOARD_MISSING_WARNING)
     return out
 
 

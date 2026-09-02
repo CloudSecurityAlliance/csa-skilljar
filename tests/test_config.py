@@ -42,6 +42,25 @@ def test_startup_warnings_are_silent_about_v2_when_it_is_configured():
     assert not any("V2_CLIENT_ID" in w for w in startup_warnings(presence_from_env(CONFIGURED)))
 
 
+def test_startup_warnings_mention_the_dashboard_session_when_absent():
+    """A dashboard session is optional like v1 - absent must warn with the capture
+    instruction, not silently omit the whole tier from the startup picture."""
+    joined = " ".join(startup_warnings(presence_from_env({})))
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" in joined
+    assert "capture_dashboard_session.py" in joined
+    assert "check_access" in joined
+
+
+def test_startup_warnings_are_silent_about_the_dashboard_when_it_is_configured():
+    env = {**CONFIGURED, "CSA_SKILLJAR_DASHBOARD_SESSION": "/tmp/session.json"}
+    assert not any("DASHBOARD_SESSION" in w for w in startup_warnings(presence_from_env(env)))
+
+
+def test_presence_reads_the_dashboard_session_variable_by_key_only():
+    assert presence_from_env({}).dashboard is False
+    assert presence_from_env({"CSA_SKILLJAR_DASHBOARD_SESSION": "/tmp/x.json"}).dashboard is True
+
+
 def test_startup_warnings_make_no_network_call(monkeypatch):
     import httpx
 
@@ -124,7 +143,7 @@ def test_startup_warnings_cannot_even_see_a_credential():
     from csa_skilljar.mcp._config import CredentialPresence
 
     fields = {f.name for f in dataclasses.fields(CredentialPresence)}
-    assert fields == {"v2", "v1"}
+    assert fields == {"v2", "v1", "dashboard"}
     presence = presence_from_env(CONFIGURED)
     assert "sk-live-DEADBEEF" not in repr(presence)
     assert all("sk-live-DEADBEEF" not in w for w in startup_warnings(presence))

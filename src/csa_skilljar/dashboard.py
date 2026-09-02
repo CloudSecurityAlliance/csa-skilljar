@@ -163,6 +163,15 @@ class DashboardBackend:
 
     def list_tasks(self, *, status: str = "pending", page: int = 1,
                    page_size: int = 25) -> dict[str, Any]:
+        """One page of the grading queue.
+
+        `total` is the GLOBAL count (`recordsTotal`, the whole queue, every status).
+        `pending_on_page`/`completed_on_page` are counted from the rows THIS page
+        returned - never the whole queue - because the DataTables endpoint gives no
+        per-status total, only a per-page one. Against the real org (661 total, 30
+        pending) page one can report `pending_on_page` no higher than `page_size`, which
+        is why the field says "on_page" rather than implying a queue-wide count.
+        """
         if status not in _STATUSES:
             raise exc.ApiError(
                 f"unrecognised status {status!r}; must be one of "
@@ -181,7 +190,7 @@ class DashboardBackend:
         # status is validated above; "all" (and nothing else) falls through to every row.
         chosen = {"pending": pending, "completed": completed}.get(status, rows)
         return {"tasks": chosen, "total": payload.get("recordsTotal", len(rows)),
-                "pending": len(pending), "completed": len(completed)}
+                "pending_on_page": len(pending), "completed_on_page": len(completed)}
 
     def get_task(self, *, id: str) -> dict[str, Any]:
         """One task, with the questions awaiting grading.

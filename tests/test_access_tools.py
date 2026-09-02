@@ -111,3 +111,60 @@ def test_the_guidance_says_there_is_no_interactive_login():
 def test_configured_details_stay_short():
     assert "dashboard" not in _v1_detail(configured=True).lower()
     assert "dashboard" not in _v2_detail(configured=True).lower()
+
+
+# -- The dashboard tier ------------------------------------------------------------
+#
+# check_access must not go silent on the third credential: a stale or missing session
+# routed a user here through _require_dashboard's own remedy, and finding nothing about
+# the dashboard here left them no better informed than before they called it.
+
+def _dashboard_detail(configured: bool = False) -> str:
+    from csa_skilljar.mcp._tools.access import dashboard_credential_detail
+    return dashboard_credential_detail(configured)
+
+
+def test_the_dashboard_guidance_names_the_capture_script_and_variable():
+    d = _dashboard_detail(configured=False)
+    assert "capture_dashboard_session.py" in d
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" in d
+
+
+def test_check_access_reports_the_dashboard_as_unconfigured_by_default():
+    out = fn(build({}), "check_access")()
+    assert out["dashboard"]["configured"] is False
+    assert "capture_dashboard_session.py" in out["dashboard"]["detail"]
+    assert "working" not in out["dashboard"]
+
+
+def test_check_access_reports_a_valid_dashboard_session_as_working(tmp_path):
+    import json
+    f = tmp_path / "session.json"
+    f.write_text(json.dumps({"cookies": [
+        {"name": "sj_sessionid", "value": "s", "domain": "dashboard.skilljar.com"}]}))
+    out = fn(build({"CSA_SKILLJAR_DASHBOARD_SESSION": str(f)}), "check_access")()
+    assert out["dashboard"]["configured"] is True
+    assert out["dashboard"]["working"] is True
+    assert out["dashboard"]["detail"] == _dashboard_detail(True)
+
+
+def test_check_access_reports_a_broken_dashboard_session_as_not_working(tmp_path):
+    """The exact scenario the review flagged: CSA_SKILLJAR_DASHBOARD_SESSION points at a
+    file that is set but unreadable/invalid. 'configured' alone would still say True and
+    leave the caller no better informed than the tool that sent them here."""
+    missing = tmp_path / "gone.json"
+    out = fn(build({"CSA_SKILLJAR_DASHBOARD_SESSION": str(missing)}), "check_access")()
+    assert out["dashboard"]["configured"] is True
+    assert out["dashboard"]["working"] is False
+    assert "capture" in out["dashboard"]["detail"].lower()
+    assert out["dashboard"]["detail"] != _dashboard_detail(True)
+
+
+def test_check_access_makes_no_disk_read_when_the_dashboard_is_unconfigured(monkeypatch):
+    from csa_skilljar.dashboard import DashboardSession
+
+    def boom(*a, **k):
+        raise AssertionError("must not touch the filesystem when nothing is configured")
+
+    monkeypatch.setattr(DashboardSession, "from_file", boom)
+    fn(build({}), "check_access")()

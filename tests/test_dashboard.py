@@ -85,7 +85,21 @@ def test_counts_are_reported_separately():
     """661 total with 30 pending reads as a 661-item backlog unless both are stated."""
     b = _backend({"recordsTotal": 2, "recordsFiltered": 2, "data": [ROW, DONE_ROW]})
     got = b.list_tasks(status="all")
-    assert got["total"] == 2 and got["pending"] == 1 and got["completed"] == 1
+    assert got["total"] == 2
+    assert got["pending_on_page"] == 1 and got["completed_on_page"] == 1
+
+
+def test_page_local_counts_are_named_so_they_cannot_be_read_as_queue_wide():
+    """`total` is `recordsTotal` for the WHOLE queue; the per-status counts come only
+    from the rows THIS page returned - the DataTables endpoint has no per-status total.
+    Against the real org (661 total, 30 pending) page one can only ever report
+    `pending_on_page <= page_size`, so the field name must not promise more than that."""
+    b = _backend({"recordsTotal": 661, "recordsFiltered": 661, "data": [ROW, DONE_ROW]})
+    got = b.list_tasks(status="all", page_size=2)
+    assert got["total"] == 661
+    assert got["pending_on_page"] == 1
+    # The bare, ambiguous names must be gone entirely, not just renamed alongside.
+    assert "pending" not in got and "completed" not in got
 
 
 def test_pending_is_the_default_and_filters():
