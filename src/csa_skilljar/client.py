@@ -11,22 +11,28 @@ from .policy import Policy, PolicyBackend
 class SkilljarClient:
     """Thin, typed surface over the backends.
 
-    TWO backends, and which one answers is fixed per capability (ADR-002): v2 owns every
-    capability v2 has, v1 is used only for what v2 lacks. There is no fallback in either
-    direction, and no method consults both. The two APIs have incompatible data models -
-    JSON:API with opaque cursors against a DRF envelope with page numbers - so a silent
-    fallback would hand callers a different shape for the same question depending on
-    which backend happened to answer.
+    THREE backends, tried in a fixed order per capability (ADR-002, extended for the
+    dashboard tier): **v2 -> v1 -> dashboard.** v2 owns every capability v2 has; v1 is
+    used only for what v2 lacks; the dashboard tier owns only what NEITHER API exposes,
+    and is the FIRST to be retired, not the last - it reads an undocumented, unversioned
+    session-cookie surface with no scopes at all, so it is dropped the moment Skilljar
+    ships the same capability into either API. There is no fallback in any direction,
+    and no method consults more than one backend. The backends have incompatible data
+    models - JSON:API with opaque cursors, a DRF envelope with page numbers, and scraped
+    dashboard HTML/DataTables JSON - so a silent fallback would hand callers a different
+    shape for the same question depending on which backend happened to answer.
 
-    `v1` is optional. Without it the v1-only capabilities raise a typed error naming the
-    variable to set, rather than the server refusing to start: a v1 key is not needed to
-    use any of the v2 surface.
+    `v1` and `dashboard` are both optional. Without `v1` the v1-only capabilities raise a
+    typed error naming the variable to set; a v1 key is not needed to use any of the v2
+    surface. Without `dashboard` the dashboard-only capabilities do the same; a dashboard
+    session is not needed for anything else.
     """
 
     def __init__(self, backend: Backend | PolicyBackend,
-                 v1: Any | None = None) -> None:
+                 v1: Any | None = None, dashboard: Any | None = None) -> None:
         self._backend = backend
         self._v1 = v1
+        self._dashboard = dashboard
 
     @property
     def credentials(self) -> Any | None:
@@ -460,3 +466,21 @@ class SkilljarClient:
 
     def list_course_labels(self, *, course_id: str) -> dict[str, Any]:
         return self._require_v1().list_course_labels(course_id=course_id)
+
+    # --- dashboard-only capabilities. Neither API exposes these; see ADR-002. ---------
+
+    def _require_dashboard(self) -> Any:
+        if self._dashboard is None:
+            raise exc.CredentialsMissing(
+                "this capability exists only in the Skilljar dashboard, which needs a "
+                "session. Run `python scripts/capture_dashboard_session.py` and log in "
+                "when the browser opens - the login is captcha-protected, so a human has "
+                "to do it - then set CSA_SKILLJAR_DASHBOARD_SESSION to the file it "
+                "writes and restart. Call `check_access` to see what is available.")
+        return self._dashboard
+
+    def list_tasks(self, **kw: Any) -> dict[str, Any]:
+        return self._require_dashboard().list_tasks(**kw)
+
+    def get_task(self, **kw: Any) -> dict[str, Any]:
+        return self._require_dashboard().get_task(**kw)

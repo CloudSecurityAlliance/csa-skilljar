@@ -17,6 +17,7 @@ from .questions import register_question_tools
 from .quizzes import register_quiz_tools
 from .signup_fields import register_signup_field_tools
 from .students import register_student_tools
+from .tasks import register_task_tools
 from .taxonomy import register_taxonomy_tools
 from .vilt import register_vilt_tools
 from .web_packages import register_web_package_tools
@@ -41,6 +42,7 @@ __all__ = [
     "register_quiz_tools",
     "register_signup_field_tools",
     "register_student_tools",
+    "register_task_tools",
     "register_taxonomy_tools",
     "register_vilt_tools",
     "register_web_package_tools",

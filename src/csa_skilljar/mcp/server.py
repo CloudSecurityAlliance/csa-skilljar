@@ -25,6 +25,7 @@ from ._tools import (
     register_quiz_tools,
     register_signup_field_tools,
     register_student_tools,
+    register_task_tools,
     register_taxonomy_tools,
     register_vilt_tools,
     register_web_package_tools,
@@ -99,6 +100,7 @@ def create_server(get_client: ClientProvider, *, settings: Settings,
     register_event_tools(app, get_client)
     register_vilt_tools(app, get_client)
     register_taxonomy_tools(app, get_client)
+    register_task_tools(app, get_client)
     # LAST: coverage is computed from the registry, so every other tool
     # must already be registered when this one is added.
     register_demo_tools(app, get_client)

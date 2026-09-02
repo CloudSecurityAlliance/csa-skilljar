@@ -18,6 +18,7 @@ from typing import Any
 
 from . import exceptions as exc
 from .backend import Backend
+from .dashboard import DashboardBackend
 from .v1backend import V1Backend
 
 READ_CONTENT = "content.read"
@@ -259,12 +260,14 @@ class Policy:
 class PolicyBackend:
     """Wraps a backend and refuses anything the policy does not permit.
 
-    Either backend: the v2 `Backend` protocol or the v1 one. `_GATES` is a single table
-    covering both, deliberately - a capability gated in one API and open in the other
-    would be a hole nobody could see by reading either backend alone.
+    Any of the three backends: the v2 `Backend` protocol, the v1 one, or the dashboard
+    tier. `_GATES` is a single table covering all three, deliberately - a capability
+    gated in one and open in another would be a hole nobody could see by reading any
+    one backend alone.
     """
 
-    def __init__(self, backend: Backend | V1Backend, policy: Policy) -> None:
+    def __init__(self, backend: Backend | V1Backend | DashboardBackend,
+                policy: Policy) -> None:
         self._backend = backend; self._policy = policy
 
     @property

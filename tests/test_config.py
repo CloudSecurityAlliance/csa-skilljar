@@ -91,6 +91,22 @@ def test_provider_reuses_one_client_within_a_thread():
     assert p() is p()
 
 
+def test_a_broken_dashboard_session_does_not_break_the_other_backends(tmp_path, caplog):
+    """A stale CSA_SKILLJAR_DASHBOARD_SESSION pointing at a deleted file must not take
+    down v2 (or v1) tools - this server never blocks startup on a credential. Only the
+    dashboard tools should report their own setup step, via `_require_dashboard`."""
+    bad_session = str(tmp_path / "gone.json")
+    settings = settings_from_env(
+        {**CONFIGURED, "CSA_SKILLJAR_DASHBOARD_SESSION": bad_session})
+    with caplog.at_level(logging.WARNING, logger="csa_skilljar"):
+        client = ClientProvider(settings)()      # must NOT raise
+    assert client.policy is not None, "v2 backend construction must be unaffected"
+    assert any("dashboard" in r.message.lower() for r in caplog.records)
+    with pytest.raises(exc.CredentialsMissing) as e:
+        client.list_tasks()
+    assert "capture" in str(e.value).lower()
+
+
 def test_client_exposes_the_policy_for_inspection():
     from csa_skilljar.policy import PROFILES
     p = ClientProvider(settings_from_env({**CONFIGURED, "CSA_SKILLJAR_PROFILE": "authoring"}))

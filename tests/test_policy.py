@@ -3,7 +3,7 @@ import pytest
 from csa_skilljar import exceptions as exc
 from csa_skilljar import policy as P
 from csa_skilljar.backend import Backend, FakeBackend
-from csa_skilljar.dashboard import FakeDashboard
+from csa_skilljar.dashboard import DashboardBackend, FakeDashboard
 from csa_skilljar.v1backend import FakeV1Backend
 
 ROWS = [{"type": "courses", "id": "c1", "attributes": {"title": "t"}}]
@@ -13,6 +13,17 @@ def test_every_backend_method_has_a_declared_gate():
     """Fails CI when the protocol grows past the gate table. The direction of the
     default matters more than the test: an undeclared method is REFUSED, not delegated."""
     methods = {n for n in dir(Backend) if not n.startswith("_")}
+    assert methods <= set(P._GATES), f"undeclared: {sorted(methods - set(P._GATES))}"
+
+
+def test_every_dashboard_backend_method_has_a_declared_gate():
+    """Mirrors `test_every_backend_method_has_a_declared_gate` (v2, above) and
+    `test_every_v1_method_is_gated_by_the_same_table` (v1, in test_progress.py). Neither
+    of those enumerates `DashboardBackend`, so a method added to the dashboard tier with
+    no gate entry would be silently unusable at runtime - fail-closed still holds - but
+    would not be caught here in CI until this existed."""
+    methods = {n for n in dir(DashboardBackend)
+              if not n.startswith("_") and callable(getattr(DashboardBackend, n))}
     assert methods <= set(P._GATES), f"undeclared: {sorted(methods - set(P._GATES))}"
 
 

@@ -21,6 +21,7 @@ from .. import exceptions as exc
 from ..auth import V2Credentials
 from ..backend import V2Backend
 from ..client import SkilljarClient
+from ..dashboard import DashboardBackend, DashboardSession
 from ..policy import Policy, PolicyBackend
 from ..v1backend import V1Backend, V1Credentials
 
@@ -29,6 +30,7 @@ log = logging.getLogger(__name__)
 V2_ID_VAR = "CSA_SKILLJAR_V2_CLIENT_ID"
 V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable name, not a secret
 V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"
+DASHBOARD_SESSION_VAR = "CSA_SKILLJAR_DASHBOARD_SESSION"
 PROFILE_VAR = "CSA_SKILLJAR_PROFILE"
 
 # Module constants, not f-strings built at call time. The startup-warning path must have
@@ -51,6 +53,7 @@ class Settings:
     v2_client_id: str | None = None
     v2_client_secret: str | None = None
     v1_api_key: str | None = None
+    dashboard_session: str | None = None
     profile: str = "parity"
     base_url: str = "https://api.skilljar.com"
 
@@ -58,6 +61,7 @@ class Settings:
         return (f"Settings(v2_client_id={'set' if self.v2_client_id else 'unset'}, "
                 f"v2_client_secret={'set' if self.v2_client_secret else 'unset'}, "
                 f"v1_api_key={'set' if self.v1_api_key else 'unset'}, "
+                f"dashboard_session={'set' if self.dashboard_session else 'unset'}, "
                 f"profile={self.profile!r})")
 
 
@@ -138,6 +142,7 @@ def settings_from_env(env: Mapping[str, str]) -> Settings:
         v2_client_id=env.get(V2_ID_VAR) or None,
         v2_client_secret=env.get(V2_SECRET_VAR) or None,
         v1_api_key=env.get(V1_KEY_VAR) or None,
+        dashboard_session=env.get(DASHBOARD_SESSION_VAR) or None,
         profile=env.get(PROFILE_VAR) or "parity",
     )
 
@@ -223,6 +228,24 @@ class ClientProvider:
         if s.v1_api_key:
             v1 = PolicyBackend(
                 V1Backend(V1Credentials(s.v1_api_key), base_url=s.base_url), policy)
-        client = SkilljarClient(backend, v1=v1)
+        # The dashboard backend is OPTIONAL, built AFTER v2 and v1, so a stale or
+        # deleted session file never blocks either API: this server never blocks
+        # startup on a credential (invariant 7). `DashboardSession.from_file` raises
+        # `CredentialsMissing` for a missing, unreadable or malformed file - caught here
+        # rather than left to propagate, or it would take down every tool, v2 included.
+        # The dashboard tools report the setup step themselves via `_require_dashboard`.
+        dashboard = None
+        if s.dashboard_session:
+            try:
+                dashboard = PolicyBackend(
+                    DashboardBackend(DashboardSession.from_file(s.dashboard_session)),
+                    policy)
+            except exc.CredentialsMissing as e:
+                log.warning(
+                    "%s points at a session that could not be loaded (%s); dashboard "
+                    "tools will report their setup step instead of blocking startup. "
+                    "Call `check_access` for details.",
+                    DASHBOARD_SESSION_VAR, type(e).__name__)
+        client = SkilljarClient(backend, v1=v1, dashboard=dashboard)
         self._local.client = client
         return client

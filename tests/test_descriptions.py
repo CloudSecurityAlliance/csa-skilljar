@@ -233,6 +233,9 @@ REQUIREMENTS = {
                               "csa_skilljar_v1_api_key"],
     "demonstration_plan": ["it does not run them", "read_only", "read_write",
                            "refuse", "coverage", "named accounts"],
+    # The dashboard tier - no public API for grading at all.
+    "list_tasks": ["pending", "twenty to one", "no grading", "check_access"],
+    "get_task": ["untrusted", "free text", "list_tasks", "not yet possible"],
 }
 
 

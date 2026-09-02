@@ -13,7 +13,8 @@ tools.
 
 > **Status: all seventeen blocks complete. Full 73-tool parity with Skilljar's official server, plus every capability that exists only in v1. v0.15.0 on PyPI.**
 >
-> **112 tools** — 84 over Skilljar's v2 API, twenty-seven over v1, and `demonstration_plan`.
+> **114 tools** — 84 over Skilljar's v2 API, twenty-seven over v1, two over the Skilljar
+> dashboard (which has no API at all), and `demonstration_plan`.
 >
 > ```
 > pipx install csa-skilljar
@@ -48,6 +49,7 @@ tools.
 > | **Instructor-led** (v1) | `list_ilt_sessions` · `list_vilt_session_events` · `list_vilt_registrations` · `list_ilt_instructors` |
 > | **Taxonomy** (v1) | `list_labels` · `list_tags` · `list_course_labels` · `list_group_categories` — labels are internal, tags are public |
 > | **Credentials** | `register_oauth_client` · `list_oauth_clients` · `get_oauth_client` · `create_oauth_client` · `update_oauth_client` · `deactivate_oauth_client` · `rotate_oauth_client_secret` · `list_oauth_scopes` · `revoke_refresh_token` — all off unless the `admin` profile is named |
+> | **Grading queue** (dashboard) | `list_tasks` · `get_task` — read-only; neither Skilljar API exposes grading at all. Needs `CSA_SKILLJAR_DASHBOARD_SESSION`, off in `parity` |
 >
 > All 73 official tools are present — asserted by `tests/test_parity.py`, not claimed. The three extra tools are our own server management. See [ROADMAP.md](ROADMAP.md).
 

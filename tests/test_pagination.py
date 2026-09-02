@@ -19,6 +19,7 @@ import pytest
 
 from csa_skilljar.backend import FakeBackend
 from csa_skilljar.client import SkilljarClient
+from csa_skilljar.dashboard import FakeDashboard
 from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp.server import create_server
 from csa_skilljar.policy import Policy, PolicyBackend
@@ -109,11 +110,19 @@ def v1_backend():
     )
 
 
+def dashboard_backend():
+    """One row is enough - `list_tasks` is not in PAGINATED, so nothing here needs a
+    second page. Reuses the ROW fixture from test_dashboard.py."""
+    from tests.test_dashboard import ROW
+    return FakeDashboard(tasks=[ROW])
+
+
 def tools():
     fake = backend()
     policy = Policy.from_profile("full")
     client = SkilljarClient(PolicyBackend(fake, policy),
-                            v1=PolicyBackend(v1_backend(), policy))
+                            v1=PolicyBackend(v1_backend(), policy),
+                            dashboard=PolicyBackend(dashboard_backend(), policy))
     app = create_server(lambda: client, settings=settings_from_env({}))
     fns = {n: t.fn for n, t in app._tool_manager._tools.items()}
     # Visibility overrides have no constructor argument - they only exist once created,
@@ -175,6 +184,9 @@ V1_PAGE_NUMBER = {
     "list_labels": {}, "list_tags": {}, "list_group_categories": {},
     "list_paths": {}, "list_path_items": {"path_id": "pa0"},
     "list_published_paths": {"domain_name": "d"}, "list_course_series": {"domain_name": "d"},
+    # The dashboard tier, not v1 - but it shares the exact contract this category
+    # tests: paging by NUMBER with a reported total, never an opaque cursor.
+    "list_tasks": {},
 }
 
 

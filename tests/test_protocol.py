@@ -13,10 +13,12 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 from csa_skilljar.backend import FakeBackend
 from csa_skilljar.client import SkilljarClient
+from csa_skilljar.dashboard import FakeDashboard
 from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp.server import create_server
 from csa_skilljar.policy import Policy, PolicyBackend
 from csa_skilljar.v1backend import FakeV1Backend
+from tests.test_dashboard import GRADE_HTML, ROW
 
 ROWS = [{"type": "courses", "id": "c1",
          "attributes": {"title": "Zero Trust Foundations", "lesson_count": 4}}]
@@ -139,6 +141,7 @@ EXERCISE = {
     "list_vilt_session_events": {}, "list_vilt_registrations": {},
     "list_labels": {}, "list_tags": {}, "list_group_categories": {},
     "list_course_labels": {"course_id": "c1"},
+    "list_tasks": {}, "get_task": {"id": "tsk1"},
     "demonstration_plan": {},
 }
 
@@ -248,7 +251,13 @@ def build(profile="full", env=None):
                       vilt_events=V1_VILT_EVENTS, vilt_registrations=V1_VILT_REGS,
                       labels=V1_LABELS, tags=V1_TAGS,
                       group_categories=V1_CATEGORIES,
-                      course_labels=V1_COURSE_LABELS), policy))
+                      course_labels=V1_COURSE_LABELS), policy),
+        # A third backend since Block 18 - the dashboard tier, with no scopes at all.
+        # Reuses the ROW/GRADE_HTML fixtures from test_dashboard.py rather than
+        # inventing a second copy of the DataTables/HTML shapes they already exercise.
+        dashboard=PolicyBackend(
+            FakeDashboard(tasks=[ROW], pages={"/tasks/grade-quiz/tsk1": GRADE_HTML}),
+            policy))
     return create_server(lambda: client, settings=settings)
 
 

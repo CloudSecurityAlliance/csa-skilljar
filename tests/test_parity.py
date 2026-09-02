@@ -59,7 +59,13 @@ V1_ONLY = {"find_learner", "list_learner_progress", "get_learner_progress",
            "list_ilt_sessions", "list_vilt_session_events", "list_vilt_registrations", "list_ilt_instructors",
            "list_labels", "list_tags", "list_course_labels", "list_group_categories"}
 
-OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY
+# Served by the Skilljar DASHBOARD, which has no public API at all - not v1, not v2.
+# Its own category for the same reason V1_ONLY is split from BEYOND_PARITY: the risk
+# differs again, since the credential here is a scope-less session cookie rather than
+# an OAuth token or an API key.
+DASHBOARD_ONLY = {"list_tasks", "get_task"}
+
+OURS = SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY | DASHBOARD_ONLY
 
 
 def registered():
@@ -91,11 +97,12 @@ def test_nothing_extra_ships_without_being_declared():
 
 def test_our_additions_are_registered_and_correctly_classified():
     assert OURS <= set(registered())
-    # The two kinds must stay disjoint: a tool that is both "touches no API" and
+    # The kinds must stay disjoint: a tool that is both "touches no API" and
     # "calls an endpoint the official server omits" is a contradiction, and would mean
-    # one of the two lists has stopped meaning what it says.
+    # one of the lists has stopped meaning what it says.
     assert not (SERVER_MANAGEMENT & BEYOND_PARITY)
     assert not (V1_ONLY & (SERVER_MANAGEMENT | BEYOND_PARITY))
+    assert not (DASHBOARD_ONLY & (SERVER_MANAGEMENT | BEYOND_PARITY | V1_ONLY))
 
 
 def test_v1_only_tools_exist_because_v2_lacks_the_capability():
@@ -105,6 +112,19 @@ def test_v1_only_tools_exist_because_v2_lacks_the_capability():
     v2 = {n for n in dir(Backend) if not n.startswith("_")}
     duplicated = sorted(V1_ONLY & v2)
     assert not duplicated, f"v1 tools duplicating a v2 capability: {duplicated}"
+
+
+def test_dashboard_only_tools_exist_because_neither_api_has_the_capability():
+    """ADR-002, extended for the dashboard tier. Grading is justified only because
+    NEITHER Skilljar API exposes it - so each name here must be absent from both the v2
+    and the v1 backend, or it would be duplication rather than coverage."""
+    from csa_skilljar.backend import Backend
+    from csa_skilljar.v1backend import V1Backend
+    v2 = {n for n in dir(Backend) if not n.startswith("_")}
+    v1 = {n for n in dir(V1Backend)
+         if not n.startswith("_") and callable(getattr(V1Backend, n))}
+    duplicated = sorted(DASHBOARD_ONLY & (v2 | v1))
+    assert not duplicated, f"dashboard tools duplicating an API capability: {duplicated}"
 
 
 def test_beyond_parity_tools_are_all_admin_gated():

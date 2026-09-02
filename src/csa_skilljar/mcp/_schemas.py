@@ -611,3 +611,44 @@ class CommerceListOut(TypedDict):
     has_more: NotRequired[bool]
     next_page: NotRequired[int | None]
     note: str
+
+
+class TaskOut(TypedDict):
+    id: str
+    type: str
+    submitted_at: str | None
+    completed_at: str | None
+    course_id: str | None
+    course_title: str | None
+    lesson_id: str | None
+    lesson_title: str | None
+    student_email: str | None
+
+
+class TaskListOut(TypedDict):
+    tasks: list[TaskOut]
+    total: int
+    pending: int
+    completed: int
+    note: str
+
+
+# Named `TaskQuestionOut`, not `QuestionOut` - that name is already taken by the quiz
+# question tool family (questions.py) for a completely different shape. Reusing it here
+# would shadow the earlier class at module-import time, since both are bound to the
+# same name in this module: `list_questions` would then serialize its rows against
+# THIS TypedDict and every call would fail structured-output validation.
+class TaskQuestionOut(TypedDict):
+    question_id: str
+    prompt: str | None
+    response: str | None
+
+
+# `csrf_token` is deliberately NOT a field here - the backend returns it (a later
+# grading path needs it, and it is obtainable only from this GET) but the tool must
+# never hand a CSRF token to a model.
+class TaskDetailOut(TypedDict):
+    id: str
+    quiz_response_id: str | None
+    questions: list[TaskQuestionOut]
+    note: str

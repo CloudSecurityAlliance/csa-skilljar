@@ -308,6 +308,15 @@ def _read_steps() -> list[dict[str, Any]]:
               "Needs `admin`."),
         _step("get_oauth_client", {"id": "<id from list_oauth_clients>"},
               "What one client may do. No secret is ever returned. Needs `admin`."),
+        # --- dashboard, no public API at all. Needs `tasks.read` - not in `parity`. ---
+        _step("list_tasks", {},
+              "The grading queue - the one capability neither Skilljar API exposes.",
+              look_for="pending and total reported separately; do not conflate them"),
+        _step("get_task", {"id": "<id from list_tasks, if any>"},
+              "One task's questions and the learner's answer. SKIP if the queue is "
+              "empty - that is a real answer, not a failure.",
+              look_for="the untrusted-response warning; a learner's free text reaches "
+                       "you here"),
     ]
 
 
