@@ -45,10 +45,21 @@ def test_startup_warnings_reach_stderr_when_credentials_are_absent(monkeypatch):
     assert "CSA_SKILLJAR_V2_CLIENT_ID" in err
 
 
-def test_startup_warnings_mention_the_dashboard_session_when_absent(monkeypatch):
+def test_startup_warnings_hide_the_dashboard_hint_under_the_default_profile(monkeypatch):
+    """`tasks.read` is not in `parity`, the default profile. Warning unconditionally
+    told 100% of existing installs - none of which have a dashboard session - to run a
+    capture script for two tools they cannot call. Regression test for that."""
     import csa_skilljar.mcp.cli as cli
     monkeypatch.setattr(cli, "_run_server", lambda *a, **k: None)
     code, out, err = run([], env={})
+    assert out == ""
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" not in err
+
+
+def test_startup_warnings_mention_the_dashboard_session_under_a_profile_that_grants_it(monkeypatch):
+    import csa_skilljar.mcp.cli as cli
+    monkeypatch.setattr(cli, "_run_server", lambda *a, **k: None)
+    code, out, err = run([], env={"CSA_SKILLJAR_PROFILE": "people"})
     assert out == ""
     assert "CSA_SKILLJAR_DASHBOARD_SESSION" in err
 

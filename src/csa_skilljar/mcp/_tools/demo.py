@@ -311,7 +311,8 @@ def _read_steps() -> list[dict[str, Any]]:
         # --- dashboard, no public API at all. Needs `tasks.read` - not in `parity`. ---
         _step("list_tasks", {},
               "The grading queue - the one capability neither Skilljar API exposes.",
-              look_for="pending and total reported separately; do not conflate them"),
+              look_for="pending_on_page and total are NOT comparable - one is this "
+                       "page, the other is the whole queue"),
         _step("get_task", {"id": "<id from list_tasks, if any>"},
               "One task's questions and the learner's answer. SKIP if the queue is "
               "empty - that is a real answer, not a failure.",

@@ -42,10 +42,11 @@ def test_startup_warnings_are_silent_about_v2_when_it_is_configured():
     assert not any("V2_CLIENT_ID" in w for w in startup_warnings(presence_from_env(CONFIGURED)))
 
 
-def test_startup_warnings_mention_the_dashboard_session_when_absent():
+def test_startup_warnings_mention_the_dashboard_session_when_absent_and_wanted():
     """A dashboard session is optional like v1 - absent must warn with the capture
-    instruction, not silently omit the whole tier from the startup picture."""
-    joined = " ".join(startup_warnings(presence_from_env({})))
+    instruction, not silently omit the whole tier from the startup picture, PROVIDED the
+    active profile can actually use it (`tasks.read` is not in `parity` - see below)."""
+    joined = " ".join(startup_warnings(presence_from_env({}), profile="full"))
     assert "CSA_SKILLJAR_DASHBOARD_SESSION" in joined
     assert "capture_dashboard_session.py" in joined
     assert "check_access" in joined
@@ -53,7 +54,33 @@ def test_startup_warnings_mention_the_dashboard_session_when_absent():
 
 def test_startup_warnings_are_silent_about_the_dashboard_when_it_is_configured():
     env = {**CONFIGURED, "CSA_SKILLJAR_DASHBOARD_SESSION": "/tmp/session.json"}
-    assert not any("DASHBOARD_SESSION" in w for w in startup_warnings(presence_from_env(env)))
+    assert not any("DASHBOARD_SESSION" in w
+                  for w in startup_warnings(presence_from_env(env), profile="full"))
+
+
+def test_startup_warnings_hide_the_dashboard_hint_under_the_default_profile():
+    """`tasks.read` is deliberately absent from `parity`, the default. Warning about a
+    missing dashboard session under `parity` told 100% of existing installs - none of
+    which have one - to go run a capture script for two tools their profile cannot call.
+    This is the regression test for that: default-profile output must stay silent."""
+    joined = " ".join(startup_warnings(presence_from_env({})))    # profile defaults to parity
+    assert "DASHBOARD_SESSION" not in joined
+    joined_explicit = " ".join(startup_warnings(presence_from_env({}), profile="parity"))
+    assert "DASHBOARD_SESSION" not in joined_explicit
+
+
+def test_startup_warnings_show_the_dashboard_hint_under_a_profile_that_grants_it():
+    """`people` is one of the profiles `tasks.read` is actually available in - so unlike
+    `parity`, an install running as `people` with no session SHOULD be told."""
+    joined = " ".join(startup_warnings(presence_from_env({}), profile="people"))
+    assert "CSA_SKILLJAR_DASHBOARD_SESSION" in joined
+
+
+def test_an_unrecognised_profile_does_not_crash_tier_1():
+    """Tier 1 promises never to fail (see `startup_warnings`'s docstring). An unknown
+    profile name is a real error, but it belongs to the loud, deferred failure a tool
+    call already gives it - not to a crash before the server has even started."""
+    startup_warnings(presence_from_env({}), profile="not-a-real-profile")
 
 
 def test_presence_reads_the_dashboard_session_variable_by_key_only():

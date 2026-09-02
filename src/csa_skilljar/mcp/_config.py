@@ -22,7 +22,7 @@ from ..auth import V2Credentials
 from ..backend import V2Backend
 from ..client import SkilljarClient
 from ..dashboard import DashboardBackend, DashboardSession
-from ..policy import Policy, PolicyBackend
+from ..policy import READ_TASKS, Policy, PolicyBackend
 from ..v1backend import V1Backend, V1Credentials
 
 log = logging.getLogger(__name__)
@@ -190,10 +190,21 @@ class CredentialPresence:
     dashboard: bool
 
 
-def startup_warnings(presence: CredentialPresence) -> list[str]:
+def startup_warnings(presence: CredentialPresence, profile: str = "parity") -> list[str]:
     """Tier 1: synchronous, zero network. Written to stderr by the CLI.
 
-    Takes only booleans by design - see `CredentialPresence`.
+    Takes only booleans, plus the profile NAME (a string already chosen by the operator,
+    never a secret) - see `CredentialPresence`.
+
+    v1 and v2 warn unconditionally when absent: both capabilities are in `parity`, the
+    default profile, so every install can act on them. The dashboard warning is
+    PROFILE-AWARE and the other two are not, because `tasks.read` is deliberately absent
+    from `parity` (see policy.py) - warning about it unconditionally would tell every
+    existing install, none of which have a dashboard session, to go run a capture script
+    for two tools their profile cannot call. That was a real regression: it fired for
+    100% of installs the day it shipped. An unrecognised profile name is treated as "does
+    not grant it" rather than raised here - Tier 1 must not be able to fail, and the
+    profile is validated for real, loudly, the first time a tool actually needs it.
 
     Tier 2 - actually validating the credential - happens in the background after
     `initialize` returns, because a blocking network call here turns a slow Skilljar
@@ -205,7 +216,12 @@ def startup_warnings(presence: CredentialPresence) -> list[str]:
     if not presence.v1:
         out.append(V1_MISSING_WARNING)
     if not presence.dashboard:
-        out.append(DASHBOARD_MISSING_WARNING)
+        try:
+            dashboard_in_use = Policy.from_profile(profile).allows(READ_TASKS)
+        except ValueError:
+            dashboard_in_use = False
+        if dashboard_in_use:
+            out.append(DASHBOARD_MISSING_WARNING)
     return out
 
 

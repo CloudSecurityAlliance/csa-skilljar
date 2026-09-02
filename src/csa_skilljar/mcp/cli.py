@@ -15,14 +15,12 @@ from collections.abc import Mapping, Sequence
 
 from .. import __version__
 from ._config import (
-    DASHBOARD_MISSING_WARNING,
-    V1_MISSING_WARNING,
-    V2_MISSING_WARNING,
     ClientProvider,
     Settings,
     env_with_file,
     presence_from_env,
     settings_from_env,
+    startup_warnings,
 )
 from .server import create_server
 
@@ -89,13 +87,12 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     # The printed strings are module CONSTANTS; the environment only decides *whether*
     # each is printed. So there is no data path from os.environ to this output at all,
     # only a control-flow one. See CredentialPresence and V2_MISSING_WARNING.
+    # Delegates entirely to startup_warnings() rather than re-deciding here: a second,
+    # hand-kept copy of the same three checks is exactly how the dashboard warning
+    # could drift out of profile-awareness again without anyone noticing.
     presence = presence_from_env(env)
-    if not presence.v2:
-        print(f"csa-skilljar: {V2_MISSING_WARNING}", file=sys.stderr)
-    if not presence.v1:
-        print(f"csa-skilljar: {V1_MISSING_WARNING}", file=sys.stderr)
-    if not presence.dashboard:
-        print(f"csa-skilljar: {DASHBOARD_MISSING_WARNING}", file=sys.stderr)
+    for warning in startup_warnings(presence, settings.profile):
+        print(f"csa-skilljar: {warning}", file=sys.stderr)
 
     # Credentials are never resolved here: a missing one must not stop the server
     # starting, or the client reports an opaque "server failed to start" and the user
