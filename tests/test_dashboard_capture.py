@@ -51,3 +51,65 @@ def test_the_script_is_not_importable_as_a_module_with_side_effects():
     script = pathlib.Path("scripts/capture_dashboard_session.py")
     assert script.exists()
     assert 'if __name__ == "__main__":' in script.read_text()
+
+
+def _write_fake_playwright(root: pathlib.Path, *, launch_message: str) -> None:
+    """A fake `playwright.sync_api` on disk, importable via PYTHONPATH, whose
+    `sync_playwright()` raises `Error(launch_message)` as soon as the `with` block is
+    entered - standing in for a real Playwright whose browser launch fails, without
+    needing the real package or a browser installed."""
+    pkg = root / "playwright"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("")
+    (pkg / "sync_api.py").write_text(
+        "class Error(Exception):\n"
+        "    pass\n"
+        "\n"
+        "class _Ctx:\n"
+        "    def __enter__(self):\n"
+        f"        raise Error({launch_message!r})\n"
+        "    def __exit__(self, *a):\n"
+        "        return False\n"
+        "\n"
+        "def sync_playwright():\n"
+        "    return _Ctx()\n"
+    )
+
+
+def _run_with_fake_playwright(tmp_path: pathlib.Path, *, launch_message: str) -> subprocess.CompletedProcess:
+    fake_root = tmp_path / "fakepkg"
+    fake_root.mkdir()
+    _write_fake_playwright(fake_root, launch_message=launch_message)
+    home = tmp_path / "home"
+    home.mkdir()
+    env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "PYTHONPATH": str(fake_root)}
+    return subprocess.run(
+        [sys.executable, "scripts/capture_dashboard_session.py"],
+        capture_output=True, text=True, env=env, timeout=30,
+    )
+
+
+def test_the_script_reports_missing_browser_binaries_cleanly(tmp_path):
+    """`pip install playwright` gets the package, not the browser binaries - the likely
+    first-run failure for someone who stops after step one of the README's two-step
+    setup. It must be reported like the missing-package case: a named remedy on stderr
+    and a non-zero exit, never a raw Playwright traceback."""
+    result = _run_with_fake_playwright(
+        tmp_path,
+        launch_message="BrowserType.launch: Executable doesn't exist at /fake/chrome",
+    )
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert "playwright install chromium" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_the_script_does_not_swallow_an_unrelated_playwright_error(tmp_path):
+    """The missing-executable branch must be narrow: a genuinely different Playwright
+    failure has the wrong remedy (installing chromium fixes nothing) and must still
+    surface as a loud, uncaught error rather than being reported as the missing-browser
+    case."""
+    result = _run_with_fake_playwright(tmp_path, launch_message="Some completely different failure")
+    assert result.returncode != 0
+    assert "playwright install chromium" not in result.stderr
+    assert "Some completely different failure" in result.stderr
