@@ -1,8 +1,9 @@
 # Operational Resources
 
 Recurring operational work. This project deploys no service and runs no infrastructure — it is a
-library and a local process on the user's machine — so there is exactly one entry, and it is about
-watching someone else's API rather than running our own.
+library and a local process on the user's machine — so both entries are about watching someone
+else's surface rather than running our own: one scheduled and automatic, one manual because it
+needs a human to clear a login.
 
 ## check_upstream — Skilljar API drift detection
 
@@ -44,3 +45,47 @@ watching someone else's API rather than running our own.
 - **Next review** — 2026-11-26
 - **Notes** — Degrades gracefully without credentials: the spec and scope-catalogue checks need no
   authentication, the registry check does. A skipped check is reported as skipped, never as passed.
+
+## check_dashboard — dashboard grading-queue drift detection
+
+- **What it does** — Fetches the dashboard's undocumented `/tasks/ajax` DataTables endpoint and one
+  `/tasks/grade-quiz/<id>` grading page, and checks the shape both by hand: the expected
+  `display`/`sort`/`filter` columns, the `/tasks/grade-quiz/` anchor `list_tasks`/`get_task` parse
+  the task id out of, and the grading form's `csrfmiddlewaretoken` / `quiz_response_id` /
+  `email_student_on_completion` / `question-response-*` fields. There is no OpenAPI document for
+  these endpoints for `check_upstream.py` to diff, so this is the hand-written substitute; without
+  it a Skilljar UI release surfaces as an empty grading queue rather than as a detected problem.
+- **Tier** — `manual`
+- **Status** — `production`
+- **Code** — `scripts/check_dashboard.py`
+- **Runtime** — Python, local only
+- **Schedule** — manual, run before relying on `list_tasks`/`get_task` after a Skilljar UI change
+  is suspected. **Needs a live, logged-in dashboard session, so it cannot run unattended in CI** —
+  the login is hCaptcha-protected and only a human can clear it
+  (`scripts/capture_dashboard_session.py`); there is no service-account credential to hand to a
+  scheduled workflow the way `CSA_SKILLJAR_V2_*` is handed to `upstream.yml`.
+- **Inputs** — `CSA_SKILLJAR_DASHBOARD_SESSION` (a Playwright storage-state file from
+  `scripts/capture_dashboard_session.py`); live `dashboard.skilljar.com`
+- **Outputs** — a report on stdout/stderr; no issue filed, no state written anywhere
+- **Serves** — keeps `list_tasks`/`get_task` (the only place the grading queue is reachable at all
+  — neither Skilljar API exposes it) from silently going dark. See
+  `docs/superpowers/specs/2026-09-02-dashboard-backend-design.md`.
+- **Reads from** — `dashboard.skilljar.com` (`/tasks/ajax`, `/tasks/grade-quiz/<id>`)
+- **Writes to** — nothing
+- **Backfill** — `none`
+- **Health check** — three exit codes, kept distinct on purpose: `0` healthy, `1` drift detected
+  (lists the specific problems), `2` could not check — an unreachable host, or a session that has
+  expired or was never configured (named explicitly, with the capture-script remedy). Modelled on
+  `check_upstream.py`'s own exit-2 contract after issue #13 filed a TLS handshake timeout as
+  upstream drift and it sat open for five days while real drift went unnoticed; an outage or an
+  expired session must never look like a finding here either.
+- **Runbook** — on exit 1: confirm the change by hand against the live dashboard, then update
+  `csa_skilljar/dashboard.py`'s parsing (the regexes and expected columns/fields) and this script's
+  `EXPECTED_COLUMNS`/`EXPECTED_FORM_FIELDS` together. On exit 2: re-run
+  `scripts/capture_dashboard_session.py` and try again before concluding anything about drift.
+- **Owner** — Kurt Seifried
+- **Last touched** — 2026-09-02 (shipped)
+- **Next review** — 2026-12-02
+- **Notes** — Cheaper than it looks: no OAuth, no OpenAPI diff, just two GETs with a session
+  cookie. The cost is entirely the human login step, which is also why it is `manual` rather than
+  `simple-scheduled` like `check_upstream.py`.
