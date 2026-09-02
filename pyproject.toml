@@ -42,6 +42,10 @@ mcp = []
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "mypy>=1.11",
        "respx>=0.21", "anyio>=4", "build>=1.2",
        "bandit>=1.7", "pip-audit>=2.7"]
+# Setup-time only: scripts/capture_dashboard_session.py needs a real headed browser to
+# let a human clear the dashboard login's hCaptcha. The MCP server never imports
+# playwright - see test_the_server_never_imports_playwright.
+dashboard-setup = ["playwright>=1.40"]
 
 [project.scripts]
 csa-skilljar-mcp = "csa_skilljar.mcp.cli:main"

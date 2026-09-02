@@ -251,6 +251,37 @@ operation, and the sensitive ones are separable — `students:anonymize` (irreve
 `students:deactivate`, and `students:manage-password` can all be withheld from a client used for
 content authoring.
 
+### Dashboard session (grading queue)
+
+A third, independent credential unlocks the grading queue (`list_tasks`, `get_task`) — the one
+capability neither Skilljar API exposes at all. It is not an API key or an OAuth client: it is a
+session cookie captured from a real login to the Skilljar dashboard.
+
+That login is protected by hCaptcha, and this project does not attempt to defeat it — a human has
+to solve it, which is what it is for. `scripts/capture_dashboard_session.py` opens a real, headed
+browser, waits for you to log in, and saves the resulting cookies:
+
+```bash
+pip install -e ".[dashboard-setup]"
+playwright install chromium
+.venv/bin/python scripts/capture_dashboard_session.py
+```
+
+Log in when the browser opens; the script saves the session and exits once you reach the
+dashboard. The file it writes is `0600` from the moment it is created — there is no window in
+which a live admin session cookie is world-readable. Point the server at it:
+
+```bash
+CSA_SKILLJAR_DASHBOARD_SESSION=~/.csa_skilljar/dashboard-session.json
+```
+
+The session expires like any browser login. When `check_access` or a grading-queue tool reports
+the credential as missing or invalid, re-run the capture script — there is nothing to renew, only
+to redo.
+
+Playwright is a setup-time dependency only, installed by the `dashboard-setup` extra: the MCP
+server itself never imports it, so a normal install gains no browser toolchain.
+
 ## What it will cover
 
 Reproduces all 73 official tools, then adds v1-only families in this order:
