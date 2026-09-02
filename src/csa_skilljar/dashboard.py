@@ -28,6 +28,12 @@ SESSION_COOKIE = "sj_sessionid"          # nosec B105 # a cookie name, not a sec
 _TIMEOUT = 30.0
 _CAPTURE_HINT = ("Run `python scripts/capture_dashboard_session.py` and log in when the "
                  "browser opens. The login is captcha-protected, so a human has to do it.")
+# Shared by `UnconfiguredDashboard` (below) and `SkilljarClient._require_dashboard`, so the
+# two paths that can report "no session" say exactly the same thing.
+NO_SESSION_MESSAGE = (
+    "this capability exists only in the Skilljar dashboard, which needs a session. "
+    f"{_CAPTURE_HINT} Then set CSA_SKILLJAR_DASHBOARD_SESSION to the file it writes and "
+    "restart. Call `check_access` to see what is available.")
 
 
 class DashboardSession:
@@ -258,3 +264,30 @@ class FakeDashboard(DashboardBackend):
         if path not in self._pages:
             raise exc.NotFoundError(f"no fake page for {path}")
         return self._pages[path]
+
+
+class UnconfiguredDashboard:
+    """Stands in for a real `DashboardBackend` when no session is configured, or a
+    configured one could not be loaded - so the CAPABILITY GATE runs before this ever
+    executes.
+
+    `PolicyBackend.__getattr__` (see `policy.py`) checks `_GATES` and the active policy
+    BEFORE delegating to the wrapped backend at all. Previously the credential prompt sat
+    in `SkilljarClient._require_dashboard`, which fired the instant `self._dashboard is
+    None` - so it ran unconditionally, with no policy in the loop. Under the default
+    `parity` profile (which does not grant `tasks.read`) that told a caller to go capture
+    a full-privilege admin session cookie, and only after following the instruction and
+    restarting did they learn the capability was refused all along.
+
+    `mcp/_config.py` wraps an instance of THIS class in the same `PolicyBackend` a real
+    `DashboardBackend` would get, so `ClientProvider` never hands out a bare `None`
+    dashboard: the profile refusal answers first in every case. Reaching one of these
+    methods means the policy allows `tasks.read` but there is no usable session yet -
+    which is exactly when the capture instruction is the right thing to say.
+    """
+
+    def list_tasks(self, **kw: Any) -> dict[str, Any]:
+        raise exc.CredentialsMissing(NO_SESSION_MESSAGE)
+
+    def get_task(self, **kw: Any) -> dict[str, Any]:
+        raise exc.CredentialsMissing(NO_SESSION_MESSAGE)

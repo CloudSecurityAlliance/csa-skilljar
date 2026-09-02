@@ -5,6 +5,7 @@ from typing import Any
 
 from . import exceptions as exc
 from .backend import Backend
+from .dashboard import NO_SESSION_MESSAGE
 from .policy import Policy, PolicyBackend
 
 
@@ -470,13 +471,16 @@ class SkilljarClient:
     # --- dashboard-only capabilities. Neither API exposes these; see ADR-002. ---------
 
     def _require_dashboard(self) -> Any:
+        """The dashboard backend, for direct library use with no policy wrapper at all.
+
+        `ClientProvider` (mcp/_config.py) never hands this `None`: it always wraps
+        something - a real `DashboardBackend` or `dashboard.UnconfiguredDashboard` - in a
+        `PolicyBackend`, so the capability gate answers before the credential prompt ever
+        does. This `None` check is what a caller gets instead if they build a
+        `SkilljarClient` directly, without going through a policy at all.
+        """
         if self._dashboard is None:
-            raise exc.CredentialsMissing(
-                "this capability exists only in the Skilljar dashboard, which needs a "
-                "session. Run `python scripts/capture_dashboard_session.py` and log in "
-                "when the browser opens - the login is captcha-protected, so a human has "
-                "to do it - then set CSA_SKILLJAR_DASHBOARD_SESSION to the file it "
-                "writes and restart. Call `check_access` to see what is available.")
+            raise exc.CredentialsMissing(NO_SESSION_MESSAGE)
         return self._dashboard
 
     def list_tasks(self, **kw: Any) -> dict[str, Any]:

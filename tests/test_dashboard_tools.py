@@ -3,7 +3,6 @@ import pytest
 from csa_skilljar.client import SkilljarClient
 from csa_skilljar.dashboard import FakeDashboard
 from csa_skilljar.mcp._config import Settings
-from csa_skilljar.mcp._tools.tasks import _LIST_NOTE
 from csa_skilljar.mcp.server import create_server
 from tests.test_dashboard import DONE_ROW, GRADE_HTML, ROW
 
@@ -63,9 +62,11 @@ def test_names_are_withheld_and_the_response_says_so():
 
     app = create_server(lambda: None, settings=Settings())
     desc = app._tool_manager._tools["list_tasks"].description
-    # the note itself is asserted through the tool output in the integration path;
-    # here we check the contract is stated where a reader will meet it
-    assert "withheld" in (desc + _LIST_NOTE).lower()
+    # Asserted on the DESCRIPTION ALONE, not `desc + _LIST_NOTE`: `_LIST_NOTE` always
+    # contains "withheld", so folding it in made this assertion unable to fail - a
+    # client browsing the tool list only ever sees `desc`, never the response note, so
+    # the description itself must carry the withholding contract.
+    assert "withheld" in desc.lower()
 
 
 def test_the_tool_descriptions_say_the_response_is_untrusted():

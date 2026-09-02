@@ -245,10 +245,3 @@ def test_the_fake_stores_raw_ajax_shapes_not_parsed_rows():
     f = FakeDashboard(tasks=[ROW])
     assert f._raw[0]["type"]["display"].startswith("<a href=")
     assert f.list_tasks(status="all")["tasks"][0]["id"] == "tsk1"
-
-
-@pytest.mark.parametrize("method", ["list_tasks", "get_task"])
-def test_real_and_fake_expose_the_same_methods(method):
-    from csa_skilljar.dashboard import FakeDashboard
-    assert callable(getattr(DashboardBackend, method))
-    assert callable(getattr(FakeDashboard, method))

@@ -140,14 +140,42 @@ def test_provider_reuses_one_client_within_a_thread():
 def test_a_broken_dashboard_session_does_not_break_the_other_backends(tmp_path, caplog):
     """A stale CSA_SKILLJAR_DASHBOARD_SESSION pointing at a deleted file must not take
     down v2 (or v1) tools - this server never blocks startup on a credential. Only the
-    dashboard tools should report their own setup step, via `_require_dashboard`."""
+    dashboard tools should report their own setup step, via `_require_dashboard`.
+
+    Profile is `full` (grants `tasks.read`) so the setup step is actually reachable: under
+    the default `parity` profile the capability gate refuses first - see
+    `test_profile_refusal_precedes_the_capture_instruction_under_the_default_profile`."""
     bad_session = str(tmp_path / "gone.json")
     settings = settings_from_env(
-        {**CONFIGURED, "CSA_SKILLJAR_DASHBOARD_SESSION": bad_session})
+        {**CONFIGURED, "CSA_SKILLJAR_DASHBOARD_SESSION": bad_session,
+         "CSA_SKILLJAR_PROFILE": "full"})
     with caplog.at_level(logging.WARNING, logger="csa_skilljar"):
         client = ClientProvider(settings)()      # must NOT raise
     assert client.policy is not None, "v2 backend construction must be unaffected"
     assert any("dashboard" in r.message.lower() for r in caplog.records)
+    with pytest.raises(exc.CredentialsMissing) as e:
+        client.list_tasks()
+    assert "capture" in str(e.value).lower()
+
+
+def test_profile_refusal_precedes_the_capture_instruction_under_the_default_profile():
+    """The important ordering fix. `parity` (the default) does not grant `tasks.read`.
+    With no dashboard session configured at all, `list_tasks` must report the CAPABILITY
+    problem, never the capture-script instruction - otherwise a user is talked into
+    minting a full-privilege admin session cookie they can never actually use."""
+    client = ClientProvider(settings_from_env(CONFIGURED))()
+    with pytest.raises(exc.PolicyError) as e:
+        client.list_tasks()
+    assert "tasks.read" in str(e.value)
+    assert "capture" not in str(e.value).lower()
+
+
+def test_capture_instruction_appears_once_the_profile_grants_the_capability():
+    """Same starting point - no dashboard session - but a profile that DOES grant
+    `tasks.read`. Now the policy allows the call through, and only then should the
+    dashboard tier report that a session needs to be captured."""
+    client = ClientProvider(
+        settings_from_env({**CONFIGURED, "CSA_SKILLJAR_PROFILE": "full"}))()
     with pytest.raises(exc.CredentialsMissing) as e:
         client.list_tasks()
     assert "capture" in str(e.value).lower()

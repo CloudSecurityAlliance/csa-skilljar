@@ -18,7 +18,7 @@ from typing import Any
 
 from . import exceptions as exc
 from .backend import Backend
-from .dashboard import DashboardBackend
+from .dashboard import DashboardBackend, UnconfiguredDashboard
 from .v1backend import V1Backend
 
 READ_CONTENT = "content.read"
@@ -261,12 +261,14 @@ class PolicyBackend:
     """Wraps a backend and refuses anything the policy does not permit.
 
     Any of the three backends: the v2 `Backend` protocol, the v1 one, or the dashboard
-    tier. `_GATES` is a single table covering all three, deliberately - a capability
-    gated in one and open in another would be a hole nobody could see by reading any
-    one backend alone.
+    tier - including `UnconfiguredDashboard`, the dashboard tier's stand-in for "no
+    session yet", which is wrapped here just like a real one so the capability gate
+    always answers before the credential prompt does. `_GATES` is a single table
+    covering all three, deliberately - a capability gated in one and open in another
+    would be a hole nobody could see by reading any one backend alone.
     """
 
-    def __init__(self, backend: Backend | V1Backend | DashboardBackend,
+    def __init__(self, backend: Backend | V1Backend | DashboardBackend | UnconfiguredDashboard,
                 policy: Policy) -> None:
         self._backend = backend; self._policy = policy
 

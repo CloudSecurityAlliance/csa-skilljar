@@ -21,7 +21,7 @@ from .. import exceptions as exc
 from ..auth import V2Credentials
 from ..backend import V2Backend
 from ..client import SkilljarClient
-from ..dashboard import DashboardBackend, DashboardSession
+from ..dashboard import DashboardBackend, DashboardSession, UnconfiguredDashboard
 from ..policy import READ_TASKS, Policy, PolicyBackend
 from ..v1backend import V1Backend, V1Credentials
 
@@ -258,19 +258,26 @@ class ClientProvider:
         # startup on a credential (invariant 7). `DashboardSession.from_file` raises
         # `CredentialsMissing` for a missing, unreadable or malformed file - caught here
         # rather than left to propagate, or it would take down every tool, v2 included.
-        # The dashboard tools report the setup step themselves via `_require_dashboard`.
-        dashboard = None
+        #
+        # ALWAYS policy-wrapped, even with no session at all: a real `DashboardBackend`
+        # when one loads, `UnconfiguredDashboard` otherwise. Handing `SkilljarClient` a
+        # bare `None` here would let `_require_dashboard` fire the credential prompt
+        # before the policy ever got a say - which is exactly the ordering bug this
+        # guards against (see `UnconfiguredDashboard`'s docstring). Wrapping the stand-in
+        # the same way means the capability gate always answers first, and the dashboard
+        # tools report their setup step only once the policy has already allowed them.
+        dashboard_backend: DashboardBackend | UnconfiguredDashboard = UnconfiguredDashboard()
         if s.dashboard_session:
             try:
-                dashboard = PolicyBackend(
-                    DashboardBackend(DashboardSession.from_file(s.dashboard_session)),
-                    policy)
+                dashboard_backend = DashboardBackend(
+                    DashboardSession.from_file(s.dashboard_session))
             except exc.CredentialsMissing as e:
                 log.warning(
                     "%s points at a session that could not be loaded (%s); dashboard "
                     "tools will report their setup step instead of blocking startup. "
                     "Call `check_access` for details.",
                     DASHBOARD_SESSION_VAR, type(e).__name__)
+        dashboard = PolicyBackend(dashboard_backend, policy)
         client = SkilljarClient(backend, v1=v1, dashboard=dashboard)
         self._local.client = client
         return client

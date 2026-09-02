@@ -54,6 +54,10 @@ def register_task_tools(app: MCPServer, get_client: Callable[[], Any]) -> None:
         This is the Skilljar dashboard's data, not an API's: Skilljar exposes no grading
         endpoint in either API version. Needs a dashboard session - see `check_access`.
 
+        LEARNER NAMES ARE WITHHELD from every row: each one carries only the student's
+        email, which already identifies the person. Call `get_student` with an id to
+        resolve one person's name.
+
         `page_size` must be between 1 and 250 - out of range is REJECTED, not clamped,
         so a caller asking for 1000 gets a loud error rather than 250 rows and silently
         wrong `page` arithmetic.
