@@ -120,3 +120,50 @@ def test_html_where_json_was_expected_is_upstream_changed():
     b = DashboardBackend(DashboardSession({"sj_sessionid": "s"}), http=http)
     with pytest.raises(exc.UpstreamChanged):
         b.list_tasks()
+
+
+def test_an_unrecognised_status_raises_rather_than_returning_every_row():
+    """A typo like 'pendng' must not silently fall back to 'all'."""
+    b = _backend({"recordsTotal": 2, "recordsFiltered": 2, "data": [ROW, DONE_ROW]})
+    with pytest.raises(exc.ApiError) as e:
+        b.list_tasks(status="pendng")
+    msg = str(e.value)
+    assert "pendng" in msg
+    assert "pending" in msg and "completed" in msg and "all" in msg
+
+
+GRADE_HTML = """
+<form method="POST">
+  <input type="hidden" name="csrfmiddlewaretoken" value="tok-64-chars">
+  <input type="hidden" name="quiz_response_id" id="id_quiz_response_id" value="qr-1">
+  <p class="question">Question: Explain least privilege.</p>
+  <textarea name="student_response_text">Because scope should be minimal.</textarea>
+  <input type="radio" name="question-response-q1-correct" value="true">
+  <textarea name="question-response-q1-grader_feedback"></textarea>
+  <input type="checkbox" name="email_student_on_completion">
+</form>
+"""
+
+
+def _html_backend(text, status=200, ctype="text/html"):
+    http = httpx.Client(transport=httpx.MockTransport(
+        lambda r: httpx.Response(status, text=text, headers={"content-type": ctype})))
+    return DashboardBackend(DashboardSession({"sj_sessionid": "s"}), http=http)
+
+
+def test_get_task_extracts_the_form_contract():
+    got = _html_backend(GRADE_HTML).get_task(id="tsk1")
+    assert got["id"] == "tsk1"
+    assert got["csrf_token"] == "tok-64-chars"
+    assert got["quiz_response_id"] == "qr-1"
+    assert [q["question_id"] for q in got["questions"]] == ["q1"]
+
+
+def test_a_page_with_no_csrf_token_is_upstream_changed():
+    with pytest.raises(exc.UpstreamChanged):
+        _html_backend("<form></form>").get_task(id="tsk1")
+
+
+def test_an_expired_session_is_a_credential_problem():
+    with pytest.raises(exc.CredentialsMissing):
+        _html_backend("", status=302).get_task(id="tsk1")

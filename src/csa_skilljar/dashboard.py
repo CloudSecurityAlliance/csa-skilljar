@@ -78,6 +78,12 @@ class DashboardSession:
 _TASK_ID = re.compile(r"/tasks/grade-quiz/([A-Za-z0-9]+)")
 _HREF_ID = re.compile(r'href="/course/([A-Za-z0-9]+)/([A-Za-z0-9]*)"')
 _TAGS = re.compile(r"<[^>]+>")
+_CSRF = re.compile(r'name="csrfmiddlewaretoken"\s+value="([^"]+)"')
+_QUIZ_RESPONSE = re.compile(r'name="quiz_response_id"[^>]*value="([^"]*)"')
+_QUESTION_IDS = re.compile(r'name="question-response-([A-Za-z0-9]+)-correct"')
+_PROMPT = re.compile(r"Question:\s*(.{0,400}?)\s*<", re.S)
+_RESPONSE = re.compile(r'name="student_response_text"[^>]*>(.*?)</textarea>', re.S)
+_STATUSES = ("pending", "completed", "all")
 
 
 def _text(cell: Any) -> str:
@@ -118,6 +124,18 @@ class DashboardBackend:
                 f"scripts/check_dashboard.py.")
         return r.json()
 
+    def _get_html(self, path: str) -> str:
+        try:
+            r = self._http.get(f"{self._base}{path}", cookies=self._session.cookies(),
+                               follow_redirects=False)
+        except httpx.HTTPError as e:
+            raise exc.ApiError(f"could not reach the Skilljar dashboard: {e}") from e
+        # A redirect here is the login page. 302 and 401 mean the same thing to a caller.
+        if r.status_code in (301, 302, 401, 403):
+            raise exc.CredentialsMissing(
+                f"the dashboard session is not valid or has expired. {_CAPTURE_HINT}")
+        return r.text
+
     def _parse_task(self, row: dict[str, Any]) -> dict[str, Any]:
         anchor = str(row.get("type", {}).get("display", ""))
         m = _TASK_ID.search(anchor)
@@ -145,6 +163,10 @@ class DashboardBackend:
 
     def list_tasks(self, *, status: str = "pending", page: int = 1,
                    page_size: int = 25) -> dict[str, Any]:
+        if status not in _STATUSES:
+            raise exc.ApiError(
+                f"unrecognised status {status!r}; must be one of "
+                f"{', '.join(_STATUSES)}.")
         payload = self._get_json("/tasks/ajax", {
             "draw": 1,
             "start": (max(page, 1) - 1) * page_size,
@@ -156,6 +178,35 @@ class DashboardBackend:
         rows = [self._parse_task(r) for r in payload.get("data", [])]
         pending = [t for t in rows if t["completed_at"] is None]
         completed = [t for t in rows if t["completed_at"] is not None]
+        # status is validated above; "all" (and nothing else) falls through to every row.
         chosen = {"pending": pending, "completed": completed}.get(status, rows)
         return {"tasks": chosen, "total": payload.get("recordsTotal", len(rows)),
                 "pending": len(pending), "completed": len(completed)}
+
+    def get_task(self, *, id: str) -> dict[str, Any]:
+        """One task, with the questions awaiting grading.
+
+        Returns `csrf_token` because the grading POST needs it and it is obtainable ONLY
+        from this GET: the form token is a masked value and does NOT equal the
+        `sj_csrftoken` cookie. Measured against the live dashboard, 2026-09-02.
+        """
+        import html as _html
+        page = self._get_html(f"/tasks/grade-quiz/{id}")
+        tok = _CSRF.search(page)
+        if not tok:
+            raise exc.UpstreamChanged(
+                "the grading page carried no csrfmiddlewaretoken, so its form contract "
+                "has changed. Run scripts/check_dashboard.py.")
+        qr = _QUIZ_RESPONSE.search(page)
+        prompts = [_html.unescape(_TAGS.sub(" ", p)).strip() for p in _PROMPT.findall(page)]
+        responses = [_html.unescape(_TAGS.sub(" ", r)).strip() for r in _RESPONSE.findall(page)]
+        questions = []
+        for i, qid in enumerate(dict.fromkeys(_QUESTION_IDS.findall(page))):
+            questions.append({
+                "question_id": qid,
+                "prompt": prompts[i] if i < len(prompts) else None,
+                "response": responses[i] if i < len(responses) else None,
+            })
+        return {"id": id, "csrf_token": tok.group(1),
+                "quiz_response_id": qr.group(1) if qr else None,
+                "questions": questions}
