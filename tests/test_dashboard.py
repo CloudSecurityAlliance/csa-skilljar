@@ -167,3 +167,47 @@ def test_a_page_with_no_csrf_token_is_upstream_changed():
 def test_an_expired_session_is_a_credential_problem():
     with pytest.raises(exc.CredentialsMissing):
         _html_backend("", status=302).get_task(id="tsk1")
+
+
+GRADE_HTML_TWO_QUESTIONS = """
+<form method="POST">
+  <input type="hidden" name="csrfmiddlewaretoken" value="tok-64-chars">
+  <input type="hidden" name="quiz_response_id" id="id_quiz_response_id" value="qr-1">
+  <p class="question">Question: Explain least privilege.</p>
+  <textarea name="student_response_text">Because scope should be minimal.</textarea>
+  <input type="radio" name="question-response-q1-correct" value="true">
+  <textarea name="question-response-q1-grader_feedback"></textarea>
+  <p class="question">Question: Explain defense in depth.</p>
+  <textarea name="student_response_text">Layer controls so one failure is not fatal.</textarea>
+  <input type="radio" name="question-response-q2-correct" value="true">
+  <textarea name="question-response-q2-grader_feedback"></textarea>
+  <input type="checkbox" name="email_student_on_completion">
+</form>
+"""
+
+GRADE_HTML_MISMATCHED_COUNTS = """
+<form method="POST">
+  <input type="hidden" name="csrfmiddlewaretoken" value="tok-64-chars">
+  <input type="hidden" name="quiz_response_id" id="id_quiz_response_id" value="qr-1">
+  <p class="question">Question: Explain least privilege.</p>
+  <textarea name="student_response_text">Because scope should be minimal.</textarea>
+  <input type="radio" name="question-response-q1-correct" value="true">
+  <input type="radio" name="question-response-q2-correct" value="true">
+</form>
+"""
+
+
+def test_get_task_pairs_two_questions_with_their_own_prompt_and_response():
+    got = _html_backend(GRADE_HTML_TWO_QUESTIONS).get_task(id="tsk1")
+    assert [q["question_id"] for q in got["questions"]] == ["q1", "q2"]
+    assert got["questions"][0]["prompt"] == "Explain least privilege."
+    assert got["questions"][0]["response"] == "Because scope should be minimal."
+    assert got["questions"][1]["prompt"] == "Explain defense in depth."
+    assert got["questions"][1]["response"] == "Layer controls so one failure is not fatal."
+
+
+def test_mismatched_question_prompt_response_counts_is_upstream_changed():
+    """Two question ids but only one prompt: positional pairing would silently attach
+    the wrong prompt/response to a question on a page that decides a certification."""
+    with pytest.raises(exc.UpstreamChanged):
+        _html_backend(GRADE_HTML_MISMATCHED_COUNTS).get_task(id="tsk1")

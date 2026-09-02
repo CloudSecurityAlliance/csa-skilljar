@@ -198,15 +198,23 @@ class DashboardBackend:
                 "the grading page carried no csrfmiddlewaretoken, so its form contract "
                 "has changed. Run scripts/check_dashboard.py.")
         qr = _QUIZ_RESPONSE.search(page)
+        question_ids = list(dict.fromkeys(_QUESTION_IDS.findall(page)))
         prompts = [_html.unescape(_TAGS.sub(" ", p)).strip() for p in _PROMPT.findall(page)]
         responses = [_html.unescape(_TAGS.sub(" ", r)).strip() for r in _RESPONSE.findall(page)]
-        questions = []
-        for i, qid in enumerate(dict.fromkeys(_QUESTION_IDS.findall(page))):
-            questions.append({
-                "question_id": qid,
-                "prompt": prompts[i] if i < len(prompts) else None,
-                "response": responses[i] if i < len(responses) else None,
-            })
+        # Positional pairing is only safe if all three lists agree in length. If the page
+        # returns more of one than another, positional indexing would silently pair a
+        # question with the WRONG prompt or response - on a page that decides a
+        # certification. That must be loud, not a best-effort guess.
+        if not (len(question_ids) == len(prompts) == len(responses)):
+            raise exc.UpstreamChanged(
+                f"the grading page has {len(question_ids)} question id(s), "
+                f"{len(prompts)} prompt(s) and {len(responses)} response(s); these must "
+                f"match to pair them safely. Its form contract has changed. Run "
+                f"scripts/check_dashboard.py.")
+        questions = [
+            {"question_id": qid, "prompt": prompt, "response": response}
+            for qid, prompt, response in zip(question_ids, prompts, responses, strict=True)
+        ]
         return {"id": id, "csrf_token": tok.group(1),
                 "quiz_response_id": qr.group(1) if qr else None,
                 "questions": questions}
