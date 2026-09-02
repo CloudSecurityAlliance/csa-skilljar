@@ -29,3 +29,7 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Subagent-driven-development scratch: ledgers, briefs, review packages.
+# Working notes for a plan in flight; the git history is the record that survives.
+.superpowers/
