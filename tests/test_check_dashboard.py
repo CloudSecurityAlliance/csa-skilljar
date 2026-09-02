@@ -158,3 +158,23 @@ def test_missing_task_id_still_reports_grading_form_problems(monkeypatch, tmp_pa
 
     monkeypatch.setattr(cd, "_fetch", fetch)
     assert cd.main() == cd.EXIT_DRIFT
+
+
+def test_an_empty_queue_is_uncheckable_not_drift(monkeypatch, tmp_path, capsys):
+    """An organisation with nothing awaiting grading is a normal state, not drift. Task-8
+    review round 1 caught this: as originally written, zero rows produced a non-empty
+    problem list from `evaluate` and `main` sent that down the DRIFT DETECTED path -
+    reproducing, inside the fix for it, the exact issue #13 failure mode (an
+    infrastructure-shaped non-finding reported as drift)."""
+    _fake_session(monkeypatch, tmp_path)
+
+    def fetch(url, cookies):
+        import json
+        assert "/tasks/ajax" in url, "the grading page should never be fetched"
+        return 200, "application/json", json.dumps({"recordsTotal": 0, "data": []}).encode()
+
+    monkeypatch.setattr(cd, "_fetch", fetch)
+    assert cd.main() == cd.EXIT_UNCHECKABLE
+    err = capsys.readouterr().err
+    assert "COULD NOT CHECK" in err
+    assert "not drift" in err.lower()

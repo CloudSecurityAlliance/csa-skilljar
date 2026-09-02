@@ -111,17 +111,19 @@ class DashboardBackend:
                                cookies=self._session.cookies())
         except httpx.HTTPError as e:
             raise exc.ApiError(f"could not reach the Skilljar dashboard: {e}") from e
-        if r.status_code in (401, 403):
+        # Same status check, same order, as `_get_html`: identical inputs must produce
+        # identical outcomes in both methods. A redirect here is the login page, and it
+        # must be reported as an expired session - not, once it fails the content-type
+        # check below, as "the endpoint changed".
+        if r.status_code in (301, 302, 401, 403):
             raise exc.CredentialsMissing(
                 f"the dashboard session is not valid or has expired. {_CAPTURE_HINT}")
         ctype = r.headers.get("content-type", "").split(";")[0]
         if ctype != "application/json":
-            # Almost always a redirect to the login page. Treated as data this would
-            # look like an empty queue - the failure the whole class of check exists for.
+            # Not a redirect (that was ruled out above) - so a genuine shape change.
             raise exc.UpstreamChanged(
                 f"{path} returned {ctype or 'no content-type'} where JSON was expected; "
-                f"the session may have expired or the endpoint changed. Run "
-                f"scripts/check_dashboard.py.")
+                f"the endpoint has changed. Run scripts/check_dashboard.py.")
         return r.json()
 
     def _get_html(self, path: str) -> str:

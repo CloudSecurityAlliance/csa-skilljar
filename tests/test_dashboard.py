@@ -136,6 +136,17 @@ def test_html_where_json_was_expected_is_upstream_changed():
         b.list_tasks()
 
 
+def test_a_redirect_from_tasks_ajax_is_a_credential_problem_not_upstream_changed():
+    """`_get_json` must agree with `_get_html`: a redirect to the login page is an
+    expired session, not a changed endpoint. Fixed after task-8 review found it fell
+    through to `UpstreamChanged` - the right detection, but the wrong remedy."""
+    http = httpx.Client(transport=httpx.MockTransport(
+        lambda r: httpx.Response(302, headers={"location": "/login"})))
+    b = DashboardBackend(DashboardSession({"sj_sessionid": "s"}), http=http)
+    with pytest.raises(exc.CredentialsMissing):
+        b.list_tasks()
+
+
 def test_an_unrecognised_status_raises_rather_than_returning_every_row():
     """A typo like 'pendng' must not silently fall back to 'all'."""
     b = _backend({"recordsTotal": 2, "recordsFiltered": 2, "data": [ROW, DONE_ROW]})

@@ -143,13 +143,21 @@ def main() -> int:
               file=sys.stderr)
         return EXIT_UNCHECKABLE
 
-    grading_html = ""
     rows = payload.get("data") or []
-    task_id = None
-    if rows:
-        anchor = str(rows[0].get("type", {}).get("display", ""))
-        m = _TASK_ID.search(anchor)
-        task_id = m.group(1) if m else None
+    if not rows:
+        # An empty grading queue is a completely normal state, not drift - an
+        # organisation with nothing awaiting grading must not raise a "drift detected"
+        # alarm the first quiet week. There is no row to inspect, so the shape genuinely
+        # cannot be checked either way; that is EXIT_UNCHECKABLE, not EXIT_DRIFT.
+        print("COULD NOT CHECK: /tasks/ajax returned no rows, so its shape cannot be "
+              "verified. This is NOT drift - an empty grading queue is a normal state. "
+              "Re-run once at least one task is in the queue.", file=sys.stderr)
+        return EXIT_UNCHECKABLE
+
+    grading_html = ""
+    anchor = str(rows[0].get("type", {}).get("display", ""))
+    m = _TASK_ID.search(anchor)
+    task_id = m.group(1) if m else None
 
     if task_id:
         try:
