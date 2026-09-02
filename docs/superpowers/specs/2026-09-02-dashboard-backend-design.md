@@ -194,6 +194,20 @@ The session cookie is `sj_sessionid`, `httpOnly`, and stored encrypted in Chromi
 database. It is recoverable only by letting a browser decrypt it, which is what the setup-time
 capture does.
 
+### 4.4 Build order
+
+Reads first, and not only because they are easier.
+
+1. **`list_tasks`, `get_task`** — no write path, so no dependency on issue #59, and they make
+   the 30-item queue visible from a session. If open question 5 turns out to be right, this
+   may be the whole product.
+2. **Issue #59** — the read-only integration guard must actually run in CI, and its 27-entry
+   allowlist drift must be reconciled deliberately.
+3. **`grade_task`** — only then. It writes to a learner's record and can email a stranger.
+
+Shipping 3 before 2 would mean adding a write path that can email real people to a suite whose
+read-only guard has never executed. The ordering is a safety property, not a preference.
+
 ## 5. The session credential
 
 The hardest part of this design, and the part most likely to be got wrong.
@@ -350,7 +364,25 @@ before that guard works would be irresponsible. **#59 is a prerequisite, not a p
 ## 11. Open questions
 
 1. ~~Does a non-browser HTTP client work?~~ **Answered 2026-09-02: yes.** See §4.3.
-2. **What is the minimum dashboard role that can grade?** The remaining blocker. Needs a human in the Skilljar
+2. **What is the minimum dashboard role that can grade?** **Deferred, deliberately, 2026-09-02.**
+   Kurt's account and the training team's accounts already have access to everything, so the
+   first version runs with a full-privilege session. The intent is to narrow it later; the
+   question stays open rather than being closed as "not needed".
+
+   **This makes §4.2 the only control, and that changes its weight.** With the v2 backend, a
+   confused-deputy attack is bounded twice: by the capability profile *and* by the 18 scopes on
+   the token, which are checked locally before a request leaves. A full-privilege dashboard
+   session has no second bound. `PolicyBackend` is not one control among several here — it is
+   the entire perimeter. Three consequences follow, and none of them are optional:
+
+   - `tasks.grade` stays `full`-only (§6).
+   - `grade_task` keeps its required `confirm` (§7.3).
+   - The untrusted-input warning on `get_task` (§7.2) is load-bearing, not advisory: a
+     learner's free-text answer is attacker-controlled text arriving at a model that holds an
+     unscoped admin session.
+
+   Revisit when `roles:read`/`admin-users:read` ship in v2 and the role structure can be read
+   programmatically. Needs a human in the Skilljar
    dashboard. Determines whether §5.2.1 is achievable or whether the session is unavoidably
    full-admin — which would change the risk calculus enough to revisit this design.
 3. **ADR-009 — persisting a session credential.** The `DATA-RESOURCES.md` deviation (§5.3).
