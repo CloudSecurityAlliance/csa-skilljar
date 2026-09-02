@@ -47,6 +47,10 @@ def translate_errors(fn: F) -> F:
             raise ToolError(f"refused: {e}") from e
         except exc.ApiError as e:
             raise ToolError(f"Skilljar rejected the request: {e}") from e
+        except exc.UpstreamChanged as e:
+            # Not a rejection - a shape we no longer understand. The message already
+            # points at scripts/check_dashboard.py, so it must survive translation.
+            raise ToolError(str(e)) from e
         except exc.SkilljarError as e:
             # Backstop. A new SkilljarError subclass with no clause of its own would
             # otherwise become an UnexpectedToolError with the message DISCARDED, and

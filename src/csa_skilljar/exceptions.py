@@ -52,3 +52,12 @@ class ApiError(SkilljarError):
     def __init__(self, message: str, *, status: int = 0) -> None:
         self.status = status
         super().__init__(message)
+
+
+class UpstreamChanged(SkilljarError):
+    """A response did not have the shape this client was built against.
+
+    Distinct from `ApiError` deliberately. `ApiError` means Skilljar said no;
+    this means Skilljar said something we no longer understand, which is a
+    signal to run `scripts/check_dashboard.py`, not to retry.
+    """
