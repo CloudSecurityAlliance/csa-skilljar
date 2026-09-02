@@ -78,7 +78,7 @@ protocol with named fields.
 
 ```
 POST /tasks/grade-quiz/{task_id}
-  csrfmiddlewaretoken                              (from the GET)
+  csrfmiddlewaretoken                              (from the GET - see below)
   quiz_response_id
   question-response-{question_id}-correct          radio: correct | incorrect
   question-response-{question_id}-grader_feedback  textarea, optional
@@ -92,6 +92,11 @@ Three consequences:
 - **Field names are semantic and id-bearing**, not generated CSS classes. A far better
   automation target than a React app; this is server-rendered Django, the same stack as v1.
 - **Submitting can email a real learner.** `email_student_on_completion` is a form field.
+- **The CSRF form token is not the CSRF cookie.** Measured: the `csrfmiddlewaretoken` value
+  differs from the `sj_csrftoken` cookie, which is Django's masked-token behaviour. The token
+  must be scraped from each `GET` of the grading page; reusing the cookie value will be
+  rejected. This is the kind of detail that costs an afternoon if it is discovered during
+  implementation instead of here.
 
 ### 2.4 Login is protected by hCaptcha; the rest of the app is not
 
@@ -173,11 +178,21 @@ setup (human, occasional)      runtime (every call)
                                    POST /tasks/grade-quiz/id (form)
 ```
 
-**This is the design's principal feasibility assumption and it is not yet verified.**
-Cloudflare bot management (`__cf_bm`) is present on the domain. If it rejects a non-browser
-client carrying a valid session, the fallback is a headless browser at runtime, which is
-heavier and changes the install story. **Task 1 of implementation is to settle this**, before
-anything is built on top of it.
+**Verified 2026-09-02.** This was the design's principal risk and it is resolved.
+
+| Probe | Result |
+|---|---|
+| `urllib`, no cookie, bot-shaped UA, `/tasks/ajax` | `401` from **nginx**, no `cf-*` headers, no challenge page |
+| `httpx` + `sj_sessionid`, `GET /tasks/ajax` | **`200 application/json`**, `recordsTotal=661`, all six columns |
+| `httpx` + session, `GET /tasks/grade-quiz/{id}` | **`200`**, carrying `csrfmiddlewaretoken` (64 chars), `quiz_response_id`, the `question-response-*-correct` fields and `email_student_on_completion` |
+
+Cloudflare's `__cf_bm` is set on the login page but does not gate the application paths: a
+plain client with an obvious bot user-agent reached the app and was refused by the
+application, not by an edge challenge. No browser is needed at runtime.
+
+The session cookie is `sj_sessionid`, `httpOnly`, and stored encrypted in Chromium's cookie
+database. It is recoverable only by letting a browser decrypt it, which is what the setup-time
+capture does.
 
 ## 5. The session credential
 
@@ -334,8 +349,8 @@ before that guard works would be irresponsible. **#59 is a prerequisite, not a p
 
 ## 11. Open questions
 
-1. **Does a non-browser HTTP client work?** §4.3. Blocks everything. Settle first.
-2. **What is the minimum dashboard role that can grade?** Needs a human in the Skilljar
+1. ~~Does a non-browser HTTP client work?~~ **Answered 2026-09-02: yes.** See §4.3.
+2. **What is the minimum dashboard role that can grade?** The remaining blocker. Needs a human in the Skilljar
    dashboard. Determines whether §5.2.1 is achievable or whether the session is unavoidably
    full-admin — which would change the risk calculus enough to revisit this design.
 3. **ADR-009 — persisting a session credential.** The `DATA-RESOURCES.md` deviation (§5.3).
