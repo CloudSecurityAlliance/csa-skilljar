@@ -317,11 +317,12 @@ def test_one_capability_at_a_time_matrix():
     every_method = set().union(*EXPECTED_BY_CAPABILITY.values())
     for cap in P.ALL_CAPABILITIES:
         allowed = EXPECTED_BY_CAPABILITY.get(cap, set())
-        # Reach is opted in here on purpose: this test isolates the CAPABILITY axis.
-        # Leaving it off would make the matrix silently also assert reach, and a
-        # failure would not say which axis refused.
+        # Reach and orange are opted in here on purpose: this test isolates the
+        # CAPABILITY axis. Leaving either off would make the matrix silently assert
+        # three axes at once, and a failure would not say which one refused.
         pb = P.PolicyBackend(BothBackends(courses=ROWS),
-                             P.Policy(frozenset({cap}), may_contact_people=True))
+                             P.Policy(frozenset({cap}), may_contact_people=True,
+                                      orange_allowed=P.ORANGE_TOOLS))
         for name in sorted(every_method):
             if name in allowed:
                 try:
@@ -517,3 +518,68 @@ def test_every_contacting_name_is_a_real_gated_method():
     assert unknown == [], (
         f"{unknown} are in CONTACTS_PEOPLE but have no gate entry, so the reach check "
         f"will never fire for them. Use the backend method name, not the tool name.")
+
+
+# ── DEC-016 · orange lines need a second grant, in a second place ───────────────
+#
+# Hand-written, like everything else in this file. Deriving the expectation from
+# ORANGE_TOOLS would assert the set equals itself.
+
+def test_the_orange_tools_are_named():
+    import csa_skilljar.policy as P
+    assert P.ORANGE_TOOLS == {
+        "register_oauth_client", "set_student_password", "send_password_reset",
+    }, ("ORANGE_TOOLS changed. These are control-defeating: minting a credential, or "
+        "taking over an account. Adding or removing one is a DEC-016 decision.")
+
+
+def test_the_capability_alone_does_not_reach_an_orange_tool():
+    import csa_skilljar.policy as P
+    pol = P.Policy.from_profile("admin")
+    assert pol.allows("admin.credentials"), "precondition: admin holds the capability"
+    assert not pol.allows_orange("register_oauth_client"), (
+        "the capability alone must not reach it - that is the whole of DEC-016")
+
+
+def test_full_does_not_grant_orange():
+    """`full` is the 'I mean it' profile for capabilities. It is still one setting."""
+    import csa_skilljar.policy as P
+    pol = P.Policy.from_profile("full")
+    for name in P.ORANGE_TOOLS:
+        assert not pol.allows_orange(name), f"`full` must not reach {name}"
+
+
+def test_naming_one_orange_tool_does_not_enable_the_others():
+    import csa_skilljar.policy as P
+    pol = P.Policy.from_profile("full", orange_allowed=frozenset({"register_oauth_client"}))
+    assert pol.allows_orange("register_oauth_client")
+    assert not pol.allows_orange("set_student_password")
+    assert not pol.allows_orange("send_password_reset")
+
+
+def test_the_seam_refuses_an_orange_tool_and_names_the_second_switch():
+    import pytest
+
+    import csa_skilljar.exceptions as exc
+    import csa_skilljar.policy as P
+
+    class Fake:
+        def register_oauth_client(self, **kw): return {"ok": True}
+
+    pb = P.PolicyBackend(Fake(), P.Policy.from_profile("admin"))
+    with pytest.raises(exc.PolicyError) as e:
+        pb.register_oauth_client(name="x")
+    msg = str(e.value)
+    assert "CSA_SKILLJAR_ORANGE" in msg
+    assert "full" in msg, "the message must say `full` does not grant it either"
+
+    ok = P.PolicyBackend(Fake(), P.Policy.from_profile(
+        "admin", orange_allowed=frozenset({"register_oauth_client"})))
+    assert ok.register_oauth_client(name="x") == {"ok": True}
+
+
+def test_every_orange_name_is_a_real_gated_method():
+    """Same guard as CONTACTS_PEOPLE: a name matching nothing protects nothing."""
+    import csa_skilljar.policy as P
+    unknown = sorted(P.ORANGE_TOOLS - set(P._GATES))
+    assert unknown == [], f"{unknown} are in ORANGE_TOOLS but have no gate entry"

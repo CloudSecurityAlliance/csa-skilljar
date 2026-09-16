@@ -31,6 +31,7 @@ V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable n
 V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"
 PROFILE_VAR = "CSA_SKILLJAR_PROFILE"
 CONTACT_VAR = "CSA_SKILLJAR_ALLOW_CONTACTING_PEOPLE"
+ORANGE_VAR = "CSA_SKILLJAR_ORANGE"
 
 # Module constants, not f-strings built at call time. The startup-warning path must have
 # no data dependency on the environment whatsoever - only a control-flow one - or CodeQL
@@ -56,6 +57,9 @@ class Settings:
     # Off unless someone said so. Separate from the profile because `operations` reads
     # as routine and can otherwise cause Skilljar to email hundreds of learners.
     may_contact_people: bool = False
+    # Orange-line tools named one at a time (DEC-016). Deliberately NOT a profile:
+    # a second grant in the same place as the first is one thing to edit.
+    orange_allowed: frozenset[str] = frozenset()
     base_url: str = "https://api.skilljar.com"
 
     def __repr__(self) -> str:      # never let a credential reach a log line
@@ -63,7 +67,8 @@ class Settings:
                 f"v2_client_secret={'set' if self.v2_client_secret else 'unset'}, "
                 f"v1_api_key={'set' if self.v1_api_key else 'unset'}, "
                 f"profile={self.profile!r}, "
-                f"may_contact_people={self.may_contact_people})")
+                f"may_contact_people={self.may_contact_people}, "
+                f"orange_allowed={sorted(self.orange_allowed)!r})")
 
 
 ENV_FILE_VAR = "CSA_SKILLJAR_ENV_FILE"
@@ -147,6 +152,8 @@ def settings_from_env(env: Mapping[str, str]) -> Settings:
         # Anything but an explicit true is false: a typo must not enable email.
         may_contact_people=(env.get(CONTACT_VAR) or "").strip().lower()
         in {"1", "true", "yes", "on"},
+        orange_allowed=frozenset(
+            t.strip() for t in (env.get(ORANGE_VAR) or "").split(",") if t.strip()),
     )
 
 
@@ -221,7 +228,8 @@ class ClientProvider:
                 f"restart the server. Obtain a v2 API client from the Skilljar Dashboard. "
                 f"Call `check_access` to see what is currently available.")
         policy = Policy.from_profile(s.profile,
-                                     may_contact_people=s.may_contact_people)
+                                     may_contact_people=s.may_contact_people,
+                                     orange_allowed=s.orange_allowed)
         creds = V2Credentials(s.v2_client_id, s.v2_client_secret, base_url=s.base_url)
         backend = PolicyBackend(V2Backend(creds, base_url=s.base_url), policy)
         # The v1 backend is OPTIONAL and policy-wrapped with the SAME policy: one gate

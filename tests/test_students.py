@@ -4,6 +4,7 @@ import pytest
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+import csa_skilljar.policy as P
 from csa_skilljar.backend import FakeBackend
 from csa_skilljar.client import SkilljarClient
 from csa_skilljar.mcp._tools.students import register_student_tools
@@ -22,7 +23,8 @@ STUDENTS = [
 def build(profile="full"):
     client = SkilljarClient(PolicyBackend(FakeBackend(students=list(STUDENTS)),
                                           Policy.from_profile(
-                                              profile, may_contact_people=True)))
+                                              profile, may_contact_people=True,
+                                              orange_allowed=P.ORANGE_TOOLS)))
     app = MCPServer(name="t")
     register_student_tools(app, lambda: client)
     return {n: t.fn for n, t in app._tool_manager._tools.items()}
@@ -122,7 +124,10 @@ def test_deactivating_and_editing_in_one_call_is_allowed(tools):
     ("anonymize_student", {"id": "s1", "confirm": True}),
     ("deactivate_student", {"id": "s1"}),
     ("set_student_password", {"id": "s1", "password": "hunter2hunter2", "confirm": True}),
-    ("send_password_reset", {"id": "s1", "domain": "learn.example.org"}),
+    # confirm=True here for the same reason as its three siblings above: it keeps the
+    # confirm gate from masking the capability refusal this test is about.
+    ("send_password_reset", {"id": "s1", "domain": "learn.example.org",
+                             "confirm": True}),
 ])
 def test_destructive_tools_are_refused_under_the_people_profile(tool, kwargs):
     """`people` grants read and write. A credential for routine learner administration
@@ -174,9 +179,23 @@ def test_the_password_value_never_appears_in_an_error(tools):
 
 def test_password_reset_requires_a_domain(tools):
     with pytest.raises(TypeError):
-        tools["send_password_reset"](id="s1")
-    out = tools["send_password_reset"](id="s1", domain="learn.example.org")
+        tools["send_password_reset"](id="s1", confirm=True)
+    out = tools["send_password_reset"](id="s1", domain="learn.example.org",
+                                       confirm=True)
     assert out["sent"] is True
+
+
+def test_password_reset_will_not_send_without_confirm(tools):
+    """The gate T16 found missing: its three destructive siblings had one and it did not.
+
+    It is the easiest tool here for injected text to reach - "email everyone in group X
+    a reset link" reads as a reasonable request and is a phishing run under CSA's name.
+    """
+    # ValueError, translated to ToolError by @translate_errors so the model can read it
+    # rather than getting an UnexpectedToolError with the message discarded.
+    with pytest.raises(ToolError) as e:
+        tools["send_password_reset"](id="s1", domain="learn.example.org")
+    assert "confirm=True" in str(e.value)
 
 
 def test_deactivate_does_not_touch_enrollments(tools):
