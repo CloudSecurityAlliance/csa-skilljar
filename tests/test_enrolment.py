@@ -30,7 +30,7 @@ def build(profile="full"):
     client = SkilljarClient(PolicyBackend(
         FakeBackend(enrollments=list(ENROLMENTS), certificates=list(CERTS),
                     course_ratings=list(RATINGS)),
-        Policy.from_profile(profile)))
+        Policy.from_profile(profile, may_contact_people=True)))
     app = MCPServer(name="t")
     register_enrolment_tools(app, lambda: client)
     return {n: t.fn for n, t in app._tool_manager._tools.items()}

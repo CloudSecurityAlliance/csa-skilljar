@@ -317,7 +317,11 @@ def test_one_capability_at_a_time_matrix():
     every_method = set().union(*EXPECTED_BY_CAPABILITY.values())
     for cap in P.ALL_CAPABILITIES:
         allowed = EXPECTED_BY_CAPABILITY.get(cap, set())
-        pb = P.PolicyBackend(BothBackends(courses=ROWS), P.Policy(frozenset({cap})))
+        # Reach is opted in here on purpose: this test isolates the CAPABILITY axis.
+        # Leaving it off would make the matrix silently also assert reach, and a
+        # failure would not say which axis refused.
+        pb = P.PolicyBackend(BothBackends(courses=ROWS),
+                             P.Policy(frozenset({cap}), may_contact_people=True))
         for name in sorted(every_method):
             if name in allowed:
                 try:
@@ -419,3 +423,97 @@ def test_credentials_property_does_not_hand_out_the_credential():
     for forbidden in ("token", "client_id", "client_secret", "_creds_"):
         assert not hasattr(view, forbidden), f"{forbidden} is reachable through the view"
     assert "secret" not in repr(view) and "id" not in repr(view)
+
+# ── Reach · does the effect leave the building? ─────────────────────────────────
+#
+# A fourth axis, orthogonal to the capability tree. A capability says what authority the
+# caller holds; this says whether an effect of that authority reaches a human. They
+# cross-cut - `send_password_reset` is support work, `bulk_enroll_students` is routine
+# operations, neither is administration, and both cause someone to receive an email.
+#
+# The expectation is hand-written. Deriving it from CONTACTS_PEOPLE would assert the set
+# equals itself, which is how T9 survived.
+
+def test_the_tools_that_email_real_people_are_named():
+    import csa_skilljar.policy as P
+    assert P.ALWAYS_CONTACTS == {
+        "send_password_reset", "set_student_password", "bulk_enroll",
+    }, ("a method was added to or removed from ALWAYS_CONTACTS. That is a decision about "
+        "whether this server can email CSA's learners - make it deliberately.")
+    assert P.CONTACTS_WHEN == {"complete_enrollments": "send_notifications"}, (
+        "a conditional contactor changed. The value must be the parameter name that "
+        "requests the notification.")
+
+
+def test_reach_is_off_by_default_even_for_a_profile_that_holds_the_capability():
+    """`operations` legitimately holds enrolment.write. It still may not email anyone."""
+    import csa_skilljar.policy as P
+    pol = P.Policy.from_profile("operations")
+    assert pol.allows("enrolment.write"), "precondition: operations can enrol"
+    assert not pol.allows_reach("bulk_enroll")
+    assert pol.allows_reach("list_enrollments"), "a read must not be caught by reach"
+
+
+def test_a_conditional_contactor_is_refused_only_when_it_asks_to_notify():
+    """complete_enrollments takes send_notifications. Marking an enrolment complete is
+    useful work; the email is a separable choice, and the upstream API says so."""
+    import pytest
+
+    import csa_skilljar.exceptions as exc
+    import csa_skilljar.policy as P
+
+    class Fake:
+        def complete_enrollments(self, **kw): return {"ok": True}
+
+    pb = P.PolicyBackend(Fake(), P.Policy.from_profile("operations"))
+    assert pb.complete_enrollments(send_notifications=False, items=[]) == {"ok": True}
+    with pytest.raises(exc.PolicyError) as e:
+        pb.complete_enrollments(send_notifications=True, items=[])
+    assert "send_notifications=false" in str(e.value)
+
+
+def test_reach_and_capability_are_independent():
+    import csa_skilljar.policy as P
+    # capability yes, reach no -> refused. Uses an ALWAYS contactor: a conditional one
+    # would pass here for the boring reason that no notification was requested.
+    assert not P.Policy.from_profile("operations").allows_reach("bulk_enroll")
+    # capability yes, reach yes -> permitted
+    opted_in = P.Policy.from_profile("operations", may_contact_people=True)
+    assert opted_in.allows_reach("bulk_enroll")
+    # reach yes never grants the capability
+    assert not opted_in.allows("people.destructive"), (
+        "opting into contact must not widen authority")
+
+
+def test_the_seam_refuses_a_contacting_tool_and_says_which_switch():
+    import pytest
+
+    import csa_skilljar.exceptions as exc
+    import csa_skilljar.policy as P
+
+    class Fake:
+        def bulk_enroll(self, **kw): return {"ok": True}
+
+    pb = P.PolicyBackend(Fake(), P.Policy.from_profile("operations"))
+    with pytest.raises(exc.PolicyError) as e:
+        pb.bulk_enroll(course_id="c1", emails=[])
+    msg = str(e.value)
+    assert "CSA_SKILLJAR_ALLOW_CONTACTING_PEOPLE" in msg
+    assert "email" in msg.lower()
+
+    allowed = P.PolicyBackend(Fake(), P.Policy.from_profile(
+        "operations", may_contact_people=True))
+    assert allowed.bulk_enroll(course_id="c1", emails=[]) == {"ok": True}
+
+
+def test_every_contacting_name_is_a_real_gated_method():
+    """CONTACTS_PEOPLE holds BACKEND method names, and the MCP tool names differ.
+
+    Written after naming `bulk_enroll_students` - the tool - where the seam expects
+    `bulk_enroll`. A reach entry that matches nothing silently protects nothing.
+    """
+    import csa_skilljar.policy as P
+    unknown = sorted(P.CONTACTS_PEOPLE - set(P._GATES))
+    assert unknown == [], (
+        f"{unknown} are in CONTACTS_PEOPLE but have no gate entry, so the reach check "
+        f"will never fire for them. Use the backend method name, not the tool name.")

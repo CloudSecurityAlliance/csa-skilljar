@@ -30,6 +30,7 @@ V2_ID_VAR = "CSA_SKILLJAR_V2_CLIENT_ID"
 V2_SECRET_VAR = "CSA_SKILLJAR_V2_CLIENT_SECRET"      # nosec B105 # a variable name, not a secret
 V1_KEY_VAR = "CSA_SKILLJAR_V1_API_KEY"
 PROFILE_VAR = "CSA_SKILLJAR_PROFILE"
+CONTACT_VAR = "CSA_SKILLJAR_ALLOW_CONTACTING_PEOPLE"
 
 # Module constants, not f-strings built at call time. The startup-warning path must have
 # no data dependency on the environment whatsoever - only a control-flow one - or CodeQL
@@ -52,13 +53,17 @@ class Settings:
     v2_client_secret: str | None = None
     v1_api_key: str | None = None
     profile: str = "parity"
+    # Off unless someone said so. Separate from the profile because `operations` reads
+    # as routine and can otherwise cause Skilljar to email hundreds of learners.
+    may_contact_people: bool = False
     base_url: str = "https://api.skilljar.com"
 
     def __repr__(self) -> str:      # never let a credential reach a log line
         return (f"Settings(v2_client_id={'set' if self.v2_client_id else 'unset'}, "
                 f"v2_client_secret={'set' if self.v2_client_secret else 'unset'}, "
                 f"v1_api_key={'set' if self.v1_api_key else 'unset'}, "
-                f"profile={self.profile!r})")
+                f"profile={self.profile!r}, "
+                f"may_contact_people={self.may_contact_people})")
 
 
 ENV_FILE_VAR = "CSA_SKILLJAR_ENV_FILE"
@@ -139,6 +144,9 @@ def settings_from_env(env: Mapping[str, str]) -> Settings:
         v2_client_secret=env.get(V2_SECRET_VAR) or None,
         v1_api_key=env.get(V1_KEY_VAR) or None,
         profile=env.get(PROFILE_VAR) or "parity",
+        # Anything but an explicit true is false: a typo must not enable email.
+        may_contact_people=(env.get(CONTACT_VAR) or "").strip().lower()
+        in {"1", "true", "yes", "on"},
     )
 
 
@@ -212,7 +220,8 @@ class ClientProvider:
                 f"{V2_ID_VAR} and {V2_SECRET_VAR} in your MCP client configuration and "
                 f"restart the server. Obtain a v2 API client from the Skilljar Dashboard. "
                 f"Call `check_access` to see what is currently available.")
-        policy = Policy.from_profile(s.profile)
+        policy = Policy.from_profile(s.profile,
+                                     may_contact_people=s.may_contact_people)
         creds = V2Credentials(s.v2_client_id, s.v2_client_secret, base_url=s.base_url)
         backend = PolicyBackend(V2Backend(creds, base_url=s.base_url), policy)
         # The v1 backend is OPTIONAL and policy-wrapped with the SAME policy: one gate
