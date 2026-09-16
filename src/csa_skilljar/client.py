@@ -8,6 +8,40 @@ from .backend import Backend
 from .policy import Policy, PolicyBackend
 
 
+class CredentialView:
+    """What a caller may learn about a credential: what it was granted, and nothing else.
+
+    Deliberately not a passthrough. It exposes no token, no client id and no secret, so a
+    reference obtained from `Client.credentials` cannot be used to make a call that the
+    capability gate never saw.
+    """
+
+    __slots__ = ("_creds",)
+
+    def __init__(self, creds: Any) -> None:
+        self._creds = creds
+
+    def granted_scopes(self) -> list[str] | None:
+        """The scopes the token reports, or None when it did not say.
+
+        None is not "no scopes" - it is "the token was silent", which callers must
+        report differently.
+        """
+        granted = self._creds.granted_scopes()
+        return None if granted is None else list(granted)
+
+    def expires_in(self) -> float | None:
+        """Seconds until the current token expires, or None when there is no token yet.
+
+        A lifetime, never the token. `check_access` reports it so an operator can tell a
+        stale token from a wrong one.
+        """
+        return self._creds.expires_in()
+
+    def __repr__(self) -> str:      # keep a credential out of tracebacks and logs
+        return "<CredentialView>"
+
+
 class SkilljarClient:
     """Thin, typed surface over the backends.
 
@@ -29,17 +63,27 @@ class SkilljarClient:
         self._v1 = v1
 
     @property
-    def credentials(self) -> Any | None:
-        """The v2 credentials, when the backend has any.
+    def credentials(self) -> CredentialView | None:
+        """A read-only view of the v2 credential state, when the backend has one.
 
-        Exists so `check_access` does not have to reach through
-        `client._backend._backend._creds` - which the Block 1 plan flagged as a wart
-        with three layers of private attribute access. Returns None for a fake or
-        credential-free backend rather than raising, because `check_access` must answer
-        when nothing is configured.
+        Returns a `CredentialView`, never the credential object itself. The view exposes
+        what the two read-only callers need - the granted scopes, and the remaining token
+        lifetime for `check_access` - and nothing else. Notably not `token()`, and not the
+        client id or secret.
+
+        This used to return the raw `V2Credentials`, which handed the caller `token()`
+        and the client id and secret, reaching around the capability gate entirely
+        (T14). `PolicyBackend.__getattr__` refuses underscore-prefixed names, but
+        `_backend` is assigned in `__init__` and therefore lives in the instance
+        `__dict__`, so `__getattr__` never fired for it - the refusal looked like a
+        control and was not one.
+
+        Returns None for a fake or credential-free backend rather than raising, because
+        `check_access` must answer when nothing is configured.
         """
         inner = getattr(self._backend, "_backend", self._backend)
-        return getattr(inner, "_creds", None)
+        creds = getattr(inner, "_creds", None)
+        return None if creds is None else CredentialView(creds)
 
     def _require_v1(self) -> Any:
         if self._v1 is None:
