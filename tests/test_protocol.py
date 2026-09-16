@@ -11,6 +11,7 @@ import re
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
+import csa_skilljar.policy as P
 from csa_skilljar.backend import FakeBackend
 from csa_skilljar.client import SkilljarClient
 from csa_skilljar.mcp._config import settings_from_env
@@ -78,7 +79,8 @@ EXERCISE = {
     "anonymize_student": {"id": "s1", "confirm": True},
     "deactivate_student": {"id": "s1"},
     "set_student_password": {"id": "s1", "password": "hunter2hunter2", "confirm": True},
-    "send_password_reset": {"id": "s1", "domain": "learn.example.org"},
+    "send_password_reset": {"id": "s1", "domain": "learn.example.org",
+                            "confirm": True},
     "list_groups": {},
     "get_group": {"id": "g1"},
     "create_groups": {"groups": [{"name": "New"}]},
@@ -226,7 +228,8 @@ def build(profile="full", env=None):
     settings = settings_from_env(env or {})
     # Conformance: every tool must be callable, so reach is opted in here. The gate is
     # covered in test_policy.py.
-    policy = Policy.from_profile(profile, may_contact_people=True)
+    policy = Policy.from_profile(profile, may_contact_people=True,
+                                 orange_allowed=P.ORANGE_TOOLS)
     client = SkilljarClient(PolicyBackend(
         FakeBackend(courses=ROWS, lessons=LESSON_ROWS, quizzes=QUIZ_ROWS,
                     questions=QUESTION_ROWS, question_banks=BANK_ROWS,

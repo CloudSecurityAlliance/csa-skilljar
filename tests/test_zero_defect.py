@@ -205,13 +205,16 @@ def test_a_registered_client_secret_is_never_logged_or_repeated(caplog):
 
     from mcp.server import MCPServer
 
+    import csa_skilljar.policy as P
     from csa_skilljar.backend import FakeBackend
     from csa_skilljar.client import SkilljarClient
     from csa_skilljar.mcp._tools.web_packages import register_web_package_tools
     from csa_skilljar.policy import Policy, PolicyBackend
 
     client = SkilljarClient(PolicyBackend(FakeBackend(),
-                                          Policy.from_profile("admin")))
+                                          Policy.from_profile(
+                                              "admin",
+                                              orange_allowed=P.ORANGE_TOOLS)))
     app = MCPServer(name="t")
     register_web_package_tools(app, lambda: client)
     tool = app._tool_manager._tools["register_oauth_client"].fn

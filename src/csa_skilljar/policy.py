@@ -263,6 +263,31 @@ CONTACTS_WHEN: dict[str, str] = {
 CONTACTS_PEOPLE: frozenset[str] = ALWAYS_CONTACTS | frozenset(CONTACTS_WHEN)
 
 
+# ── Orange lines: control-defeating tools need a second, independent grant ──────
+#
+# DEC-016. These do not merely carry risk - their primary effect is to weaken the
+# controls around them, so gating by profile alone is incoherent: an agent that reaches
+# them can edit the profile. They need two grants that do not live in the same place.
+#
+# Grant 1 is the capability, as for any tool. Grant 2 is naming the tool explicitly in
+# CSA_SKILLJAR_ORANGE - a profile is chosen for a job, an orange tool is chosen on
+# purpose. Where Skilljar allows it the stronger form of grant 2 is a scope the
+# credential simply was not issued, which is the only layer an agent editing this
+# repository cannot remove.
+#
+# BACKEND METHOD names. Hand-maintained, and hand-asserted in test_policy.py.
+ORANGE_TOOLS: frozenset[str] = frozenset({
+    # Mints a credential. A caller that can do this escapes every gate above it.
+    "register_oauth_client",
+    # Takes over an account: the holder no longer controls it, and finds out by being
+    # locked out.
+    "set_student_password",
+    # Sends a reset link to a real person's inbox. The easiest of the four for injected
+    # text to reach - "email everyone in group X a reset link".
+    "send_password_reset",
+})
+
+
 class Policy:
     """What this install may do: which capabilities it holds, and whether it may reach a person.
 
@@ -274,19 +299,24 @@ class Policy:
     """
 
     def __init__(self, capabilities: frozenset[str],
-                 *, may_contact_people: bool = False) -> None:
+                 *, may_contact_people: bool = False,
+                 orange_allowed: frozenset[str] = frozenset()) -> None:
         self.capabilities = frozenset(capabilities)
         self.may_contact_people = may_contact_people
+        self.orange_allowed = frozenset(orange_allowed)
 
     def __repr__(self) -> str:
         return (f"Policy({sorted(self.capabilities)!r}, "
-                f"may_contact_people={self.may_contact_people})")
+                f"may_contact_people={self.may_contact_people}, "
+                f"orange_allowed={sorted(self.orange_allowed)!r})")
 
     @classmethod
-    def from_profile(cls, name: str, *, may_contact_people: bool = False) -> Policy:
+    def from_profile(cls, name: str, *, may_contact_people: bool = False,
+                     orange_allowed: frozenset[str] = frozenset()) -> Policy:
         try:
             return cls(frozenset(PROFILES[name]),
-                       may_contact_people=may_contact_people)
+                       may_contact_people=may_contact_people,
+                       orange_allowed=orange_allowed)
         except KeyError:
             raise ValueError(
                 f"unknown profile {name!r}. Choose one of: {', '.join(sorted(PROFILES))}"
@@ -294,6 +324,15 @@ class Policy:
 
     def allows(self, capability: str | None) -> bool:
         return True if capability is None else capability in self.capabilities
+
+    def allows_orange(self, name: str) -> bool:
+        """Whether `name` may run, given that it is control-defeating (DEC-016).
+
+        Checked in addition to the capability, never instead of it. `full` does NOT
+        grant this: the whole point is that one setting cannot enable it, and a profile
+        is one setting.
+        """
+        return name not in ORANGE_TOOLS or name in self.orange_allowed
 
     def allows_reach(self, name: str, kwargs: dict[str, Any] | None = None) -> bool:
         """Whether this call may run, given whether it contacts a person.
@@ -342,6 +381,14 @@ class PolicyBackend:
                 f"`{name}` needs the `{capability}` capability, which this install does not "
                 f"enable. Set CSA_SKILLJAR_PROFILE to a profile that includes it, then "
                 f"restart. The policy cannot be changed from here.")
+        if not self._policy.allows_orange(name):
+            raise exc.PolicyError(
+                f"`{name}` is an orange-line tool (DEC-016): its effect is to weaken the "
+                f"controls around it, so the `{capability}` capability alone does not "
+                f"reach it. Name it explicitly in CSA_SKILLJAR_ORANGE - a comma-separated "
+                f"list - and restart. That is deliberately a second setting in a second "
+                f"place: one switch is one thing to edit. Note that the `full` profile "
+                f"does not grant it either.")
         target = getattr(self._backend, name)
         if name not in CONTACTS_PEOPLE:
             return target
