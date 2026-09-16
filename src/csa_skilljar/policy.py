@@ -14,6 +14,7 @@ the complete permitted list rather than a delta.
 """
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 from . import exceptions as exc
@@ -230,17 +231,62 @@ _GATES: dict[str, str | None] = {
 }
 
 
+# ── Reach: does the call cause Skilljar to contact a human? ─────────────────────
+#
+# Orthogonal to _GATES, and that is the point. A capability answers "what authority does
+# the caller hold"; this answers "does the effect leave our boundary". They cross-cut:
+# `send_password_reset` is support work and `bulk_enroll` is routine operations, neither
+# is administration, and both cause a real person to receive an email.
+#
+# BACKEND METHOD names, not MCP tool names - the seam sees the former, and they differ
+# (`bulk_enroll` is exposed as the tool `bulk_enroll_students`).
+#
+# Two kinds, because reach is not always a property of the tool. Enumerated by hand: a
+# method that emails somebody and is on neither list is the failure this exists to
+# prevent, and both expectations are re-stated by hand in test_policy.py.
+
+#: Contacts a person on every call. Nothing in the arguments can prevent it.
+ALWAYS_CONTACTS: frozenset[str] = frozenset({
+    "send_password_reset",      # a reset link, to that learner's inbox
+    "set_student_password",     # notifies the account holder
+    "bulk_enroll",              # Skilljar emails each enrolled learner
+})
+
+#: Contacts a person only when an argument asks for it. The upstream API models the
+#: decision explicitly, so we honour that rather than refusing the whole method - marking
+#: an enrolment complete is useful work, and the email is a separable choice.
+CONTACTS_WHEN: dict[str, str] = {
+    "complete_enrollments": "send_notifications",
+}
+
+#: Every method that can contact a person, by either route.
+CONTACTS_PEOPLE: frozenset[str] = ALWAYS_CONTACTS | frozenset(CONTACTS_WHEN)
+
+
 class Policy:
-    def __init__(self, capabilities: frozenset[str]) -> None:
+    """What this install may do: which capabilities it holds, and whether it may reach a person.
+
+    Two independent questions. `capabilities` answers "what authority does the caller
+    hold"; `may_contact_people` answers "may an effect of that authority leave the
+    building". A profile is chosen for the work someone does; contacting learners is a
+    consequence they should agree to separately, because `operations` reads as routine and
+    can otherwise email hundreds of people.
+    """
+
+    def __init__(self, capabilities: frozenset[str],
+                 *, may_contact_people: bool = False) -> None:
         self.capabilities = frozenset(capabilities)
+        self.may_contact_people = may_contact_people
 
     def __repr__(self) -> str:
-        return f"Policy({sorted(self.capabilities)!r})"
+        return (f"Policy({sorted(self.capabilities)!r}, "
+                f"may_contact_people={self.may_contact_people})")
 
     @classmethod
-    def from_profile(cls, name: str) -> Policy:
+    def from_profile(cls, name: str, *, may_contact_people: bool = False) -> Policy:
         try:
-            return cls(frozenset(PROFILES[name]))
+            return cls(frozenset(PROFILES[name]),
+                       may_contact_people=may_contact_people)
         except KeyError:
             raise ValueError(
                 f"unknown profile {name!r}. Choose one of: {', '.join(sorted(PROFILES))}"
@@ -248,6 +294,23 @@ class Policy:
 
     def allows(self, capability: str | None) -> bool:
         return True if capability is None else capability in self.capabilities
+
+    def allows_reach(self, name: str, kwargs: dict[str, Any] | None = None) -> bool:
+        """Whether this call may run, given whether it contacts a person.
+
+        Checked in addition to the capability, never instead of it. For a method whose
+        upstream API makes the notification a parameter, only the call that asks for the
+        notification is refused - so `complete_enrollments(send_notifications=False)`
+        works on an install that may not email anyone, which is the useful half.
+        """
+        if self.may_contact_people:
+            return True
+        if name in ALWAYS_CONTACTS:
+            return False
+        flag = CONTACTS_WHEN.get(name)
+        if flag is None:
+            return True
+        return not bool((kwargs or {}).get(flag))
 
 
 class PolicyBackend:
@@ -279,4 +342,28 @@ class PolicyBackend:
                 f"`{name}` needs the `{capability}` capability, which this install does not "
                 f"enable. Set CSA_SKILLJAR_PROFILE to a profile that includes it, then "
                 f"restart. The policy cannot be changed from here.")
-        return getattr(self._backend, name)
+        target = getattr(self._backend, name)
+        if name not in CONTACTS_PEOPLE:
+            return target
+        # Checked here rather than in the tool layer so a library embedder gets the same
+        # refusal an MCP client does - one enforcement point, both questions. Wrapped
+        # because for `CONTACTS_WHEN` methods the answer depends on the arguments.
+        policy = self._policy
+
+        @functools.wraps(target)
+        def _reach_checked(*args: Any, **kwargs: Any) -> Any:
+            if policy.allows_reach(name, kwargs):
+                return target(*args, **kwargs)
+            flag = CONTACTS_WHEN.get(name)
+            remedy = (f"Pass {flag}=false to do the rest of the work without it, or set "
+                      f"CSA_SKILLJAR_ALLOW_CONTACTING_PEOPLE=true and restart."
+                      if flag else
+                      "Set CSA_SKILLJAR_ALLOW_CONTACTING_PEOPLE=true and restart if that "
+                      "is intended.")
+            raise exc.PolicyError(
+                f"`{name}` causes Skilljar to send email to real people, and this install "
+                f"has not enabled that. It is a separate switch from the profile on "
+                f"purpose: `{capability}` says what you may administer, this says whether "
+                f"the effect may leave the building. {remedy} The policy cannot be "
+                f"changed from here.")
+        return _reach_checked
