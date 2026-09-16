@@ -1,60 +1,92 @@
 # Goals
 
+Shared goals for CSA's MCP server fleet — library-first, local stdio, one fail-closed seam at the
+data boundary, offline-testable, published to PyPI with attestations — are stated once in the fleet
+roster (`surfaces/mcp/ROSTER.md` in the internal CINO-Platform-Engineering repo) and are not
+restated here. This file records only what is specific to Skilljar.
+
 ## North Star
 
-CSA's training operations — course authoring, exam item banks, enrolment, and progress
-reporting — can be driven end to end by scripts and AI agents, against whichever Skilljar API
-actually has the capability, **without the caller ever needing to know which one**. When Skilljar
-finishes building v2, this project quietly gets smaller and nothing that depends on it changes.
+CSA's training operations — course authoring, exam item banks, enrolment, grading, and progress
+reporting — can be driven end to end by scripts and AI agents, **against whatever route actually
+has the capability**, without the caller ever needing to know which one. Three routes exist: the v2
+API, the v1 API, and the dashboard, which has no API at all.
 
-## Near-term (now → Phase 2)
+When Skilljar finishes building v2, this project quietly gets smaller and nothing that depends on it
+changes.
 
-| Goal | Success metric |
-|---|---|
-| Ship Phase 1 parity | All 73 official tool names implemented over v2, with identical argument names; a registry-diff test passes against the live official server |
-| Be installable | `pip install csa-skilljar` from PyPI, published via Trusted Publishing with attestations |
-| Be testable offline | The entire tool surface exercisable with no network and no credentials, via `FakeBackend`; coverage floor enforced in CI |
-| Detect upstream drift automatically | `scripts/check_upstream.py` runs weekly in CI and opens an issue when Skilljar's v2 surface, scope catalogue, or official tool registry changes |
-| Never fail obscurely on credentials | Each of the seven auth states in the design spec produces a distinct, actionable message; verified by test |
+**The third route is not a workaround.** Grading is the clearest case: a learner submits a free-form
+response, Skilljar creates a task, and a human scores it in the web UI. Probing on 2026-09-02 found
+no grading API in either version and none reserved. A goal of "100% API coverage" would score this
+project complete while the capability CSA staff use most often remained unreachable. The unit is the
+**capability**, not the API.
 
-## Medium-term (Phases 3–9)
+That route is **built and not yet landed** — see the near-term goal below.
 
-Add the v1-only families, ordered by evidence of use in CSA's own org rather than by API size:
-learner progress → assets and media → commerce (read-biased) → learning paths → events and
-webhooks → instructor-led training → labels and tags.
+## Near-term
 
 | Goal | Success metric |
 |---|---|
-| Close the reporting gap | Per-lesson learner progress reachable from an MCP client — v2 reports course-level completion only |
-| Make content assets scriptable | Asset upload works; v2 has no file upload at all |
-| One demonstration that is also the end-to-end test | A single plan exercises 100% of registered tools, computed from the registry, run against both the fake and real Skilljar |
+| **Remediate the 2026-08-30 audit** | The 18 T-numbered findings tracked under [#76](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/76) are closed or explicitly accepted. This is the dominant fact about the project's current state, and four findings are the reason: unsanitised HTML round-tripping through the model into the learner-facing portal ([#55](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/55)), `authoring` able to destroy despite a declared delete/write split ([#58](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/58)), `client.credentials` reaching around the capability gate ([#67](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/67)), and `send_password_reset` emailing real people with no confirm gate ([#61](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/61)) |
+| **Guards that can fail** | Every gate has a test that has been proven to fire by breaking it. Three tests that cannot fail are open now ([#72](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/72)), and the read-only integration guard is dead with no safe repair ([#59](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/59)) |
+| **A safe place to test writes** | Every write path exercised against a real organization that is not CSA's production one. Blocked on [WAITING-FOR-003](WAITING-FOR/WAITING-FOR-003.md); until it clears, writes stay OFF and enforced in three layers rather than by convention |
+| **Distinct, actionable credential failure** | Each of the seven auth states produces its own message, verified by test. Skilljar has no login and no browser step — the credential *is* the identity — and nothing said so where people looked ([FRICTION-004](FRICTION/FRICTION-004.md)) |
+| **Docs that cannot drift from the surface** | Tool counts and capability claims are generated or asserted, not hand-written. Four different counts appear across current docs — 112 on `main`, 114 on an unmerged branch, 73 and 120 elsewhere |
+| **Land the dashboard backend** | `feat/dashboard-backend-reads` merged and released, or explicitly parked with a reason. It is 15 commits of reviewed, tested work — `list_tasks`, `get_task`, `DashboardSession`, `FakeDashboard` — and it reached "review round 1" and stopped. Until 2026-09-15 it existed on exactly one machine with no remote |
+
+## Medium-term
+
+- **Grow the dashboard backend by frequency, not completeness.** Anything CSA staff do repeatedly
+  in the web UI is in scope; one-off administration — billing, org settings, theming, account
+  deletion — is deliberately out. The grading queue is **built and unreleased** — `list_tasks` and
+  `get_task`, read-only, with a `FakeDashboard` for offline testing, on `feat/dashboard-backend-reads`
+  (15 commits, unmerged). Landing it is the near-term goal below; growing past it is this one.
+- **Drift detection covering all three routes.** `check_upstream.py` already works for the APIs and
+  has opened four issues unprompted ([#13](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/13),
+  [#83](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/83),
+  [#85](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/85)). The dashboard route has
+  none, and a UI has no contract — it breaks silently on a redesign. Capability coverage via a web
+  route without drift detection is choosing silent breakage.
+- **Close the reporting gap** — per-lesson learner progress, which v2 reports only at course level.
+- **Make content assets scriptable** — v2 has no file upload at all.
 
 ## Long-term
 
 | Goal | Success metric |
 |---|---|
-| **Shrink** | Each v1 family retired as the v2 equivalent ships, with no tool renamed and no caller changed. A shrinking `V1Backend` is the project succeeding, not failing. |
-| Feed the pattern library | This is CSA's third MCP server and the first with two upstream APIs. The five research questions in the design spec §10 get answered and folded into CINO-Platform-Engineering. |
-| Be useful outside CSA | Adopted by at least one Skilljar customer who is not CSA |
-
-## Who benefits
-
-- **CSA** — training content pipeline becomes scriptable; exam item banks become programmatically
-  manageable; reporting stops being a manual export.
-- **The community** — any Skilljar customer gets the same capability, free and open source. The
-  README points people at Skilljar's own server first, so the value here is specifically the gap.
-- **Shared** — a worked public example of an MCP server over two API generations with divergent
-  auth and data models, which is a shape more integrations will hit as vendors version their APIs.
+| **Shrink** | Each v1 family retired as the v2 equivalent ships, with no tool renamed and no caller changed. **The trigger has fired once already** — Skilljar shipped `/v2/assets/` and ADR-002's retirement condition activated ([#81](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/81)). A shrinking `V1Backend` is the project succeeding, not failing |
+| **Be useful outside CSA** | Adopted by at least one Skilljar customer who is not CSA |
 
 ## Non-goals
 
-Named so they are decisions rather than drift: no webhook *receiving*, no caching layer, no
-cross-API composite writes, no catalog page-building, and no v1 families with no data in the
-reference org. Rationale in the design spec §2.
+Named so they are decisions rather than drift. Rationale in the design spec §2.
+
+- **No webhook receiving**, no caching layer, no cross-API composite writes, no catalog page-building.
+- **No v1 families with no data in the reference org** — phase order follows usage evidence, not API
+  size (ADR-007).
+- **No one-off dashboard administration.** The dashboard backend exists for repeated work. Billing
+  and org settings stay in the browser where they are done twice a year.
+- **No version marker in any tool name** (ADR-004). Which route serves a call is this project's
+  problem, not the caller's — that is the North Star restated as a constraint.
 
 ## How we would know this failed
 
-- Tool descriptions are accurate but unusable cold — the demonstration is the test for this, and
-  it is the failure mode most likely to go unnoticed.
-- The two-API seam leaks: callers start needing to know whether a capability is v1 or v2.
-- Upstream drift is discovered by a user rather than by CI.
+1. **Tool descriptions are accurate but unusable cold.** The demonstration plan is the test for this,
+   and it remains the failure most likely to go unnoticed.
+2. **The route seam leaks** — callers start needing to know whether a capability is v2, v1 or
+   dashboard. A version marker appearing in a tool name is the visible symptom.
+3. **Upstream drift is discovered by a user rather than by CI.** Currently CI wins; the dashboard
+   route is where this will break first, because nothing watches it.
+4. **A guard is green and asserts nothing.** Already true in three places right now.
+5. **The audit findings age into normality.** Eighteen open findings against one closed issue in the
+   repo's entire history is the shape of a backlog that has stopped being read as urgent.
+
+## Who benefits
+
+- **CSA** — the training content pipeline becomes scriptable, exam item banks programmatically
+  manageable, reporting no longer a manual export, and grading reachable at all.
+- **The community** — any Skilljar customer gets the same capability, free and open source. The
+  README points people at Skilljar's own server first; the value here is specifically the gap.
+- **Shared** — a worked public example of an MCP server spanning two API generations *and* a
+  no-API surface, which is a shape more integrations will hit as vendors version and under-build
+  their APIs.
