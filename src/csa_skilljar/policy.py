@@ -26,7 +26,8 @@ READ_REPORTING = "reporting.read"
 WRITE_CONTENT = "content.write"
 # Deletes are gated separately from writes on purpose: an authoring credential that can
 # create and update content should not thereby be able to destroy it. No default profile
-# grants this.
+# grants this - enforced by test_no_default_profile_grants_a_delete, which is written by
+# hand rather than derived from PROFILES, so the table cannot vouch for itself.
 DELETE_CONTENT = "content.delete"
 WRITE_PEOPLE = "people.write"
 WRITE_ENROLMENT = "enrolment.write"
@@ -44,6 +45,7 @@ DELETE_GROUPS = "groups.delete"
 # authoring credential that can write lesson HTML must not also be able to ship it.
 READ_PUBLISHING = "publishing.read"
 WRITE_PUBLISHING = "publishing.write"
+DELETE_PUBLISHING = "publishing.delete"
 READ_WEB_PACKAGES = "webpackages.read"
 # v1-only. A read of learner progress is no more sensitive than list_enrollments, which
 # `parity` already grants - so it goes in the same profiles rather than a stricter one.
@@ -58,13 +60,15 @@ READ_COMMERCE = "commerce.read"
 # authentication.
 READ_EVENTS = "events.read"
 WRITE_WEB_PACKAGES = "webpackages.write"
+DELETE_WEB_PACKAGES = "webpackages.delete"
 ADMIN_CREDENTIALS = "admin.credentials"
 
 ALL_CAPABILITIES: tuple[str, ...] = (
     READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_CONTENT, DELETE_CONTENT,
     WRITE_PEOPLE, WRITE_ENROLMENT, DESTRUCTIVE_PEOPLE, ADMIN_CREDENTIALS,
     READ_GROUPS, WRITE_GROUPS, DELETE_GROUPS, READ_PUBLISHING, WRITE_PUBLISHING,
-    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, READ_PROGRESS, READ_COMMERCE, READ_EVENTS,
+    READ_WEB_PACKAGES, WRITE_WEB_PACKAGES, DELETE_WEB_PACKAGES, READ_PROGRESS,
+    READ_COMMERCE, READ_EVENTS, DELETE_PUBLISHING,
 )
 
 # Named profiles, because nobody composes a capability list correctly under time
@@ -113,7 +117,9 @@ _GATES: dict[str, str | None] = {
     "list_bank_assignments": READ_CONTENT,
     "bind_banks": WRITE_CONTENT,
     "update_bank_assignments": WRITE_CONTENT,
-    "unbind_banks": WRITE_CONTENT,
+    # Annotated DESTRUCTIVE and it is: unbinding discards the binding, which the
+    # authoring credential must not be able to do (T9).
+    "unbind_banks": DELETE_CONTENT,
     "list_enrollments": READ_REPORTING,
     "get_enrollment": READ_REPORTING,
     "list_certificates": READ_REPORTING,
@@ -146,7 +152,7 @@ _GATES: dict[str, str | None] = {
     "get_published_course": READ_PUBLISHING,
     "publish_courses": WRITE_PUBLISHING,
     "update_published_courses": WRITE_PUBLISHING,
-    "delete_published_course": WRITE_PUBLISHING,
+    "delete_published_course": DELETE_PUBLISHING,
     "unpublish_published_course": WRITE_PUBLISHING,
     "republish_published_course": WRITE_PUBLISHING,
     "list_domains": READ_PUBLISHING,
@@ -161,7 +167,7 @@ _GATES: dict[str, str | None] = {
     "get_web_package": READ_WEB_PACKAGES,
     "create_web_packages": WRITE_WEB_PACKAGES,
     "update_web_packages": WRITE_WEB_PACKAGES,
-    "delete_web_package": WRITE_WEB_PACKAGES,
+    "delete_web_package": DELETE_WEB_PACKAGES,
     # Mints a credential. The official server ships it enabled; here it needs the
     # `admin` profile named explicitly (ADR-005), and RACI puts credential issuance
     # outside what an AI decides on its own.

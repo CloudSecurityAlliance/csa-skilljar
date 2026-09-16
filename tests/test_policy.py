@@ -80,11 +80,14 @@ EXPECTED_BY_CAPABILITY = {
                       "create_quizzes", "update_quizzes",
                       "create_questions", "update_questions",
                       "create_question_banks", "update_question_banks",
-                      "bind_banks", "update_bank_assignments", "unbind_banks"},
+                      "bind_banks", "update_bank_assignments"},
     # Deliberately NOT in content.write: an authoring credential must not be able to
     # destroy what it can create.
     "content.delete": {"delete_quizzes", "delete_questions",
-                       "delete_question_banks"},
+                       "delete_question_banks",
+                       # T9: unbind_banks is annotated DESTRUCTIVE and was gated on
+                       # content.write, which `authoring` holds.
+                       "unbind_banks"},
     "groups.read": {"list_groups", "get_group",
                     "list_signup_field_values", "get_signup_field_value",
                     # Visibility overrides live here, not under publishing.*: upstream
@@ -110,11 +113,14 @@ EXPECTED_BY_CAPABILITY = {
     # Deliberately NOT reachable from `authoring`: these change what anonymous visitors
     # to a customer-facing site can see.
     "publishing.write": {"publish_courses", "update_published_courses",
-                         "delete_published_course", "unpublish_published_course",
+                         # unpublish is reversible - republish undoes it - so it is a
+                         # write, not a delete.
+                         "unpublish_published_course",
                          "republish_published_course"},
+    "publishing.delete": {"delete_published_course"},
     "webpackages.read": {"list_web_packages", "get_web_package"},
-    "webpackages.write": {"create_web_packages", "update_web_packages",
-                          "delete_web_package"},
+    "webpackages.write": {"create_web_packages", "update_web_packages"},
+    "webpackages.delete": {"delete_web_package"},
     # Mints a credential, so it needs `admin` named explicitly - the official server
     # ships it enabled.
     "admin.credentials": {"register_oauth_client",
@@ -349,3 +355,67 @@ def test_profiles_are_all_subsets_of_full():
 def test_policy_is_reachable_for_inspection():
     pol = P.Policy.from_profile("parity")
     assert P.PolicyBackend(FakeBackend(), pol).policy is pol
+
+
+# ── T9 / T14 · the gate has to actually gate ────────────────────────────────────
+#
+# Both expectations below are written BY HAND. Deriving them from PROFILES or _GATES
+# would test the tables against themselves, which is how T9 survived: the principle was
+# stated in a comment and contradicted by the table three lines down.
+
+DELETE_CAPABILITIES = {
+    "content.delete", "groups.delete", "webpackages.delete", "publishing.delete",
+}
+
+
+def test_no_default_profile_grants_a_delete():
+    """policy.py states the delete/write split as a principle. This enforces it.
+
+    An authoring credential that can create and update content must not thereby be able
+    to destroy it. `full` is the deliberate exception - it is the "I mean it" profile.
+    """
+    import csa_skilljar.policy as P
+    offenders = {
+        name: sorted(set(caps) & DELETE_CAPABILITIES)
+        for name, caps in P.PROFILES.items()
+        if name != "full" and set(caps) & DELETE_CAPABILITIES
+    }
+    assert offenders == {}, (
+        f"these profiles grant a delete capability: {offenders}. Either the profile is "
+        f"wrong or the principle in policy.py has changed - do not widen this test.")
+
+
+def test_every_destructive_op_is_gated_on_a_delete_capability():
+    """Named one at a time, on purpose, so adding a destructive tool needs a decision."""
+    import csa_skilljar.policy as P
+    expected = {
+        "delete_quizzes": "content.delete",
+        "delete_questions": "content.delete",
+        "delete_question_banks": "content.delete",
+        "unbind_banks": "content.delete",          # T9: was content.write
+        "delete_groups": "groups.delete",
+        "delete_web_package": "webpackages.delete",       # T9: was webpackages.write
+        "delete_published_course": "publishing.delete",   # T9: was publishing.write
+    }
+    actual = {name: P._GATES[name] for name in expected}
+    assert actual == expected
+
+
+def test_credentials_property_does_not_hand_out_the_credential():
+    """T14 - `Client.credentials` returned the raw V2Credentials, with token() and the
+    client id and secret, reaching straight around the capability gate."""
+    from csa_skilljar.client import CredentialView
+
+    class FakeCreds:
+        def granted_scopes(self): return ("a", "b")
+        def expires_in(self): return 1800.0
+        def token(self): raise AssertionError("token() must not be reachable")
+        client_id = "id"
+        client_secret = "secret"           # noqa: S105 - a fixture, not a credential
+
+    view = CredentialView(FakeCreds())
+    assert view.granted_scopes() == ["a", "b"]
+    assert view.expires_in() == 1800.0
+    for forbidden in ("token", "client_id", "client_secret", "_creds_"):
+        assert not hasattr(view, forbidden), f"{forbidden} is reachable through the view"
+    assert "secret" not in repr(view) and "id" not in repr(view)
