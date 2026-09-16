@@ -21,6 +21,8 @@ no grading API in either version and none reserved. A goal of "100% API coverage
 project complete while the capability CSA staff use most often remained unreachable. The unit is the
 **capability**, not the API.
 
+That route is **built and not yet landed** — see the near-term goal below.
+
 ## Near-term
 
 | Goal | Success metric |
@@ -29,14 +31,16 @@ project complete while the capability CSA staff use most often remained unreacha
 | **Guards that can fail** | Every gate has a test that has been proven to fire by breaking it. Three tests that cannot fail are open now ([#72](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/72)), and the read-only integration guard is dead with no safe repair ([#59](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/59)) |
 | **A safe place to test writes** | Every write path exercised against a real organization that is not CSA's production one. Blocked on [WAITING-FOR-003](WAITING-FOR/WAITING-FOR-003.md); until it clears, writes stay OFF and enforced in three layers rather than by convention |
 | **Distinct, actionable credential failure** | Each of the seven auth states produces its own message, verified by test. Skilljar has no login and no browser step — the credential *is* the identity — and nothing said so where people looked ([FRICTION-004](FRICTION/FRICTION-004.md)) |
-| **Docs that cannot drift from the surface** | Tool counts and capability claims are generated or asserted, not hand-written. Four different counts appear across current docs |
+| **Docs that cannot drift from the surface** | Tool counts and capability claims are generated or asserted, not hand-written. Four different counts appear across current docs — 112 on `main`, 114 on an unmerged branch, 73 and 120 elsewhere |
+| **Land the dashboard backend** | `feat/dashboard-backend-reads` merged and released, or explicitly parked with a reason. It is 15 commits of reviewed, tested work — `list_tasks`, `get_task`, `DashboardSession`, `FakeDashboard` — and it reached "review round 1" and stopped. Until 2026-09-15 it existed on exactly one machine with no remote |
 
 ## Medium-term
 
 - **Grow the dashboard backend by frequency, not completeness.** Anything CSA staff do repeatedly
   in the web UI is in scope; one-off administration — billing, org settings, theming, account
-  deletion — is deliberately out. Two dashboard tools ship today; grading is the next one that earns
-  its place.
+  deletion — is deliberately out. The grading queue is **built and unreleased** — `list_tasks` and
+  `get_task`, read-only, with a `FakeDashboard` for offline testing, on `feat/dashboard-backend-reads`
+  (15 commits, unmerged). Landing it is the near-term goal below; growing past it is this one.
 - **Drift detection covering all three routes.** `check_upstream.py` already works for the APIs and
   has opened four issues unprompted ([#13](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/13),
   [#83](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/83),
