@@ -25,9 +25,12 @@ verified.
 - **`specs/`** — upstream OpenAPI snapshots, fetched 2026-08-26. `skilljar-v1-openapi.yml`
   (3.0.3, 160 paths / 340 ops) and `skilljar-v2-openapi.json` (3.1.0, 44 paths / 82 ops).
   These are *snapshots of someone else's moving target* — see "Upstream drift" below.
-  **Already drifted:** live v2 had **46** paths on 2026-08-31. The two new ones are
-  `/v2/assets/` and `/v2/assets/{id}` — the first time the ADR-002 retirement trigger has
-  fired. See `TODO.md`.
+  `specs/PROVENANCE.md` records where each file came from, its sha256 and byte count, and
+  the last document-level diff against live. **Already drifted:** live v2 had **48** paths
+  on 2026-09-16 (46 on 2026-08-31). `/v2/assets/` and `/v2/assets/{id}` were the first
+  time the ADR-002 retirement trigger fired; `/v2/students/{id}/relationships/
+  domain-memberships/` followed, and the response media type is now
+  `application/vnd.api+json` throughout. v1 has not drifted at all. See `TODO.md`.
 - **`analysis/`** — the 66-entity reconciliation of both APIs (`entity-inventory.csv`/`.json`),
   the live OAuth scope catalogue, and a browsable surface map.
 - **`docs-html/`** — the rendered vendor doc pages, kept for provenance. Low value; the specs

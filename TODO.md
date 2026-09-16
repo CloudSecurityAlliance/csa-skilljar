@@ -37,7 +37,8 @@ file plus open GitHub Issues finds everything.
     v1 backend is constructed. Verified still broken 2026-08-31.
 
 - **Skilljar shipped `/v2/assets/` — ADR-002's retirement trigger has fired for the first
-  time.** Live v2 has 46 paths against 44 in `specs/`; the new ones are `/v2/assets/`
+  time.** Live v2 has 48 paths against 44 in `specs/` (re-checked 2026-09-16; it was 46 on
+  2026-08-31); the new ones are `/v2/assets/`
   (GET, POST, PATCH) and `/v2/assets/{id}` (GET, DELETE). Probed 2026-08-31: **403
   `permission_denied`, not 404** — it exists and serves, and our client simply lacks the
   scope. Skilljar now advertises `assets:read` and `assets:write`; our client holds 17
@@ -49,6 +50,19 @@ file plus open GitHub Issues finds everything.
   - **Needs Kurt:** the OAuth client re-issued with `assets:read`. Credential issuance is
     never delegated to AI (`RACI.md`).
   - Then re-take the snapshot in `specs/` and close the drift issue.
+
+- **Three more v2 drifts found by diffing the documents, not the path lists** (2026-09-16,
+  recorded in `specs/PROVENANCE.md`). None are visible to `scripts/check_upstream.py`,
+  which compares path sets only. Fold them in when the snapshot is re-taken:
+  - `/v2/students/{id}/relationships/domain-memberships/` (+ `/{domain_id}`) — a second
+    new path family, unrelated to assets and not previously recorded anywhere here.
+  - Response media type moved from `application/json` to `application/vnd.api+json` on all
+    79 pre-existing operations. Request bodies unchanged. The live API answers an
+    `Accept: application/json` request normally, so nothing is broken today — but
+    `backend.py` asks for a media type the document no longer declares.
+  - New `FLASHCARD` content-item type and new `WEB_PACKAGE` lesson type
+    (`web_package_id`, `width_px`, `height_px`) — additive, and tool coverage for them
+    does not exist.
 
 - **Writes to Skilljar are OFF** → `WAITING-FOR-003`. Enforced by `ReadOnlyClient` in
   `tests/integration/conftest.py`, not by convention. Needs Hannah: is there a sandbox,

@@ -33,6 +33,9 @@ Skilljar v1/v2  ──HTTPS──▶  csa-skilljar (in memory only)  ──stdio
 - **Destinations** — the repository (`public`); `scripts/check_upstream.py` reads them.
 - **Why** — they are the contract the implementation is generated and tested against, and the
   baseline for detecting upstream change.
+- **Provenance** — `specs/PROVENANCE.md`: source URL, fetch date, sha256 and byte count for
+  each file, plus the last document-level diff against live. The vendor stamps no version on
+  either document, so the digest is the only identity they have.
 - **Technical detail** — `specs/skilljar-v1-openapi.{yml,json}`, `specs/skilljar-v2-openapi.json`.
 
 ## Asset: surface analysis
