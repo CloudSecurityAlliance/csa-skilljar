@@ -4,6 +4,7 @@ import pytest
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+import csa_skilljar.policy as P
 from csa_skilljar.backend import FakeBackend, V2Backend
 from csa_skilljar.client import SkilljarClient
 from csa_skilljar.mcp._tools.web_packages import register_web_package_tools
@@ -22,7 +23,10 @@ PACKAGES = [
 
 def build(profile="full"):
     fake = FakeBackend(web_packages=list(PACKAGES))
-    client = SkilljarClient(PolicyBackend(fake, Policy.from_profile(profile)))
+    # Orange opted in: these tests are about register_oauth_client's behaviour, not
+    # about DEC-016's gate, which is covered in test_policy.py.
+    client = SkilljarClient(PolicyBackend(fake, Policy.from_profile(
+        profile, orange_allowed=P.ORANGE_TOOLS)))
     app = MCPServer(name="t")
     register_web_package_tools(app, lambda: client)
     return {n: t.fn for n, t in app._tool_manager._tools.items()}, fake
