@@ -100,8 +100,6 @@ def register_course_tools(app: MCPServer, get_client: Callable[[], SkilljarClien
         the `courses:read` OAuth scope; if the credential lacks it this fails locally,
         naming the scope, without calling Skilljar.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_courses(title=filter_title, cursor=page_cursor,
                                         page_size=page_size)
         out: CourseListOut = {"courses": [_flatten(r) for r in env.get("data", [])],

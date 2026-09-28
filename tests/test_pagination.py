@@ -247,3 +247,63 @@ def test_v1_tools_report_a_total(name):
     answerable from one small page. v2 never provides one."""
     out = tools()[0][name](**V1_PAGE_NUMBER[name])
     assert "total" in out, f"{name} must surface v1's count"
+
+
+# ---------------------------------------------------------------------------
+# page_size=0 (#102)
+# ---------------------------------------------------------------------------
+# Twenty-nine tools take `page_size`. Nine did nothing with a zero, eleven rejected it
+# inline, and nine more coerced it silently to the default - because `_size(0)` computes
+# `0 or _DEFAULT`. Three behaviours for one argument on one surface, and no test anywhere
+# asserted any of them: the inline guards could be deleted whole and the suite stayed green.
+#
+# The guard now lives in `_base.translate_errors`, which wraps every tool, so this census
+# is what makes that structural rather than merely tidy: membership is read off the
+# SIGNATURES, so a list tool added next block is covered without anyone remembering, and a
+# tool that stops enforcing it fails here by name.
+
+#: name -> arguments that get the call as far as the guard. Both paging families, since
+#: the guard is about the argument rather than about which API serves it.
+PAGE_SIZE_ARGS = {**{n: extra for n, (_key, extra) in PAGINATED.items()}, **V1_PAGE_NUMBER}
+
+
+def takes_page_size():
+    return {n for n, fn in tools()[0].items()
+            if "page_size" in inspect.signature(fn).parameters}
+
+
+def test_every_tool_taking_page_size_is_covered_here():
+    """Fail-closed, and it is the half that matters. The defect was not that a guard was
+    wrong, it was that nobody noticed nine tools never had one - which only a census over
+    the whole population can see. A per-tool test passes forever on the tools that are
+    already right."""
+    uncovered = sorted(takes_page_size() - set(PAGE_SIZE_ARGS))
+    assert not uncovered, f"tools taking page_size with no entry here: {uncovered}"
+    stale = sorted(set(PAGE_SIZE_ARGS) - takes_page_size())
+    assert not stale, f"entries here for tools that no longer take page_size: {stale}"
+
+
+@pytest.mark.parametrize("name", sorted(PAGE_SIZE_ARGS))
+def test_page_size_zero_is_refused_by_name(name):
+    """Zero is a caller mistake in every case - it asks for no rows - so the answer is the
+    same everywhere, and it names the argument so the model can correct itself rather than
+    retrying the same call."""
+    with pytest.raises(Exception, match="page_size"):
+        tools()[0][name](page_size=0, **PAGE_SIZE_ARGS[name])
+
+
+@pytest.mark.parametrize("name", sorted(PAGE_SIZE_ARGS))
+def test_negative_page_size_is_refused_too(name):
+    """The guard is `< 1` rather than `== 0`, and a bound stated one way and tested the
+    other is how a check ends up passing the only value anyone tried."""
+    with pytest.raises(Exception, match="page_size"):
+        tools()[0][name](page_size=-1, **PAGE_SIZE_ARGS[name])
+
+
+@pytest.mark.parametrize("name", sorted(PAGE_SIZE_ARGS))
+def test_omitting_page_size_still_works(name):
+    """The other side of the guard, and the reason it is `is not None` rather than a
+    truthiness test: `None` means "no preference" and must still reach the default. A guard
+    written as `if not page_size` would refuse every unpaginated call and this would catch
+    it."""
+    tools()[0][name](**PAGE_SIZE_ARGS[name])

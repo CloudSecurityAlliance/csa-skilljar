@@ -88,8 +88,6 @@ def register_student_tools(app: MCPServer,
         Results contain real names and email addresses. Requires the `students:read`
         OAuth scope.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_students(
             email=filter_email, first_name=filter_first_name,
             last_name=filter_last_name, is_inactive=filter_is_inactive,

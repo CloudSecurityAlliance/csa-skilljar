@@ -114,8 +114,6 @@ def register_enrolment_tools(app: MCPServer,
 
         Requires the `enrollments:read` OAuth scope.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         if filter_progress_status:
             bad = sorted({s.strip() for s in filter_progress_status.split(",")}
                          - set(PROGRESS_STATUSES))
@@ -176,8 +174,6 @@ def register_enrolment_tools(app: MCPServer,
             raise ValueError(
                 f"filter_status {filter_status!r} is invalid. One of: "
                 f"{', '.join(CERTIFICATE_STATUSES)}")
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_certificates(
             course_id=filter_course_id, student_id=filter_student_id,
             domains=filter_domains, issued_gte=filter_issued_gte,
