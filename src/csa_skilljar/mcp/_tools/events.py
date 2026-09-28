@@ -30,7 +30,7 @@ from mcp.server import MCPServer
 
 from ...client import SkilljarClient
 from .._schemas import CommerceListOut
-from ._base import READ, translate_errors
+from ._base import LOCAL_READ, READ, translate_errors
 
 # event_type as it appears on a webhook -> the sample-* slug. Mechanical, but written out
 # so an unknown type is a clear error rather than a 404 from a guessed URL.
@@ -147,7 +147,7 @@ def register_event_tools(app: MCPServer,
         out["note"] = _WITHHELD_NOTE
         return out
 
-    @app.tool(annotations=READ)
+    @app.tool(annotations=LOCAL_READ)
     @translate_errors
     def preview_event_payload(event_type: str) -> dict[str, Any]:
         """Show an EXAMPLE payload for one webhook event type.

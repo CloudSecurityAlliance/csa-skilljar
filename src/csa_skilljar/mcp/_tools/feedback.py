@@ -13,14 +13,14 @@ from mcp.server import MCPServer
 from ... import __version__
 from .._config import Settings
 from .._schemas import ProblemReportOut
-from ._base import READ, translate_errors
+from ._base import LOCAL_READ, translate_errors
 
 ISSUES_URL = "https://github.com/CloudSecurityAlliance/csa-skilljar/issues"
 
 
 def register_feedback_tools(app: MCPServer, settings: Settings) -> None:
 
-    @app.tool(annotations=READ)
+    @app.tool(annotations=LOCAL_READ)
     @translate_errors
     def report_a_problem(what_happened: str) -> ProblemReportOut:
         """Assemble a bug report about this server for the user to file.
