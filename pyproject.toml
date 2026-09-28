@@ -73,4 +73,18 @@ testpaths = ["tests"]
 markers = ["anyio: async tests"]
 
 [tool.coverage.report]
-fail_under = 85
+# Matches the rest of the fleet. Without these, `if TYPE_CHECKING:` blocks and
+# `raise NotImplementedError` stubs were counted as unexecuted code - they are
+# declarations, and a coverage number that includes them measures the shape of
+# the source rather than what the tests reached.
+exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if TYPE_CHECKING:"]
+# A `Protocol` stub body is `...` with nothing to execute, but branch coverage
+# records one as a partial branch. `backend.py` declares 81 of them, so they were
+# 81 phantom misses no test could ever remove. Excluding them hides no untested
+# code; it stops the number counting declarations as code.
+exclude_also = [":\\s*\\.\\.\\.\\s*$"]
+# 93, the MEASURED number (93.60), not 85. TESTING.md: "a gate below the measured
+# number cannot fail" - and 85 against a real 93.6 left eight points of silent
+# regression room. The standard is 100 and this is a ratchet toward it: raising it
+# means covering code, never lowering it to fit.
+fail_under = 93
