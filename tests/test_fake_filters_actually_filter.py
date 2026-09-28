@@ -31,6 +31,9 @@ import pytest
 
 from csa_skilljar import exceptions as exc
 from csa_skilljar.backend import FakeBackend
+from csa_skilljar.v1backend import FakeV1Backend
+
+from .test_pagination import v1_backend as v1_seed
 
 #: `include` is a sideload directive, not a filter — it adds related rows rather than removing
 #: any, so "an impossible value returns nothing" is the wrong property for it.
@@ -282,3 +285,81 @@ def test_a_bogus_parent_yields_nothing_rather_than_everything(method, param):
         f"{method} returned {len(data) if isinstance(data, list) else 'an object'} for a "
         f"{param} that exists nowhere - so it is ignoring {param}, and every test scoped "
         f"to a parent through this method is vacuous")
+
+
+# ---------------------------------------------------------------------------
+# The other backend (#105)
+# ---------------------------------------------------------------------------
+# Everything above derives its membership from `FakeBackend`:
+#
+#     for name in sorted(n for n in dir(FakeBackend) if n.startswith("list_")):
+#
+# There are two backends. `FakeV1Backend` was never in scope, and three of its filters
+# accepted a value and did nothing with it - the parameter in the signature, no filtering
+# code at all.
+#
+# That is the SECOND time this census's blast radius was set by its membership rule rather
+# than by its assertions: #103 excluded required selectors because they had no default, and
+# this excluded a whole backend because the loop names one class. The assertions were right
+# both times. **The set is the thing to review.**
+
+#: v1 has no `include` and pages by number, so the exclusions differ from v2's.
+V1_NOT_A_FILTER = {"self", "page", "page_size", "cursor", "include"}
+
+#: `active` is the only boolean on the v1 surface, and a boolean has no impossible value -
+#: both arms mean something. Same reasoning as `BOOLEAN` above.
+V1_BOOLEAN = {"active"}
+
+
+def v1_impossible(name: str):
+    """v1 names its date bounds `_before` / `_after`, where v2 uses `_lte` / `_gte`. A value
+    of the wrong SHAPE is the classic way to make a filter census report a pass: compare a
+    date column against `"zzz"` and every row is less than it."""
+    if name.endswith(("_before", "_lte")):
+        return "1900-01-01T00:00:00Z"
+    if name.endswith(("_after", "_gte", "_since")):
+        return "2999-01-01T00:00:00Z"
+    return "zzz-no-such-value-zzz"
+
+
+def v1_filters() -> list[tuple[str, str]]:
+    found = []
+    for name in sorted(n for n in dir(FakeV1Backend) if n.startswith("list_")):
+        for param, spec in inspect.signature(getattr(FakeV1Backend, name)).parameters.items():
+            if param in V1_NOT_A_FILTER or param in V1_BOOLEAN:
+                continue
+            if spec.default is inspect.Parameter.empty:
+                continue
+            found.append((name, param))
+    return found
+
+
+def v1_call(method: str, **kwargs):
+    backend = v1_seed()
+    sig = inspect.signature(getattr(backend, method))
+    required = {p.name: "x" for p in sig.parameters.values()
+                if p.default is inspect.Parameter.empty}
+    return getattr(backend, method)(**{**required, **kwargs})["rows"]
+
+
+def test_the_v1_census_finds_its_filters():
+    found = v1_filters()
+    assert len(found) >= 12, f"derived only {len(found)} v1 filters; expected 12+"
+    assert ("list_vilt_session_events", "lesson_id") in found
+    assert ("list_promo_code_pools", "offer_id") in found
+
+
+@pytest.mark.parametrize("method, param", v1_filters(),
+                         ids=lambda v: v if isinstance(v, str) else v)
+def test_every_v1_filter_has_a_non_empty_baseline(method, param):
+    """The same potency guard, for the same reason. It is what makes the case below able to
+    fail, and `ends_before` is the argument for it: that filter WAS implemented and still
+    matched every row, because the fixture carried no `ends_at` and `"" <= bound` is true."""
+    assert v1_call(method), (
+        f"{method} returns nothing before {param} is applied, so the case below cannot fail")
+
+
+@pytest.mark.parametrize("method, param", v1_filters(),
+                         ids=lambda v: v if isinstance(v, str) else v)
+def test_a_v1_filter_that_matches_nothing_returns_nothing(method, param):
+    assert v1_call(method, **{param: v1_impossible(param)}) == []

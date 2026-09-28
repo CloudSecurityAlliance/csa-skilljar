@@ -80,7 +80,8 @@ def v1_backend():
     return FakeV1Backend(
         promo_codes=[{"id": f"c{i}", "code": f"C{i}", "active": True,
                       "promo_code_pool_id": "p1"} for i in range(N)],
-        promo_code_pools=[{"id": f"p{i}", "name": f"Pool {i}"} for i in range(N)],
+        promo_code_pools=[{"id": f"p{i}", "name": f"Pool {i}", "offer_id": f"o{i}"}
+                          for i in range(N)],
         offers=[{"id": f"o{i}", "sku": f"SKU{i}"} for i in range(N)],
         credit_codes=[{"id": f"t{i}", "training_credit_code": f"T{i}"} for i in range(N)],
         assets=[{"id": f"a{i}", "name": f"a{i}.pdf", "type": "PDF"} for i in range(N)],
@@ -97,8 +98,14 @@ def v1_backend():
         instructors=[{"name": f"I{i}", "email": f"i{i}@x.org", "providers": []}
                      for i in range(N)],
         ilt_sessions=[{"id": f"is{i}", "display_name": f"S{i}"} for i in range(N)],
+        # `ends_at` and the nested lesson/course are what make the three filters on this
+        # endpoint reachable - without them `"" <= bound` matched every row (#105).
         vilt_events=[{"id": f"ve{i}", "starts_at": "2026-01-01T00:00:00Z",
-                      "vilt_session": {"id": f"is{i}"}} for i in range(N)],
+                      "ends_at": "2026-01-02T00:00:00Z",
+                      "vilt_session": {"id": f"is{i}",
+                                       "lesson": {"id": f"l{i}",
+                                                  "course": {"id": f"c{i}"}}}}
+                     for i in range(N)],
         vilt_registrations=[{"id": f"vr{i}", "attended": True,
                              "user": {"id": f"u{i}"}, "vilt_session": {"id": "is0"}}
                             for i in range(N)],
