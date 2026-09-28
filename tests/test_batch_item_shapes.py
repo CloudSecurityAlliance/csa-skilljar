@@ -110,3 +110,59 @@ def test_an_update_with_no_identifier_is_refused(tool, param):
     the item, not which key it asks for."""
     with pytest.raises(ToolError, match=rf"{param}\[0\]"):
         call(tool, param, [{"name": "x", "title": "x", "value": "x"}])
+
+
+# ---------------------------------------------------------------------------
+# Unknown attributes
+# ---------------------------------------------------------------------------
+# `if unknown: raise ValueError(f"{where} has unknown attribute(s) ...")` is written at
+# twelve sites across eight modules. It is the guard that turns a TYPO into an error instead
+# of a silent no-op: send `titel` to `update_courses` and without it the batch reports
+# "updated" for a record nothing changed on. That is the worst kind of wrong answer, because
+# the caller has a success to point at.
+#
+# All twenty-seven refuse, and they name the offending key, which is the part that makes the
+# error actionable - "unknown attribute" sends the caller back through their own object.
+
+#: A minimally valid item, so the unknown key is the ONLY thing wrong with the call.
+#: Deliberately small: every entry is a place the generic item could not be right, and a
+#: long table here would mean the derivation has stopped doing the work.
+VALID_ITEM: dict[str, dict] = {
+    # A question bank takes a name and nothing else the generic item supplies.
+    "create_question_banks": {"name": "B"},
+    # Publishing needs BOTH halves of the pair - which course, onto which domain.
+    "publish_courses": {"course_id": "c1", "domain_id": "d1"},
+    # An update to a published course cannot set `title`: the title belongs to the COURSE,
+    # and the published record only carries access and visibility settings.
+    "update_published_courses": {"id": "pc0", "is_hidden": True},
+}
+
+_GENERIC = {"name": "x", "title": "x", "value": "x", "content_url": "https://e/x",
+            "question_html": "<p>?</p>", "id": "x", "email": "a@example.org"}
+
+
+def valid_item(tool: str, param: str) -> dict:
+    if tool in VALID_ITEM:
+        return dict(VALID_ITEM[tool])
+    if param == "question_banks":
+        return {"question_bank_id": "qb0", "id": "x"}
+    return dict(_GENERIC)
+
+
+@pytest.mark.parametrize("tool, param", batch_tools(), ids=lambda v: v if isinstance(v, str) else v)
+def test_an_unknown_attribute_is_refused_and_named(tool, param):
+    """Naming it is the point. `titel` against a twelve-attribute schema is not something a
+    caller finds by rereading their own object, and an error that says only "unknown
+    attribute" has told them the one thing they already knew."""
+    item = {**valid_item(tool, param), "zzz_not_a_real_attribute": 1}
+    with pytest.raises(ToolError, match="zzz_not_a_real_attribute"):
+        call(tool, param, [item])
+
+
+@pytest.mark.parametrize("tool, param", sorted(VALID_ITEM.items()),
+                         ids=lambda v: v if isinstance(v, str) else "item")
+def test_the_override_items_are_actually_valid(tool, param):
+    """The guard on the override table. An entry that stopped being accepted would make its
+    case above pass for the wrong reason - refused, but for the missing attribute rather
+    than the unknown one - and the case would look exactly as green as it does now."""
+    call(tool, next(p for t, p in batch_tools() if t == tool), [dict(param)])
