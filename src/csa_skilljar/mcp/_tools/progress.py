@@ -125,8 +125,12 @@ def register_progress_tools(app: MCPServer,
             "user_id": user_id,
             "progress": [_flatten(r) for r in page["rows"]],
             "note": f"{_V1_NOTE} {_NO_PER_LESSON}"}
-        if page.get("total") is not None:
-            out["total"] = page["total"]
+        if page.get("total") is not None:      # pragma: no cover - /v1/users/{id}/
+            out["total"] = page["total"]       # published-courses answers with a BARE
+            # ARRAY unconditionally, so parse_page always sets total to None and this arm
+            # cannot be reached in production. Kept because the guard is what makes that
+            # safe; test_learner_progress_never_reports_a_total_at_all pins the premise, so
+            # if the endpoint ever starts counting, that case fails and this comes off.
         return out
 
     @app.tool(annotations=READ)

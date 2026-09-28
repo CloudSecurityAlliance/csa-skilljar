@@ -307,3 +307,50 @@ def test_omitting_page_size_still_works(name):
     written as `if not page_size` would refuse every unpaginated call and this would catch
     it."""
     tools()[0][name](**PAGE_SIZE_ARGS[name])
+
+
+# ---------------------------------------------------------------------------
+# The v1 ceiling, and the v1 second page
+# ---------------------------------------------------------------------------
+# #102 moved the page_size FLOOR into `_base.translate_errors`, because it was identical on
+# all twenty-nine tools. The CEILINGS stayed with their modules, because they are not: they
+# are per-API, and commerce's carries a warning v1 earns by honouring page_size=1000 and
+# returning a thousand rows into a conversation.
+#
+# Staying local is the right call and it is also how the floor drifted, so the ceilings get
+# the census the floor now has.
+
+_V1_MAX = 250
+
+
+@pytest.mark.parametrize("name", sorted(V1_PAGE_NUMBER))
+def test_the_v1_ceiling_is_exact(name):
+    """Both sides of the bound, because a limit tested only from far away is a limit whose
+    off-by-one nobody has looked at. 250 is the documented maximum, so 250 must WORK - a
+    ceiling that refuses its own stated value is the more annoying failure, and the one a
+    test written with 100000 would never see."""
+    fns = tools()[0]
+    fns[name](page_size=_V1_MAX, **V1_PAGE_NUMBER[name])
+    with pytest.raises(Exception, match="page_size"):
+        fns[name](page_size=_V1_MAX + 1, **V1_PAGE_NUMBER[name])
+
+
+@pytest.mark.parametrize("name", sorted(V1_PAGE_NUMBER))
+def test_a_v1_first_page_offers_the_next_page_number(name):
+    """The v1 half of THE regression. v2 reports `has_more` with a cursor and v1 reports a
+    page number, and a tool that drops the number strands the caller on page one holding a
+    `total` that says there is more - which is worse than no total at all, because it is
+    visibly incomplete and offers no way forward."""
+    out = tools()[0][name](page_size=2, **V1_PAGE_NUMBER[name])
+    assert out.get("total") == N, f"{name} lost v1's count"
+    assert out.get("next_page") == 2, (
+        f"{name} has {N} rows at page_size=2 and offers no next_page")
+
+
+@pytest.mark.parametrize("name", sorted(V1_PAGE_NUMBER))
+def test_a_v1_last_page_offers_no_next_page(name):
+    """The other half. A tool that always reports a next page makes a caller loop for ever,
+    and asserting only the first page cannot tell the two apart."""
+    out = tools()[0][name](page_size=_V1_MAX, **V1_PAGE_NUMBER[name])
+    assert "next_page" not in out, (
+        f"{name} returned every row and still offers a next page")
