@@ -793,6 +793,18 @@ class FakeBackend:
                 continue
             rows = [r for r in rows if attr(r, key) and
                     ((attr(r, key) >= bound) if op == "ge" else (attr(r, key) <= bound))]
+        # The three identity filters, absent until #103. An enrolment row names its course
+        # through `published_course_id`, so `course_id` matches EITHER - real Skilljar
+        # accepts the course id and resolves it, and a fake that matched only one of the two
+        # would fail a caller doing the correct thing.
+        if course_id is not None:
+            rows = [r for r in rows
+                    if course_id in (attr(r, "course_id"), attr(r, "published_course_id"))]
+        if student_id is not None:
+            rows = [r for r in rows if attr(r, "student_id") == student_id]
+        if student_email is not None:
+            rows = [r for r in rows
+                    if str(attr(r, "email") or "").lower() == student_email.lower()]
         return self._page(rows, cursor, page_size, "/v2/enrollments/")
 
     def get_enrollment(self, *, enrollment_id: str,
@@ -861,8 +873,26 @@ class FakeBackend:
                           status: str = "all", cursor: str | None = None,
                           page_size: int | None = None) -> Envelope:
         rows = self._certificates
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
         if status != "all":
-            rows = [r for r in rows if r.get("attributes", {}).get("status") == status]
+            rows = [r for r in rows if attr(r, "status") == status]
+        # `status` was the only one of six that did anything (#103), so every test asserting
+        # a certificate filter narrowed the set was passing on an unfiltered table.
+        if course_id is not None:
+            rows = [r for r in rows
+                    if course_id in (attr(r, "course_id"), attr(r, "published_course_id"))]
+        if student_id is not None:
+            rows = [r for r in rows if attr(r, "student_id") == student_id]
+        if domains is not None:
+            wanted = {d.strip() for d in domains.split(",")}
+            rows = [r for r in rows if attr(r, "domain_name") in wanted]
+        for bound, op in ((issued_gte, "ge"), (issued_lte, "le")):
+            if bound is None:
+                continue
+            rows = [r for r in rows if attr(r, "issued_at") and
+                    ((attr(r, "issued_at") >= bound) if op == "ge"
+                     else (attr(r, "issued_at") <= bound))]
         return self._page(rows, cursor, page_size, "/v2/certificates/")
 
     def get_certificate(self, *, certificate_id: str) -> Envelope:
@@ -873,13 +903,37 @@ class FakeBackend:
 
     def get_course_analytics(self, *, course_id: str,
                              domains: str | None = None) -> Envelope:
+        """Counts the enrolments FOR THIS COURSE.
+
+        It counted all of them, for every id including ones that exist nowhere, so it
+        answered a question about a course that does not exist with a confident number
+        (#103). Unknown course raises rather than returning a zeroed object: a plausible
+        shape full of zeroes is the more dangerous of the two wrong answers, because it
+        reads as a finding about a real course.
+        """
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        if not any(c.get("id") == course_id for c in self._courses):
+            raise exc.NotFoundError(f"no course with id {course_id}")
+        mine = [r for r in self._enrollments
+                if course_id in (attr(r, "course_id"), attr(r, "published_course_id"))]
+        rated = [r for r in self._ratings if attr(r, "course_id") == course_id]
+        scores = [attr(r, "rating") for r in rated if attr(r, "rating") is not None]
         return {"data": {"type": "course-analytics", "id": course_id,
-                         "attributes": {"enrollment_count": len(self._enrollments),
-                                        "average_rating": 5.0}}}
+                         "attributes": {
+                             "enrollment_count": len(mine),
+                             "average_rating": (sum(scores) / len(scores)) if scores
+                             else None}}}
 
     def list_course_ratings(self, *, course_id: str,
                             student_id: str | None = None) -> Envelope:
-        return {"data": list(self._ratings)}
+        """Both arguments were ignored (#103): every course saw every rating."""
+        def attr(r: dict[str, Any], k: str) -> Any:
+            return r.get("attributes", {}).get(k)
+        rows = [r for r in self._ratings if attr(r, "course_id") == course_id]
+        if student_id is not None:
+            rows = [r for r in rows if attr(r, "student_id") == student_id]
+        return {"data": rows}
 
     # --- students --------------------------------------------------------------------
 
