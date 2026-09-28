@@ -100,4 +100,4 @@ exclude_also = [":\\s*\\.\\.\\.\\s*$"]
 # The MEASURED number, under the corrected settings above. TESTING.md: "a gate below the
 # measured number cannot fail". The standard is 100 and this is a ratchet toward it: raising
 # it means covering code, never lowering it to fit.
-fail_under = 91
+fail_under = 93
