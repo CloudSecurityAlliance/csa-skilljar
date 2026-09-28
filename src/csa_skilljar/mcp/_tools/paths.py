@@ -87,7 +87,7 @@ def register_path_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not id:
+        if not id.strip():
             raise ValueError("id is required - the path id, from list_paths")
         return get_client().get_path(path_id=id)["rows"][0]
 
@@ -107,7 +107,7 @@ def register_path_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not path_id:
+        if not path_id.strip():
             raise ValueError("path_id is required - from list_paths")
         got = get_client().list_path_items(path_id=path_id, page=page,
                                            page_size=_size(page_size))
@@ -132,7 +132,7 @@ def register_path_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not domain_name:
+        if not domain_name.strip():
             raise ValueError(
                 "domain_name is required, and it is the hostname (training.example.org) "
                 "rather than an id. v2's list_domains returns the hostnames.")
@@ -158,7 +158,7 @@ def register_path_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not domain_name:
+        if not domain_name.strip():
             raise ValueError("domain_name is required - the hostname, e.g. "
                              "training.example.org")
         got = get_client().list_course_series(domain_name=domain_name, page=page,
@@ -181,7 +181,7 @@ def register_path_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not user_id:
+        if not user_id.strip():
             raise ValueError("user_id is required - the learner's Skilljar id")
         got = get_client().list_learner_path_enrollments(user_id=user_id)
         return _out(got, None, "Path enrolment is separate from enrolment in the courses "

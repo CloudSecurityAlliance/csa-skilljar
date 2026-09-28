@@ -249,6 +249,8 @@ def register_enrolment_tools(app: MCPServer,
 
         Requires the `analytics:read` OAuth scope.
         """
+        if not course_id.strip():
+            raise ValueError("course_id is required - the course id, from list_courses")
         env = get_client().list_course_ratings(course_id=course_id,
                                                student_id=filter_student_id)
         ratings: list[RatingOut] = []

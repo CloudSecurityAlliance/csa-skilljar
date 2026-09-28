@@ -140,7 +140,7 @@ def register_event_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not id:
+        if not id.strip():
             raise ValueError("id is required - the webhook id, from list_webhooks")
         row = get_client().get_webhook(webhook_id=id)["rows"][0]
         out = _flatten(row)
@@ -168,7 +168,7 @@ def register_event_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not event_type:
+        if not event_type.strip():
             raise ValueError(
                 f"event_type is required. One of: {', '.join(sorted(EVENT_TYPES))}")
         key = event_type.strip().upper().replace("-", "_")

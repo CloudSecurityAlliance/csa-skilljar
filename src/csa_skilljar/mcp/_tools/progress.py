@@ -118,7 +118,7 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not user_id:
+        if not user_id.strip():
             raise ValueError("user_id is required - the learner's Skilljar id")
         page = get_client().list_learner_progress(user_id=user_id)
         out: LearnerProgressListOut = {
@@ -152,9 +152,9 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not user_id:
+        if not user_id.strip():
             raise ValueError("user_id is required - the learner's Skilljar id")
-        if not published_course_id:
+        if not published_course_id.strip():
             raise ValueError(
                 "published_course_id is required - the course on a particular domain, "
                 "not the course id. list_learner_progress shows the learner's.")
@@ -182,7 +182,7 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not email:
+        if not email.strip():
             raise ValueError("email is required")
         page = get_client().find_learner(email=email)
         out: LearnerListOut = {
