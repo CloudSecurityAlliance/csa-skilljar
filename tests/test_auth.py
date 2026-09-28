@@ -172,3 +172,153 @@ def test_an_explicitly_empty_scope_list_still_refuses():
         with pytest.raises(exc.ScopeError) as e:
             c.require_scope("courses:read")
         assert "(none)" in str(e.value)
+
+
+# --- what happens when the grant does not go well ---------------------------------
+#
+# These are the paths a real deployment meets on its worst day and the suite had never
+# executed: Skilljar answering with an error status, with something that is not JSON, or
+# with a body that parses and carries no token. Each has to fail in a way that tells an
+# operator which of those it was, because the remedies are different — re-issue the client,
+# check the base URL, or call Skilljar.
+
+class TestAGrantThatDoesNotYieldAToken:
+    @staticmethod
+    def creds():
+        return auth.V2Credentials("id", SECRET)
+
+    @respx.mock
+    def test_a_server_error_is_an_api_error_carrying_the_status(self):
+        """Not `CredentialsRejected`. A 500 says nothing about the credential, and telling
+        somebody to re-issue a working client sends them to rotate a secret that was fine."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(500, json={}))
+
+        with pytest.raises(exc.ApiError) as ei:
+            self.creds().token()
+
+        assert "500" in str(ei.value)
+        assert SECRET not in str(ei.value)
+
+    @respx.mock
+    def test_a_response_that_is_not_json_says_so(self):
+        """An HTML error page from a proxy, or a captive portal. The body cannot be shown -
+        it may be arbitrary - so the message names the SHAPE problem rather than quoting it."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, text="<html>Service Unavailable</html>"))
+
+        with pytest.raises(exc.ApiError, match="not JSON"):
+            self.creds().token()
+
+    @respx.mock
+    def test_json_that_is_not_an_object_is_refused(self):
+        """A bare list or string parses cleanly and has no `access_token`. Reaching for
+        `.get` on it raises `AttributeError` three frames away from the cause."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json=["not", "an", "object"]))
+
+        with pytest.raises(exc.ApiError, match="not an object"):
+            self.creds().token()
+
+    @respx.mock
+    def test_an_object_with_no_access_token_is_refused(self):
+        """The shape Skilljar returns when the grant is understood and declined. Storing the
+        `None` would make every later call fail with a bearer header reading `Bearer None`."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json={"token_type": "Bearer"}))
+
+        with pytest.raises(exc.ApiError, match="no access_token"):
+            self.creds().token()
+
+    @respx.mock
+    def test_none_of_these_leak_the_secret(self):
+        """The property `SECRET` exists for. Four different failure paths, one credential."""
+        for response in (httpx.Response(500, json={}),
+                         httpx.Response(200, text="<html/>"),
+                         httpx.Response(200, json=[]),
+                         httpx.Response(200, json={})):
+            respx.post("https://api.skilljar.com/v2/auth/token").mock(return_value=response)
+            with pytest.raises(exc.SkilljarError) as ei:
+                auth.V2Credentials("id", SECRET).token()
+            assert SECRET not in str(ei.value)
+
+
+class TestTheExpiryIsAlwaysKnown:
+    """`_expired()` returns True when `_expiry` is None, and the comment beside it records
+    what that cost: it *was* always None, so every single call re-granted a token. Correct
+    code on a false premise, and nothing would ever have reported it - the server worked, it
+    simply authenticated on every request.
+
+    So the invariant is that `_resolve_expiry` never returns None, from whichever of three
+    sources it can reach.
+    """
+
+    @staticmethod
+    def creds():
+        return auth.V2Credentials("id", SECRET)
+
+    @respx.mock
+    def test_the_tokens_own_exp_is_preferred(self):
+        """The JWT is the authority: it is what Skilljar will actually enforce, and the
+        grant's `expires_in` is a duration measured from a clock we do not share."""
+        expiry = time.time() + 1800
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json={
+                "access_token": make_jwt(exp=expiry), "expires_in": 60}))
+
+        credentials = self.creds()
+        credentials.token()
+        assert credentials._expiry == pytest.approx(expiry, abs=1)
+
+    @respx.mock
+    def test_expires_in_is_used_when_the_token_carries_no_exp(self):
+        """An opaque token, or one this decoder could not read. The grant still said how long
+        it lasts, and using it beats re-granting on every call."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json={
+                "access_token": "opaque-not-a-jwt", "expires_in": 900}))
+
+        credentials = self.creds()
+        credentials.token()
+        assert credentials._expiry == pytest.approx(time.time() + 900, abs=5)
+
+    @respx.mock
+    def test_neither_source_falls_back_to_a_short_window_and_says_so(self, caplog):
+        """Last resort, and it warns - an unannounced fallback is how a wrong lifetime
+        becomes a mystery. Short and conservative on purpose: guessing LONG means calls
+        failing on an expired token, guessing short means re-granting sooner than needed."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json={"access_token": "opaque-not-a-jwt"}))
+
+        credentials = self.creds()
+        with caplog.at_level(logging.WARNING, logger="csa_skilljar"):
+            credentials.token()
+
+        assert credentials._expiry is not None, "the cache is disabled whenever this is None"
+        assert credentials._expiry > time.time()
+        assert any("no expiry" in r.getMessage() for r in caplog.records)
+
+    @respx.mock
+    def test_a_zero_or_negative_expires_in_is_not_trusted(self):
+        """`expires_in: 0` would set an expiry in the past, so every call re-grants - the
+        exact defect the comment beside `_expired` records, arriving from the other side."""
+        respx.post("https://api.skilljar.com/v2/auth/token").mock(
+            return_value=httpx.Response(200, json={
+                "access_token": "opaque-not-a-jwt", "expires_in": 0}))
+
+        credentials = self.creds()
+        credentials.token()
+        assert credentials._expiry > time.time()
+
+
+def test_a_token_whose_payload_is_not_an_object_decodes_to_no_claims(caplog):
+    """A JWT whose payload is a bare JSON array. It decodes, it is not a dict, and reaching
+    for `.get("exp")` on it would raise inside the expiry path rather than at the token."""
+    segment = base64.urlsafe_b64encode(json.dumps([1, 2, 3]).encode()).rstrip(b"=").decode()
+    header = base64.urlsafe_b64encode(json.dumps({"alg": "none"}).encode()).rstrip(b"=").decode()
+
+    with caplog.at_level(logging.WARNING, logger="csa_skilljar"):
+        claims = auth.decode_claims(f"{header}.{segment}.sig")
+
+    assert claims == {}
+    assert any("not an object" in r.getMessage() for r in caplog.records)
