@@ -32,7 +32,7 @@ from mcp.server import MCPServer
 
 from ... import policy as P
 from ...client import SkilljarClient
-from ._base import READ, translate_errors
+from ._base import LOCAL_READ, translate_errors
 
 # Learner-facing steps use these and only these. DATA-RESOURCES.md: a transcript
 # persists, the organization holds 42,669 real learners, and Skilljar cannot filter by
@@ -400,7 +400,7 @@ def register_demo_tools(app: MCPServer,
                         get_client: Callable[[], SkilljarClient]) -> None:
     """`app` is captured so coverage can be computed from the LIVE registry."""
 
-    @app.tool(annotations=READ)
+    @app.tool(annotations=LOCAL_READ)
     @translate_errors
     def demonstration_plan(mode: str = "read_only") -> dict[str, Any]:
         """Return an ordered plan for demonstrating this server - which YOU then carry out.

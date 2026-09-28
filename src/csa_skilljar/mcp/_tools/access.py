@@ -12,7 +12,7 @@ from ... import exceptions as exc
 from ...policy import ALL_CAPABILITIES, PROFILES
 from .._config import V1_KEY_VAR, V2_ID_VAR, V2_SECRET_VAR, ClientProvider, Settings
 from .._schemas import AccessOut, CapabilitiesOut, CredentialState
-from ._base import READ, translate_errors
+from ._base import LOCAL_READ, translate_errors
 
 DASHBOARD = "https://dashboard.skilljar.com"
 
@@ -67,7 +67,7 @@ def v1_credential_detail(configured: bool) -> str:
 
 def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: Settings) -> None:
 
-    @app.tool(annotations=READ)
+    @app.tool(annotations=LOCAL_READ)
     @translate_errors
     def check_access() -> AccessOut:
         """Which Skilljar credential is configured and working, and what each one unlocks.
@@ -119,7 +119,7 @@ def register_access_tools(app: MCPServer, get_client: ClientProvider, settings: 
                 v2["working"] = False; v2["detail"] = str(e)
         return out
 
-    @app.tool(annotations=READ)
+    @app.tool(annotations=LOCAL_READ)
     @translate_errors
     def describe_capabilities() -> CapabilitiesOut:
         """What this install is permitted to do, and what it could do if reconfigured.
