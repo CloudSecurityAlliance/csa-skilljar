@@ -43,6 +43,34 @@ def _already_published(backend):
     return {"items": [dict(first)]}
 
 
+def _quiz_missing_bank(backend):
+    qid = backend.create_quizzes(items=[{"name": "Exam"}])["data"][0]["id"]
+    return {"quiz_id": qid, "items": [{"question_bank_id": "nope"}]}
+
+
+def _quiz_duplicate_bank(backend):
+    qid = backend.create_quizzes(items=[{"name": "Exam"}])["data"][0]["id"]
+    bid = backend.create_question_banks(items=[{"name": "Pool"}])["data"][0]["id"]
+    return {"quiz_id": qid,
+            "items": [{"question_bank_id": bid}, {"question_bank_id": bid}]}
+
+
+def _quiz_unbind_missing(backend):
+    qid = backend.create_quizzes(items=[{"name": "Exam"}])["data"][0]["id"]
+    return {"quiz_id": qid, "items": [{"question_bank_id": "never-bound"}]}
+
+
+def _group_duplicate_override(backend):
+    gid = backend.create_groups(items=[{"name": "G"}])["data"][0]["id"]
+    one = {"published_course_id": "p1", "is_visible": True}
+    return {"group_id": gid, "items": [dict(one), dict(one)]}
+
+
+def _existing_group_twice(backend):
+    gid = backend.create_groups(items=[{"name": "G"}])["data"][0]["id"]
+    return {"items": [{"id": gid, "name": "A"}, {"id": gid, "name": "B"}]}
+
+
 def K(**kwargs):
     """A case whose arguments need nothing built first."""
     return lambda _backend: kwargs
@@ -78,6 +106,16 @@ CASES = [
     ("bulk_enroll", K(**{"published_course_id": "p1", "emails": ["a@b.c", "a@b.c"]}), 1, "duplicate_in_batch"),
     ("add_group_memberships", _group, 1, "duplicate_in_batch"),
     ("remove_group_memberships", _group, 1, "duplicate_in_batch"),
+    ("update_groups", _existing_group_twice, 1, "duplicate_in_batch"),
+    ("add_visibility_overrides", _group_duplicate_override, 1, "duplicate_in_batch"),
+    ("remove_visibility_overrides", _group_duplicate_override, 1, "duplicate_in_batch"),
+    ("bind_banks", _quiz_duplicate_bank, 1, "duplicate_in_batch"),
+    # not_found reached through a container that DOES exist — the bank does not.
+    ("bind_banks", _quiz_missing_bank, 0, "not_found"),
+    ("unbind_banks", _quiz_unbind_missing, 0, "not_found"),
+    ("update_bank_assignments", _quiz_missing_bank, 0, "not_found"),
+    ("complete_enrollments", K(send_notifications=False, items=[{"id": "nope"}]),
+     0, "not_found"),
     # already_published — a per-item conflict, so the rest of the batch still lands.
     ("publish_courses", _already_published, 0, "already_published"),
 ]
