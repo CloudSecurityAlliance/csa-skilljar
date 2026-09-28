@@ -1474,9 +1474,14 @@ class FakeBackend:
                             changes: dict[str, Any]) -> Envelope:
         row = self.get_oauth_client(client_id=client_id)["data"]
         if changes.get("scope_preset"):
+            # READ IT BEFORE STRIPPING IT. This used to strip `scope_preset` and then look it
+            # up in the stripped dict, so the lookup was always `None` and every preset
+            # expanded to `[]` - the fake granted NO scopes for a request that named some.
+            # Safe-failing, and wrong: a test asserting expansion would have encoded `[]` as
+            # the expected answer. (#101)
+            preset = str(changes["scope_preset"])
             changes = {k: v for k, v in changes.items() if k != "scope_preset"}
-            changes["scope_codenames"] = list(
-                self._SCOPE_PRESETS.get(str(changes.get("scope_preset")), []))
+            changes["scope_codenames"] = list(self._SCOPE_PRESETS.get(preset, []))
         row["attributes"].update(changes)
         return {"data": row}
 
