@@ -29,3 +29,9 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# uv regenerates this on any `uv run`, and `git add -A` then sweeps it in - which is how it
+# arrived. A lock pins ONE resolution, the wrong artifact for a library published to PyPI and
+# tested across a Python matrix: consumers resolve against their own constraints. Neither
+# csa-google-workspace nor csa-google-gmail-calendar tracks one.
+uv.lock
