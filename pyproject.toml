@@ -100,4 +100,10 @@ exclude_also = [":\\s*\\.\\.\\.\\s*$"]
 # The MEASURED number, under the corrected settings above. TESTING.md: "a gate below the
 # measured number cannot fail". The standard is 100 and this is a ratchet toward it: raising
 # it means covering code, never lowering it to fit.
-fail_under = 93
+# 100, and it has to be 100 rather than 99. A gate set below the measured number cannot
+# fail: at 93 with the suite at 100, seven points of regression are invisible, and the
+# number stops being a gate and becomes a decoration. The exceptions are `# pragma: no
+# cover` at the line, each carrying its reason - there are two, and both name a premise
+# that a test pins, so an unreachable branch that becomes reachable fails loudly rather
+# than silently widening the exemption.
+fail_under = 100
