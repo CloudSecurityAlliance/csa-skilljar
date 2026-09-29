@@ -17,30 +17,38 @@ import os
 import shutil
 import subprocess
 import sys
+import sysconfig
 
 import pytest
 
 import csa_skilljar
 
-# Resolve the script NEXT TO the interpreter running the tests - never through PATH.
+# Resolve the script in THIS interpreter's own scripts directory - never through PATH.
 # `shutil.which` found a pipx install from an earlier release on the first run here and
 # the suite happily tested it: eight tools missing, a stale version, and every assertion
 # reporting on software that is not this checkout. An end-to-end test that can silently
-# exercise a different build is worse than none. `which` is fine as long as the search
-# is pinned to that one directory - it was the unpinned PATH lookup that went wrong, not
-# `which` itself - and pinning it is what lets Windows resolve the `.exe` suffix from
-# PATHEXT instead of us hardcoding a POSIX name. Before that, this module raised at
-# import on every Windows box: the script is installed as `csa-skilljar-mcp.exe`, the
-# extensionless path does not exist, and the raise below aborts collection of the WHOLE
-# suite (csa-skilljar#111).
-_BIN = os.path.dirname(sys.executable)
+# exercise a different build is worse than none. `which` is fine as long as the search is
+# pinned to one directory - the unpinned PATH lookup was the fault, not `which` - and
+# pinning it is also what lets Windows resolve the `.exe` suffix from PATHEXT instead of
+# hardcoding a POSIX name here. Without that, this module raised at import on every
+# Windows box and the raise below aborted collection of the WHOLE suite (#111).
+#
+# `sysconfig.get_path('scripts')`, NOT `os.path.dirname(sys.executable)`. In a venv, and
+# on POSIX generally, those are the same directory - which is why the simpler form looked
+# correct. On a Windows runner with no venv they are not: CPython sits in
+# `\hostedtoolcache\windows\Python\3.12.10\x64\` and console scripts land in its
+# `Scripts\` subdirectory. The very first run of the windows-latest job added in this
+# change caught that, which is the argument for the job in one line.
+_BIN = sysconfig.get_path("scripts")
 SCRIPT = shutil.which("csa-skilljar-mcp", path=_BIN) or os.path.join(
     _BIN, "csa-skilljar-mcp")
 
-# NOT a skipif. Any editable or wheel install puts this script next to the
-# interpreter, so its absence is a broken install, not a reason to go quiet - and a
+# NOT a skipif. Any editable or wheel install puts this script in the scripts directory
+# resolved above, so its absence is a broken install, not a reason to go quiet - and a
 # suite that skips itself reports green while testing nothing (ZD-17). Opting out is
-# possible but has to be deliberate.
+# possible but has to be deliberate. ("next to the interpreter" is what this said before,
+# and it is true in a venv and false on a bare Windows install; the wording mattered
+# because the resolution was written from it.)
 if not os.path.exists(SCRIPT):
     if os.environ.get("CSA_SKILLJAR_NO_E2E") == "1":
         pytest.skip("CSA_SKILLJAR_NO_E2E=1", allow_module_level=True)
@@ -70,8 +78,8 @@ def _bare_env(extra=None):
         base = {k: os.environ[k] for k in
                 ("SystemRoot", "SystemDrive", "TEMP", "TMP", "PATHEXT")
                 if k in os.environ}
-        # The venv's Scripts directory, for the same reason SCRIPT is resolved there:
-        # never a PATH that could reach a different build.
+        # The same scripts directory SCRIPT was resolved in, for the same reason: never a
+        # PATH that could reach a different build.
         base["PATH"] = _BIN
     else:
         base = {"PATH": "/usr/bin:/bin"}
