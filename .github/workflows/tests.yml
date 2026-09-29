@@ -24,6 +24,29 @@ jobs:
         with: { python-version: "${{ matrix.python-version }}" }
       - run: pip install -e ".[dev]"
       - run: pytest -q --cov --cov-report=term-missing
+  test-windows:
+    name: the suite on Windows
+    runs-on: windows-latest
+    # A required gate, not an advisory one, and deliberately not `continue-on-error`.
+    # This repo's ubuntu jobs were green for the entire period its Windows suite could
+    # not COLLECT - the e2e guard looked for a console script without `.exe` and aborted
+    # the run before a test executed (#111). A passing ubuntu job is evidence about
+    # ubuntu. A job that cannot fail would have reported the same green.
+    #
+    # One interpreter, not the five-version matrix above: this job exists to keep the
+    # platform honest, and the Python-version axis is already covered on ubuntu. Widen
+    # it when a version-specific Windows defect actually appears, not before.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      # Identical to the ubuntu command on purpose, including coverage: `fail_under =
+      # 100` in pyproject applies here too. Windows measured 100% on this suite before
+      # this job existed, so the gate is set at the number the platform already reaches
+      # rather than at a lowered one it cannot fail.
+      - run: pytest -q --cov --cov-report=term-missing
+
   install:
     name: a built wheel installs and the console script runs
     runs-on: ubuntu-latest

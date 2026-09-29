@@ -51,7 +51,7 @@ def test_v2_really_does_lack_these_fields():
     import json
     import pathlib
     spec = json.loads((pathlib.Path(__file__).resolve().parent.parent
-                       / "specs" / "skilljar-v2-openapi.json").read_text())
+                       / "specs" / "skilljar-v2-openapi.json").read_text(encoding="utf-8"))
     v2_enrolment = set(spec["components"]["schemas"]["EnrollmentAttributes"]["properties"])
     for field in ("completed_lesson_count", "completed_required_lesson_count",
                   "credits_earned", "lesson_count"):

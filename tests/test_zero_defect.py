@@ -162,7 +162,7 @@ def test_every_nosec_carries_a_reason():
     src = pathlib.Path(__file__).resolve().parent.parent / "src"
     bare = []
     for path in src.rglob("*.py"):
-        for n, line in enumerate(path.read_text().splitlines(), 1):
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "nosec" not in line:
                 continue
             # Expect: `# nosec B105 # <reason>`

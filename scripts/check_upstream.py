@@ -85,7 +85,7 @@ def _get(url: str) -> tuple[int, bytes]:
 
 
 def check_v2_surface(drift: list[str]) -> None:
-    snapshot = json.loads((ROOT / "specs" / "skilljar-v2-openapi.json").read_text())
+    snapshot = json.loads((ROOT / "specs" / "skilljar-v2-openapi.json").read_text(encoding="utf-8"))
     status, body = _get(f"{BASE}/v2/openapi.json")
     if status != 200:
         drift.append(f"v2 spec fetch returned HTTP {status}")
@@ -101,7 +101,7 @@ def check_v2_surface(drift: list[str]) -> None:
 
 def check_scope_catalogue(drift: list[str]) -> None:
     snapshot = set(json.loads(
-        (ROOT / "analysis" / "live-authz-metadata.json").read_text())["scopes_supported"])
+        (ROOT / "analysis" / "live-authz-metadata.json").read_text(encoding="utf-8"))["scopes_supported"])
     status, body = _get(f"{BASE}/.well-known/oauth-authorization-server")
     if status != 200:
         drift.append(f"authorization-server metadata returned HTTP {status}")

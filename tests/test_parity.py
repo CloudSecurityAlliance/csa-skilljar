@@ -18,7 +18,7 @@ from csa_skilljar.mcp._config import settings_from_env
 from csa_skilljar.mcp.server import create_server
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OFFICIAL = set(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text()))
+OFFICIAL = set(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text(encoding="utf-8")))
 
 # Tools that are ours, not Skilljar's, in TWO kinds - because they carry different
 # risks and collapsing them would hide that.

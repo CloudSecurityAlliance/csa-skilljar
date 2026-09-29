@@ -258,7 +258,7 @@ def test_exactly_two_calls_use_the_unauthenticated_path():
     - the count is the guard, so it must move deliberately, not drift."""
     import re
     from pathlib import Path
-    source = Path("src/csa_skilljar/backend.py").read_text()
+    source = Path("src/csa_skilljar/backend.py").read_text(encoding="utf-8")
     callers = re.findall(r"return self\._unauthenticated\(\"([^\"]+)\"", source)
     assert sorted(callers) == ["/v2/auth/revoke", "/v2/oauth/register"], callers
 

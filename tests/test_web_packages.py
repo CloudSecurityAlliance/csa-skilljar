@@ -270,7 +270,7 @@ def test_only_the_two_known_calls_reach_the_unauthenticated_path():
     swapped for something else entirely."""
     import re
     from pathlib import Path
-    source = Path("src/csa_skilljar/backend.py").read_text()
+    source = Path("src/csa_skilljar/backend.py").read_text(encoding="utf-8")
     callers = re.findall(r'return self\._unauthenticated\("([^"]+)"', source)
     assert sorted(callers) == ["/v2/auth/revoke", "/v2/oauth/register"], callers
 
