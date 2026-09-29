@@ -76,7 +76,7 @@ def _is_future(value: str) -> bool:
         raise ValueError(
             f"expires_at {value!r} has no timezone offset; Skilljar rejects naive "
             f"timestamps")
-    return parsed > _dt.datetime.now(_dt.timezone.utc)
+    return parsed > _dt.datetime.now(_dt.UTC)
 
 
 def register_enrolment_tools(app: MCPServer,
