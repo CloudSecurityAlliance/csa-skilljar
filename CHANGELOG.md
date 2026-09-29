@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-09-28
+
 ### Fixed
 - **`page_size=0` did three different things depending on which tool you called.** Of the 29
   tools taking the argument, 11 refused it, 9 coerced it silently to the module default —
