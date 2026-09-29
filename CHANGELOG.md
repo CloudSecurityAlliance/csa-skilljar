@@ -6,6 +6,63 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **`page_size=0` did three different things depending on which tool you called.** Of the 29
+  tools taking the argument, 11 refused it, 9 coerced it silently to the module default —
+  `_size(0)` computes `0 or 250` — and 9 passed it upstream. Nothing was wrong with any one
+  of them; they had simply been written by hand 29 times. **No test asserted any of the
+  three**, so all 11 inline guards could be deleted with the suite still green, which is how
+  the other 18 came to differ. The floor now lives in `translate_errors`, which already wraps
+  every tool, so a tool added next block inherits it and cannot forget it. The per-module
+  upper bounds stay where they are: those are genuinely per-API, and commerce's carries a
+  warning v1 earns by honouring `page_size=1000`. ([#102](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/102))
+- **A required argument that was blank was accepted as supplied.** A JSON schema can require
+  that a key is *present*; it cannot require that the value means anything, so `""` satisfied
+  the schema and arrived as a real call. `list_course_ratings(course_id="")` returned an empty
+  rating list and `report_a_problem(what_happened="")` assembled a report with a blank
+  description and told the caller where to file it. Both looked like answers. Whitespace was
+  worse because it was uniform: all 53 guards were `if not x:`, and `"   "` is truthy, so a
+  whitespace-only id was sent upstream as a URL path segment. 21 identifier and description
+  guards now `.strip()`. ([#104](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/104))
+
+  `set_student_password`'s `password` is deliberately **not** among them — three spaces is a
+  valid, if terrible, password, so whitespace there is content rather than formatting. It is
+  the one required string that is neither an identifier nor a description.
+
+### Notes
+- **The coverage gate was measuring the wrong thing, and then measuring it against a number
+  it could not fail.** `pyproject.toml` had no `[tool.coverage.run]` section, so a bare
+  `pytest --cov` measured every module imported — **tests included** — and branch coverage was
+  off entirely. With both corrected the suite is at **100%: 4,256 statements, 1,188 branches,
+  0 missing**, and `fail_under` moves 93 → 100. It has to be 100 rather than 99: a gate below
+  the measured number cannot fail, so the gap is invisible regression rather than slack.
+
+  The two exceptions are `# pragma: no cover` with the reason at the line, and each **pairs
+  with a test pinning its premise** — a pragma is a *claim* that production cannot reach a
+  line, and a claim nothing checks rots silently. If `/v1/users/{id}/published-courses` ever
+  starts returning a count, that test fails and the pragma comes off with it.
+
+- **Thirteen filters on the test doubles accepted a value and ignored it**, which changed no
+  shipped behaviour and made every test built on them weaker than it looked — a tool that
+  dropped a filter entirely would have passed. All five on `FakeBackend.list_certificates`,
+  three on `list_enrollments`, both on `list_course_ratings`, `get_course_analytics` (which
+  answered for a course that does not exist with a confident enrolment count), and three on
+  `FakeV1Backend`.
+
+  They were hidden by a census that could not fail: it asserted an impossible filter value
+  returns no rows, against a backend seeding one collection, so for **38 of 40** cases the
+  unfiltered call already returned nothing. Membership and potency are different properties,
+  and deriving membership only gets you the first. Each filter now has a non-empty-baseline
+  case of its own, by name. ([#103](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/103),
+  [#105](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/105),
+  [#101](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/101))
+
+- Suite grows 1,537 → 2,061 tests. The new work is mostly **censuses** — membership derived
+  from signatures or the live registry rather than hand-listed, so a tool added next block is
+  covered without anyone remembering: `page_size` bounds across 29 tools, required arguments
+  across 58, malformed batch items across 27, unknown attributes across 27, and v1's two
+  envelope shapes across 16.
+
 ## [0.15.0] — 2026-08-31
 
 ### Fixed

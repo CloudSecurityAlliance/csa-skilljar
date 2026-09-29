@@ -9,7 +9,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 exactly, then adds the capabilities that exist only in v1.
 
 **Status: shipped and in use.** All seventeen roadmap blocks are on `main` — **112 tools** (84
-over v2, 27 over v1, plus `demonstration_plan`) across 37 modules in `src/`, with 52 test files.
+over v2, 27 over v1, plus `demonstration_plan`) across 37 modules in `src/`, with 62 test files.
 Released to PyPI through **v0.15.0**; installed on staff machines by DesktopSetup.
 
 Still true, and the thing to keep honest: **no write has ever run against real Skilljar.** Every
@@ -172,6 +172,28 @@ claims, no suppression, non-zero on any failure.
 restore. The `conftest.py` ERROR guard passed its own probe only on the second attempt —
 the first used `caplog.records`, which pytest clears between phases, so in teardown it was
 always empty and the check could never fire.
+
+**Coverage is 100%, statements and branches, and `fail_under = 100` is the gate.** Not 99:
+below the measured number a gate cannot fail, so the difference is invisible regression
+rather than slack. The only hatch is `# pragma: no cover` with its reason at the line —
+never a lowered threshold — and each of the two **pairs with a test pinning its premise**,
+because a pragma is a *claim* that production cannot reach a line and a claim nothing checks
+rots silently.
+
+**Prefer a census to a per-tool test where the property is uniform.** Much of the suite
+derives its population from the signatures or the live registry — `page_size` bounds across
+29 tools, required arguments across 58, malformed batch items and unknown attributes across
+27 — so a tool added next block is covered without anyone remembering. That is the shape
+that found every defect in the 0.15.0→unreleased climb, because the hand-written version
+drifts: `page_size` was validated on 11 of 29 tools and each of the 11 had a passing test.
+
+**A census fails in two ways a green suite cannot show you, and neither is in the
+assertions.** The set can be too small — the filter census excluded required selectors
+because they had no default, and excluded a whole backend because its loop named one class —
+or the fixture can be too empty, which made 38 of its 40 cases hold because the *unfiltered*
+call already returned nothing. So **review the population and the baseline, not the
+assertion**: print the derived set and read it, and give every member a potency case of its
+own that fails by name.
 
 **One deviation from ZERO-DEFECT, stated rather than ignored:** ZD-13 requires secrets in
 a dedicated secrets manager, not environment variables. This is a local stdio server
