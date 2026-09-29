@@ -160,7 +160,7 @@ def register_signup_field_tools(app: MCPServer,
 
         Requires the `signup-fields:write` OAuth scope.
         """
-        if not student_id:
+        if not student_id.strip():
             raise ValueError("student_id is required - values belong to one learner")
         _check_items(values, "values", "the signup-FIELD id, not the value id")
         return _batch_out(get_client().create_signup_field_values(

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -47,16 +48,48 @@ LOCAL_READ = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempo
                              open_world_hint=False)
 
 
+def _page_size_position(fn: Callable[..., Any]) -> int | None:
+    """Where `page_size` sits in `fn`'s signature, or None if it takes none.
+
+    Resolved once at decoration time so the per-call cost is an integer compare.
+    """
+    params = list(inspect.signature(fn).parameters.values())
+    for i, p in enumerate(params):
+        if p.name == "page_size":
+            # Keyword-only can never arrive positionally; -1 means "kwargs only".
+            return -1 if p.kind is inspect.Parameter.KEYWORD_ONLY else i
+    return None
+
+
 def translate_errors(fn: F) -> F:
-    """Turn the library's typed errors into readable `ToolError`s.
+    """Turn the library's typed errors into readable `ToolError`s, and reject a
+    non-positive `page_size` for every tool that takes one.
 
     Must raise the SDK's `ToolError`: anything else becomes `UnexpectedToolError` whose
     message the SDK deliberately suppresses, so the user sees "Error executing tool X"
     and nothing about what actually went wrong.
+
+    The `page_size` check lives HERE rather than in each tool because the hand-copied
+    version drifted: 30 tools took the argument and 13 validated it, so `page_size=0`
+    was refused or accepted depending on which list tool you reached for (#102). This
+    decorator already wraps every tool, so a tool added tomorrow inherits the guard and
+    cannot forget it. The `ValueError` is raised INSIDE the try so it takes the same
+    translation - and therefore the same wording - as the inline guards it replaced.
     """
+    page_size_at = _page_size_position(fn)
+
     @functools.wraps(fn)          # keeps __wrapped__ so the SDK reads the real signature
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         try:
+            if page_size_at is not None:
+                if "page_size" in kwargs:
+                    page_size = kwargs["page_size"]
+                elif 0 <= page_size_at < len(args):
+                    page_size = args[page_size_at]
+                else:
+                    page_size = None
+                if page_size is not None and page_size < 1:
+                    raise ValueError("page_size must be 1 or greater")
             return fn(*args, **kwargs)
         except exc.AuthError as e:
             # Covers CredentialsMissing / CredentialsRejected / ScopeError, each of which
@@ -79,7 +112,11 @@ def translate_errors(fn: F) -> F:
             # base class here means a missed subclass degrades to a readable message
             # rather than to silence. test_error_translation.py asserts every subclass
             # is reachable, so this should never be the clause that fires.
-            raise ToolError(str(e)) from e
+            raise ToolError(str(e)) from e   # pragma: no cover - unreachable while every
+            # subclass keeps a clause above; covering it would mean defining a throwaway
+            # subclass, which tests the test rather than the backstop. The backstop exists
+            # for the subclass somebody adds WITHOUT updating this function, and that one
+            # cannot be written in advance.
         except ValueError as e:
             # The library raises plain ValueError for a bad argument value. Without this
             # clause each becomes an UnexpectedToolError with the message dropped, so the

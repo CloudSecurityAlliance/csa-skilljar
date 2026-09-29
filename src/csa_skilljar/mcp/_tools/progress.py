@@ -118,15 +118,19 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not user_id:
+        if not user_id.strip():
             raise ValueError("user_id is required - the learner's Skilljar id")
         page = get_client().list_learner_progress(user_id=user_id)
         out: LearnerProgressListOut = {
             "user_id": user_id,
             "progress": [_flatten(r) for r in page["rows"]],
             "note": f"{_V1_NOTE} {_NO_PER_LESSON}"}
-        if page.get("total") is not None:
-            out["total"] = page["total"]
+        if page.get("total") is not None:      # pragma: no cover - /v1/users/{id}/
+            out["total"] = page["total"]       # published-courses answers with a BARE
+            # ARRAY unconditionally, so parse_page always sets total to None and this arm
+            # cannot be reached in production. Kept because the guard is what makes that
+            # safe; test_learner_progress_never_reports_a_total_at_all pins the premise, so
+            # if the endpoint ever starts counting, that case fails and this comes off.
         return out
 
     @app.tool(annotations=READ)
@@ -152,9 +156,9 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not user_id:
+        if not user_id.strip():
             raise ValueError("user_id is required - the learner's Skilljar id")
-        if not published_course_id:
+        if not published_course_id.strip():
             raise ValueError(
                 "published_course_id is required - the course on a particular domain, "
                 "not the course id. list_learner_progress shows the learner's.")
@@ -182,7 +186,7 @@ def register_progress_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not email:
+        if not email.strip():
             raise ValueError("email is required")
         page = get_client().find_learner(email=email)
         out: LearnerListOut = {

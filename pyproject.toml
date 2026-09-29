@@ -72,6 +72,20 @@ warn_unused_ignores = true
 testpaths = ["tests"]
 markers = ["anyio: async tests"]
 
+[tool.coverage.run]
+# BOTH of these were missing, and each made the number mean something other than it said.
+#
+# `source` — CI runs a bare `pytest --cov`, which with no source set measures every module
+# imported, TESTS INCLUDED. The suite is ~4,400 statements of test code that executes itself
+# by definition, so it diluted the figure upward: 94% reported against 92% of the library.
+# The gate was partly being met by tests covering themselves.
+#
+# `branch` — off, so `if x: ...` counted as covered once either arm ran. The sibling servers
+# all measure branches, and 100% has to mean the same thing across the fleet or comparing
+# them is meaningless. Turning it on cost two points and found real gaps.
+source = ["csa_skilljar"]
+branch = true
+
 [tool.coverage.report]
 # Matches the rest of the fleet. Without these, `if TYPE_CHECKING:` blocks and
 # `raise NotImplementedError` stubs were counted as unexecuted code - they are
@@ -83,8 +97,13 @@ exclude_lines = ["pragma: no cover", "raise NotImplementedError", "if TYPE_CHECK
 # 81 phantom misses no test could ever remove. Excluding them hides no untested
 # code; it stops the number counting declarations as code.
 exclude_also = [":\\s*\\.\\.\\.\\s*$"]
-# 93, the MEASURED number (93.60), not 85. TESTING.md: "a gate below the measured
-# number cannot fail" - and 85 against a real 93.6 left eight points of silent
-# regression room. The standard is 100 and this is a ratchet toward it: raising it
-# means covering code, never lowering it to fit.
-fail_under = 93
+# The MEASURED number, under the corrected settings above. TESTING.md: "a gate below the
+# measured number cannot fail". The standard is 100 and this is a ratchet toward it: raising
+# it means covering code, never lowering it to fit.
+# 100, and it has to be 100 rather than 99. A gate set below the measured number cannot
+# fail: at 93 with the suite at 100, seven points of regression are invisible, and the
+# number stops being a gate and becomes a decoration. The exceptions are `# pragma: no
+# cover` at the line, each carrying its reason - there are two, and both name a premise
+# that a test pins, so an unreachable branch that becomes reachable fails loudly rather
+# than silently widening the exemption.
+fail_under = 100

@@ -111,3 +111,109 @@ def test_the_guidance_says_there_is_no_interactive_login():
 def test_configured_details_stay_short():
     assert "dashboard" not in _v1_detail(configured=True).lower()
     assert "dashboard" not in _v2_detail(configured=True).lower()
+
+
+# --- check_access when v2 IS configured -------------------------------------------
+#
+# The server's own instructions say: "IF A TOOL REPORTS A CREDENTIAL PROBLEM: call
+# check_access." So this is the tool somebody reaches for when something is already wrong,
+# and its whole body — everything that asks the credential about itself — had never run.
+#
+# It is driven through a stub credential rather than respx, because what is under test is
+# how check_access REPORTS what the credential says, not how the credential learns it.
+# `test_auth.py` owns the second question.
+
+V2_ENV = {"CSA_SKILLJAR_V2_CLIENT_ID": "id", "CSA_SKILLJAR_V2_CLIENT_SECRET": "sk-live-X"}
+
+
+class StubCredentials:
+    def __init__(self, scopes, remaining=None, raises=None):
+        self._scopes, self._remaining, self._raises = scopes, remaining, raises
+
+    def granted_scopes(self):
+        if self._raises is not None:
+            raise self._raises
+        return self._scopes
+
+    def expires_in(self):
+        return self._remaining
+
+
+def with_credentials(credentials, env=None):
+    """A server whose client hands back `credentials`, with v2 configured."""
+    from csa_skilljar.mcp._config import settings_from_env
+
+    settings = settings_from_env({**V2_ENV, **(env or {})})
+    app = MCPServer(name="t")
+    client = type("Client", (), {"credentials": credentials})()
+    register_access_tools(app, lambda: client, settings)
+    return app
+
+
+def test_granted_scopes_are_listed_when_the_token_declares_them():
+    out = fn(with_credentials(StubCredentials(["courses:read", "lessons:read"])),
+             "check_access")()
+
+    assert out["granted_scopes"] == ["courses:read", "lessons:read"]
+    assert out["v2"]["working"] is True
+    assert "scopes_unknown" not in out
+
+
+def test_a_token_that_declares_nothing_is_unknown_rather_than_empty():
+    """The three-state discipline. `None` from `granted_scopes()` means *the token did not
+    say*, and an empty list means *it said none* — opposite facts with opposite remedies.
+    Reporting the first as the second tells an operator their client was issued no scopes,
+    which sends them to re-issue a credential that is working."""
+    out = fn(with_credentials(StubCredentials(None)), "check_access")()
+
+    assert out["scopes_unknown"] is True
+    assert out["granted_scopes"] == [], "the list stays empty; the flag carries the meaning"
+    assert out["v2"]["working"] is True, "unknown scopes is not a broken credential"
+
+
+def test_a_token_that_genuinely_declares_none_is_not_flagged_unknown():
+    """The other half, and the one that makes the flag mean something. Without this the
+    assertion above passes against a server that always sets `scopes_unknown`."""
+    out = fn(with_credentials(StubCredentials([])), "check_access")()
+
+    assert out["granted_scopes"] == []
+    assert "scopes_unknown" not in out
+
+
+def test_the_remaining_lifetime_is_reported_when_it_is_known():
+    out = fn(with_credentials(StubCredentials(["courses:read"], remaining=1800)),
+             "check_access")()
+    assert out["expires_in_seconds"] == 1800
+
+
+def test_an_unknown_lifetime_is_absent_rather_than_zero():
+    """Absent, not `0`. Zero reads as *expired now*, which would send somebody to re-issue a
+    credential that has not expired and may never have said when it would."""
+    out = fn(with_credentials(StubCredentials(["courses:read"], remaining=None)),
+             "check_access")()
+    assert "expires_in_seconds" not in out
+
+
+def test_a_credential_that_cannot_answer_is_reported_not_raised():
+    """The diagnostic must not itself fail. This is the tool somebody calls BECAUSE something
+    is already broken — raising here replaces the diagnosis with a second traceback, and the
+    caller learns nothing about the first problem."""
+    from csa_skilljar import exceptions as exc
+
+    out = fn(with_credentials(
+        StubCredentials(None, raises=exc.CredentialsRejected("client was deleted"))),
+        "check_access")()
+
+    assert out["v2"]["working"] is False
+    assert "client was deleted" in out["v2"]["detail"]
+    assert out["version"], "the rest of the report still arrives"
+
+
+def test_a_configured_but_absent_credential_does_not_claim_to_be_working():
+    """`get_client().credentials` is None when v2 is configured and no credential was built.
+    `working` must stay unset rather than being asserted on the strength of configuration —
+    configured and working are different claims, which is the whole point of this tool."""
+    out = fn(with_credentials(None), "check_access")()
+
+    assert out["v2"]["configured"] is True
+    assert out["v2"].get("working") is not True

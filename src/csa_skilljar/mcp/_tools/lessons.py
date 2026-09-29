@@ -175,8 +175,6 @@ def register_lesson_tools(app: MCPServer, get_client: Callable[[], SkilljarClien
         Does not return lesson bodies - use `get_lesson` for `content_html`. Requires
         the `lessons:read` OAuth scope.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         if filter_type is not None and filter_type not in LESSON_TYPES:
             raise ValueError(
                 f"filter_type {filter_type!r} is not a lesson type. Valid values: "

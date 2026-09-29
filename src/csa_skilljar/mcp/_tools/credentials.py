@@ -161,7 +161,7 @@ def register_credential_tools(app: MCPServer,
 
         Requires the `clients:write` OAuth scope, and the `admin` capability profile.
         """
-        if not name:
+        if not name.strip():
             raise ValueError("name is required")
         if scope_codenames is not None and scope_preset is not None:
             raise ValueError(
@@ -204,7 +204,7 @@ def register_credential_tools(app: MCPServer,
 
         Requires the `clients:write` OAuth scope, and the `admin` capability profile.
         """
-        if not id:
+        if not id.strip():
             raise ValueError("id is required")
         if scope_codenames is not None and scope_preset is not None:
             raise ValueError("send scope_codenames OR scope_preset, not both")
@@ -239,7 +239,7 @@ def register_credential_tools(app: MCPServer,
 
         Requires the `clients:write` OAuth scope, and the `admin` capability profile.
         """
-        if not id:
+        if not id.strip():
             raise ValueError("id is required")
         return _flatten(get_client().rotate_oauth_client_secret(client_id=id)["data"],
                         with_secret=True)
@@ -262,7 +262,7 @@ def register_credential_tools(app: MCPServer,
 
         Requires the `clients:write` OAuth scope, and the `admin` capability profile.
         """
-        if not id:
+        if not id.strip():
             raise ValueError("id is required")
         return _flatten(get_client().deactivate_oauth_client(client_id=id)["data"])
 
@@ -290,7 +290,7 @@ def register_credential_tools(app: MCPServer,
         Requires the `admin` capability profile. No OAuth scope, because no token of ours
         is sent.
         """
-        if not token:
+        if not token.strip():
             raise ValueError("token is required - the refresh token to revoke")
         get_client().revoke_refresh_token(token=token, token_type_hint=token_type_hint)
         return {"requested": True,

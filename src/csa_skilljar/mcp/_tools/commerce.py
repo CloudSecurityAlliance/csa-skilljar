@@ -192,7 +192,7 @@ def register_commerce_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not id:
+        if not id.strip():
             raise ValueError(
                 "id is required - the purchase id. There is no listing endpoint, so it "
                 "must come from a webhook payload or an order reference you already have.")

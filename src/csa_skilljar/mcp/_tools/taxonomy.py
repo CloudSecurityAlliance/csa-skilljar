@@ -100,7 +100,7 @@ def register_taxonomy_tools(app: MCPServer,
 
         Requires `CSA_SKILLJAR_V1_API_KEY`, a separate credential from the v2 client.
         """
-        if not course_id:
+        if not course_id.strip():
             raise ValueError("course_id is required - the course, not a published course")
         got = get_client().list_course_labels(course_id=course_id)
         return _out(got, None, "Labels attach to the COURSE, so they are the same on "

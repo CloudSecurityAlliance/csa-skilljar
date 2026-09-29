@@ -107,8 +107,6 @@ def register_quiz_tools(app: MCPServer, get_client: Callable[[], SkilljarClient]
         Returns settings only, not questions - use `list_questions` with `filter_quiz_id`
         for those. Requires the `quizzes:read` OAuth scope.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_quizzes(name=filter_name, updated_since=filter_updated_since,
                                         cursor=page_cursor, page_size=page_size)
         out: QuizListOut = {"quizzes": [_summary(r) for r in env.get("data", [])],

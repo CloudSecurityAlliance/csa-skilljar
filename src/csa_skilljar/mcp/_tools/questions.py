@@ -175,8 +175,6 @@ def register_question_tools(app: MCPServer, get_client: Callable[[], SkilljarCli
 
         Requires `question-banks:read` OR `quizzes:read`.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_questions(
             quiz_id=filter_quiz_id, question_bank_id=filter_question_bank_id,
             cursor=page_cursor, page_size=page_size)

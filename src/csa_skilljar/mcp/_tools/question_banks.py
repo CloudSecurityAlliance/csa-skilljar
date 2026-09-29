@@ -115,8 +115,6 @@ def register_question_bank_tools(app: MCPServer,
         Does not return the banks' questions - use `list_questions` with
         `filter_question_bank_id`. Requires the `question-banks:read` OAuth scope.
         """
-        if page_size is not None and page_size < 1:
-            raise ValueError("page_size must be 1 or greater")
         env = get_client().list_question_banks(
             name=filter_name, updated_since=filter_updated_since,
             cursor=page_cursor, page_size=page_size)

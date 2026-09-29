@@ -70,8 +70,15 @@ class V2Credentials:
         # this returned True forever, so every call re-granted a token - correct code,
         # false premise, and nothing would ever report it. `_expiry` is now always set
         # from the best available source, so the cache always works.
-        if self._expiry is None:
-            return True
+        #
+        # THE None BRANCH IS THEREFORE DEAD, and deliberately kept rather than deleted.
+        # `_resolve_expiry` promises never to return None and three tests hold it to that
+        # (the token's own `exp`, the grant's `expires_in`, and the warned fallback when
+        # neither exists). Delete the guard and the day that promise breaks is the day this
+        # silently re-grants on every call again - which is the failure, not the guard.
+        if self._expiry is None:       # pragma: no cover - unreachable while the invariant
+            return True                # below holds; kept because the absorbing state it
+                                       # guards is what ZD-17 actually was
         return time.time() >= self._expiry - _REFRESH_MARGIN_SECONDS
 
     def token(self) -> str:

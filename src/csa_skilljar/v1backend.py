@@ -485,6 +485,8 @@ class FakeV1Backend:
         rows = self._promo_code_pools
         if name is not None:
             rows = [r for r in rows if r.get("name") == name]
+        if offer_id is not None:                      # accepted and ignored until #105
+            rows = [r for r in rows if r.get("offer_id") == offer_id]
         return self._commerce_page(rows, page, page_size)
 
     def list_offers(self, *, page=None, page_size=None) -> Envelope:
@@ -526,6 +528,17 @@ class FakeV1Backend:
             rows = [r for r in rows if str(r.get("starts_at", "")) >= starts_after]
         if ends_before is not None:
             rows = [r for r in rows if str(r.get("ends_at", "")) <= ends_before]
+        # Both were in the signature and neither did anything (#105). Real v1 filters these
+        # by traversing the relation - `session__lesson__id` and
+        # `session__lesson__course__id` - so the double traverses the same nesting rather
+        # than matching a flat key the payload does not have.
+        def lesson_of(row: dict[str, Any]) -> dict[str, Any]:
+            return ((row.get("vilt_session") or {}).get("lesson") or {})
+        if lesson_id is not None:
+            rows = [r for r in rows if lesson_of(r).get("id") == lesson_id]
+        if course_id is not None:
+            rows = [r for r in rows
+                    if (lesson_of(r).get("course") or {}).get("id") == course_id]
         return self._commerce_page(rows, page, page_size)
 
     def list_vilt_registrations(self, *, session_id=None, page=None,

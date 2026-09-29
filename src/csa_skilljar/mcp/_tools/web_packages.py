@@ -261,7 +261,7 @@ def register_web_package_tools(app: MCPServer,
 
         No OAuth scope is required, because no token is sent.
         """
-        if not client_name:
+        if not client_name.strip():
             raise ValueError("client_name is required")
         if len(client_name) > 255:
             raise ValueError("client_name must be at most 255 characters")

@@ -32,6 +32,10 @@ def register_feedback_tools(app: MCPServer, settings: Settings) -> None:
         verbatim. The report carries the version, platform and active policy, and carries
         no Skilljar ids and no credential values, so the user can read it before filing.
         """
+        if not what_happened.strip():
+            raise ValueError(
+                "what_happened is required - a report with no description is one nobody "
+                "can act on. Say what you did, what you expected, and what happened.")
         creds = ["v2: set" if (settings.v2_client_id and settings.v2_client_secret) else "v2: unset",
                  "v1: set" if settings.v1_api_key else "v1: unset"]
         report = "\n".join([
