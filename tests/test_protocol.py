@@ -265,7 +265,7 @@ def test_the_readme_tool_count_matches_the_registry():
     registry imports httpx. A pattern that matches nothing is a failure, not a pass: a
     claim we can no longer locate is a claim we can no longer verify.
     """
-    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
+    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text(encoding="utf-8")
     claimed = re.findall(r"\*\*(\d+) tools\*\* — \d+ over Skilljar's v2 API", readme)
     assert claimed, "README no longer states its tool count in the form this test checks"
     registered = len(build()._tool_manager._tools)
@@ -358,7 +358,7 @@ def test_typeddicts_are_imported_from_typing_extensions():
 
     import csa_skilljar.mcp._schemas as schemas
 
-    src = pathlib.Path(schemas.__file__).read_text()
+    src = pathlib.Path(schemas.__file__).read_text(encoding="utf-8")
     assert "from typing_extensions import" in src, "_schemas.py must import from typing_extensions"
     assert not re.search(r"^from typing import .*\bTypedDict\b", src, re.M), (
         "TypedDict imported from `typing` - below 3.12 pydantic silently emits NO schema, "

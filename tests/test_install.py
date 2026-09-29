@@ -56,7 +56,7 @@ def test_every_module_the_package_imports_is_a_runtime_dependency():
     stdlib = set(sys.stdlib_module_names)
     offenders: list[str] = []
     for path in (ROOT / "src" / "csa_skilljar").rglob("*.py"):
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 mods = [a.name.split(".")[0] for a in node.names]

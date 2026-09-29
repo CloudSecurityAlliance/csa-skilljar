@@ -14,6 +14,7 @@ reason startup does not block on a network call.
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -25,8 +26,16 @@ import csa_skilljar
 # `shutil.which` found a pipx install from an earlier release on the first run here and
 # the suite happily tested it: eight tools missing, a stale version, and every assertion
 # reporting on software that is not this checkout. An end-to-end test that can silently
-# exercise a different build is worse than none.
-SCRIPT = os.path.join(os.path.dirname(sys.executable), "csa-skilljar-mcp")
+# exercise a different build is worse than none. `which` is fine as long as the search
+# is pinned to that one directory - it was the unpinned PATH lookup that went wrong, not
+# `which` itself - and pinning it is what lets Windows resolve the `.exe` suffix from
+# PATHEXT instead of us hardcoding a POSIX name. Before that, this module raised at
+# import on every Windows box: the script is installed as `csa-skilljar-mcp.exe`, the
+# extensionless path does not exist, and the raise below aborts collection of the WHOLE
+# suite (csa-skilljar#111).
+_BIN = os.path.dirname(sys.executable)
+SCRIPT = shutil.which("csa-skilljar-mcp", path=_BIN) or os.path.join(
+    _BIN, "csa-skilljar-mcp")
 
 # NOT a skipif. Any editable or wheel install puts this script next to the
 # interpreter, so its absence is a broken install, not a reason to go quiet - and a
@@ -41,18 +50,42 @@ if not os.path.exists(SCRIPT):
         f"CSA_SKILLJAR_NO_E2E=1 to skip it deliberately.")
 
 
+def _bare_env(extra=None):
+    """A DELIBERATELY BARE environment. Inheriting `os.environ` would let a developer's
+    real CSA_SKILLJAR_* credentials leak in and turn an offline test into one that talks
+    to production - and would hide the no-credential path this suite exists to check.
+
+    On Windows "bare" cannot mean "almost empty". A process needs `SystemRoot` to
+    initialise at all: without it CPython dies inside `runpy` before the server's first
+    line runs, the subprocess writes nothing to stdout, and every test here reads that as
+    `server produced no response to initialize` - eight identical failures pointing at the
+    protocol rather than at the environment that never started (csa-skilljar#111).
+    `PATHEXT` is what lets a bare command name resolve to the `.EXE`, and `TEMP`/`TMP`
+    keep anything that needs scratch space off the system default.
+
+    None of these carry credentials, which is the property the bareness is protecting. The
+    POSIX branch is unchanged.
+    """
+    if os.name == "nt":
+        base = {k: os.environ[k] for k in
+                ("SystemRoot", "SystemDrive", "TEMP", "TMP", "PATHEXT")
+                if k in os.environ}
+        # The venv's Scripts directory, for the same reason SCRIPT is resolved there:
+        # never a PATH that could reach a different build.
+        base["PATH"] = _BIN
+    else:
+        base = {"PATH": "/usr/bin:/bin"}
+    return {**base, **(extra or {})}
+
+
 class Server:
     """A live server subprocess, spoken to in JSON-RPC over its stdin and stdout."""
 
     def __init__(self, env=None):
-        # A DELIBERATELY BARE environment. Inheriting os.environ would let a developer's
-        # real CSA_SKILLJAR_* credentials leak in and turn an offline test into one that
-        # talks to production - and would hide the no-credential path this exists to
-        # check.
         self.proc = subprocess.Popen(
             [SCRIPT], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True, bufsize=1,
-            env={"PATH": "/usr/bin:/bin", **(env or {})})
+            env=_bare_env(env))
         self._id = 0
         # Every line stdout ever produced, so the teardown check sees the whole session
         # rather than only what was read in time.

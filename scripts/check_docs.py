@@ -30,14 +30,14 @@ def _spec_counts(path: pathlib.Path) -> tuple[int, int]:
     script whose whole job is to run anywhere with nothing installed. The YAML remains the
     as-fetched artifact; `check_upstream.py` is what notices if it drifts from upstream.
     """
-    spec = json.loads(path.read_text())
+    spec = json.loads(path.read_text(encoding="utf-8"))
     verbs = ("get", "post", "put", "patch", "delete")
     ops = sum(1 for item in spec["paths"].values() for m in item if m in verbs)
     return len(spec["paths"]), ops
 
 
 def _v2_scopes_used() -> int:
-    spec = json.loads((ROOT / "specs" / "skilljar-v2-openapi.json").read_text())
+    spec = json.loads((ROOT / "specs" / "skilljar-v2-openapi.json").read_text(encoding="utf-8"))
     flat: set[str] = set()
     for item in spec["paths"].values():
         for method, op in item.items():
@@ -56,7 +56,7 @@ def _v2_scopes_used() -> int:
 def _captured_tool_count() -> int:
     n = 0
     for f in (ROOT / "specs" / "official-mcp").glob("registry-*.json"):
-        d = json.loads(f.read_text())
+        d = json.loads(f.read_text(encoding="utf-8"))
         for key in ("tools", "get_tools", "delete_tools"):
             n += len([k for k in d.get(key, {}) if not k.startswith("_")])
     return n
@@ -64,7 +64,7 @@ def _captured_tool_count() -> int:
 
 def _roadmap_parity_tool_sum() -> int:
     """Blocks 2-9 are the parity blocks; their headings carry '· N tools'."""
-    text = (ROOT / "ROADMAP.md").read_text()
+    text = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     total = 0
     for m in re.finditer(r"^### Block (\d+) — .*?· (\d+) tools", text, re.M):
         if 2 <= int(m.group(1)) <= 9:
@@ -82,9 +82,9 @@ def build_checks() -> list[tuple[str, int, list[tuple[str, str]]]]:
     v1_paths, v1_ops = _spec_counts(ROOT / "specs" / "skilljar-v1-openapi.json")
     v2_paths, v2_ops = _spec_counts(ROOT / "specs" / "skilljar-v2-openapi.json")
     scopes_advertised = len(json.loads(
-        (ROOT / "analysis" / "live-authz-metadata.json").read_text())["scopes_supported"])
-    entities = len(json.loads((ROOT / "analysis" / "entity-inventory.json").read_text()))
-    tools = len(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text()))
+        (ROOT / "analysis" / "live-authz-metadata.json").read_text(encoding="utf-8"))["scopes_supported"])
+    entities = len(json.loads((ROOT / "analysis" / "entity-inventory.json").read_text(encoding="utf-8")))
+    tools = len(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text(encoding="utf-8")))
 
     S = "docs/superpowers/specs/2026-08-26-csa-skilljar-design.md"
     return [
@@ -135,7 +135,7 @@ def main() -> int:
             path = ROOT / rel
             if not path.exists():
                 failures.append(f"{label}: {rel} does not exist"); continue
-            found = re.findall(pattern, path.read_text(), re.S)
+            found = re.findall(pattern, path.read_text(encoding="utf-8"), re.S)
             if not found:
                 failures.append(f"{label}: pattern {pattern!r} matched nothing in {rel}")
                 continue
@@ -145,7 +145,7 @@ def main() -> int:
                     failures.append(f"{label}: {rel} says {got}, artifacts say {truth}")
 
     # Cross-artifact invariants - not a doc claim, a consistency requirement.
-    tools = len(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text()))
+    tools = len(json.loads((ROOT / "specs" / "official-mcp" / "tool-names.json").read_text(encoding="utf-8")))
     captured = _captured_tool_count(); checked += 1
     if captured != tools:
         failures.append(f"captured registry holds {captured} tools, tool-names.json holds {tools}")

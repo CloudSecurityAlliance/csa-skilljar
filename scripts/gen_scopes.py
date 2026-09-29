@@ -20,7 +20,7 @@ VERBS = ("get", "post", "put", "patch", "delete")
 
 
 def build_table() -> dict[str, tuple[str, ...]]:
-    spec = json.loads(SPEC.read_text())
+    spec = json.loads(SPEC.read_text(encoding="utf-8"))
     table: dict[str, tuple[str, ...]] = {}
     for path, item in spec["paths"].items():
         for method, op in item.items():
