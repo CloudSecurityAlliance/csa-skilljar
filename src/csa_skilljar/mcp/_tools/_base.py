@@ -61,7 +61,7 @@ def _page_size_position(fn: Callable[..., Any]) -> int | None:
     return None
 
 
-def translate_errors(fn: F) -> F:
+def translate_errors[F: Callable[..., Any]](fn: F) -> F:
     """Turn the library's typed errors into readable `ToolError`s, and reject a
     non-positive `page_size` for every tool that takes one.
 
