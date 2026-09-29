@@ -16,7 +16,7 @@ tools.
 > **112 tools** — 84 over Skilljar's v2 API, twenty-seven over v1, and `demonstration_plan`.
 >
 > ```
-> pipx install csa-skilljar
+> uv tool install csa-skilljar
 > ```
 > | | |
 > |---|---|
@@ -128,8 +128,8 @@ should be retired in favour of v2, and this note updated.
 Three routes, all installing the same package from PyPI. Pick by what you already use.
 
 ```bash
-pipx install csa-skilljar          # recommended
-uv tool install csa-skilljar       # if you already use uv
+uv tool install csa-skilljar       # recommended (DEC-012)
+pipx install csa-skilljar          # also works — the package is a standard wheel
 ```
 
 Both put a `csa-skilljar-mcp` executable on your `PATH` and keep the package's
@@ -145,11 +145,11 @@ Confirm what landed, and where:
 
 ```bash
 csa-skilljar-mcp --version
-command -v csa-skilljar-mcp        # pipx: ~/.local/bin  ·  uv: ~/.local/bin or `uv tool dir`
+command -v csa-skilljar-mcp        # either way: ~/.local/bin
 ```
 
-If the command is not found, the install directory is not on your `PATH` yet — `pipx
-ensurepath` or `uv tool update-shell`, then open a new shell. Register the MCP server with
+If the command is not found, the install directory is not on your `PATH` yet — `uv tool
+update-shell` (or `pipx ensurepath`), then open a new shell. Register the MCP server with
 an **absolute path** either way (see below), so this does not matter to the client.
 
 ### CSA staff: DesktopSetup installs it for you
@@ -163,7 +163,7 @@ this server as part of its normal run, on macOS, Linux and Windows:
 bash -c "$(curl -fsSL -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/CloudSecurityAlliance/DesktopSetup/HEAD/scripts/macos-ai-tools.sh)"
 ```
 
-It installs via pipx, registers the server with `CSA_SKILLJAR_PROFILE=parity` — read-only
+It installs via `uv tool`, registers the server with `CSA_SKILLJAR_PROFILE=parity` — read-only
 capabilities — and leaves an existing registration alone if you have already narrowed it.
 The step is gated on membership of a private CSA repository, so it does nothing for anyone
 else and prints nothing.
