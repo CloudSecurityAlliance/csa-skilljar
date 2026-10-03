@@ -167,7 +167,7 @@ is no per-user layer, and anyone holding a client secret acts as CSA rather than
 themselves. Distributing one to every desktop would be a shared organization key, which is
 a different thing from the shared *app* identity that Google Workspace's OAuth client is.
 So the server installs, registers and starts, and every tool then reports the setup step it
-needs. Ask in `#cino` for an API client.
+needs — `check_access` names which credential is missing and where a client is issued.
 
 ## Credentials
 
