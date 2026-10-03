@@ -20,8 +20,11 @@ from csa_skilljar.mcp.server import create_server
 #: Tools that make NO call to Skilljar and return only this process's own computed state.
 #: Named explicitly rather than derived, so adding a local tool is a decision somebody records
 #: here and adding a remote one cannot silently join the exception.
+#: `check_access` was here until it began verifying the credential. It makes ONE bounded
+#: token-exchange call whenever v2 is configured - the only way to tell a working client
+#: secret from a wrong one - so it reaches Skilljar and belongs on the open-world side. This
+#: test failing is what caught the annotation when the behaviour changed.
 LOCAL_ONLY = {
-    "check_access",
     "describe_capabilities",
     "demonstration_plan",
     "report_a_problem",
