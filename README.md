@@ -270,6 +270,7 @@ composite writes. Reasons are in the spec.
 | [DECISIONS-PRD.md](DECISIONS-PRD.md) | Scope, audience, and what is deliberately out |
 | [SECURITY-RESOURCES.md](SECURITY-RESOURCES.md) | Exposure surface, prompt-injection risk, credential custody |
 | [DATA-RESOURCES.md](DATA-RESOURCES.md) | What data this handles, and what it deliberately never stores |
+| [BACKUP-RESOURCES.md](BACKUP-RESOURCES.md) | Nothing to back up, measured — and the two things that follow from that: our published findings are safe only while there is no listener, and the installer puts the credential somewhere this repo cannot see |
 | [WAITING-FOR.md](WAITING-FOR.md) | External conditions we are waiting on, each with an observable trigger |
 | [FRICTION.md](FRICTION.md) | Work that is harder than it should be — including how this project works with AI |
 | [RACI.md](RACI.md) | Who decides what |
