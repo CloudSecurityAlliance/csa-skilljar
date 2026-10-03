@@ -217,3 +217,126 @@ def test_a_configured_but_absent_credential_does_not_claim_to_be_working():
 
     assert out["v2"]["configured"] is True
     assert out["v2"].get("working") is not True
+
+# --- an unreachable Skilljar is not a broken credential -------------------------------------
+#
+# `exc.ApiError` and `exc.CredentialsRejected` are both `SkilljarError`, and a single
+# `except exc.SkilljarError` reported them identically as `working: False`. `auth.py` goes to
+# real trouble to distinguish them - `CredentialsRejected` says "re-issue the client in the
+# Skilljar Dashboard", `ApiError` deliberately does not - and that was discarded here.
+
+
+def _raising_client(err):
+    """A server whose `.credentials` access itself raises, modelling the token exchange."""
+    from csa_skilljar.mcp._config import settings_from_env
+
+    class Client:
+        @property
+        def credentials(self):
+            raise err
+
+    app = MCPServer(name="t")
+    register_access_tools(app, lambda: Client(), settings_from_env(V2_ENV))
+    return app
+
+
+def test_an_unreachable_skilljar_leaves_working_unset():
+    """NOT `False`. The credential is not the thing that broke, and `working` is NotRequired
+    in the schema for exactly this. Saying `False` advises re-issuing an organisation-wide
+    credential because the network dropped - for a `client_credentials` grant that is a new
+    organisation identity, which is not a cheap mistake to be talked into."""
+    from csa_skilljar import exceptions as exc
+
+    out = fn(_raising_client(exc.ApiError("could not reach Skilljar to authenticate: timeout")),
+             "check_access")()
+    assert "working" not in out["v2"], f"an unreachable Skilljar was called a dead credential: {out['v2']}"
+    assert "could not be checked" in out["v2"]["detail"]
+    assert "ApiError" in out["v2"]["detail"], "the cause has to survive to the caller"
+    assert out["v2"]["configured"] is True, "it is still configured; that part was never in doubt"
+
+
+def test_a_rate_limit_is_not_a_broken_credential_either():
+    from csa_skilljar import exceptions as exc
+
+    out = fn(_raising_client(exc.ApiError("token grant failed with HTTP 429", status=429)),
+             "check_access")()
+    assert "working" not in out["v2"], out["v2"]
+
+
+def test_skilljar_refusing_the_client_IS_reported_as_not_working():
+    """The other side of the split: Skilljar answered and said no. `auth.py`'s own message
+    already names the remedy, so it is passed through rather than rewritten."""
+    from csa_skilljar import exceptions as exc
+
+    out = fn(_raising_client(exc.CredentialsRejected(
+        "Skilljar rejected the v2 client credentials. Re-issue the client in the Skilljar "
+        "Dashboard and restart the server.")), "check_access")()
+    assert out["v2"]["working"] is False
+    assert "Re-issue the client" in out["v2"]["detail"]
+
+
+def test_a_hanging_token_endpoint_times_out_rather_than_hanging_the_diagnostic():
+    """This tool's contract is that it answers when everything else is failing, so it must not
+    be able to hang on the same outage the caller is asking about. Bounded on a thread, because
+    `signal.alarm` is POSIX-only and these servers run on Windows laptops too."""
+    import time
+
+    from csa_skilljar.mcp._config import settings_from_env
+    from csa_skilljar.mcp._tools import access as access_mod
+
+    class Client:
+        @property
+        def credentials(self):
+            time.sleep(30)
+            raise AssertionError("should have been abandoned")
+
+    app = MCPServer(name="t")
+    register_access_tools(app, lambda: Client(), settings_from_env(V2_ENV))
+
+    original = access_mod._VERIFY_TIMEOUT
+    access_mod._VERIFY_TIMEOUT = 0.05
+    try:
+        started = time.monotonic()
+        out = fn(app, "check_access")()
+        took = time.monotonic() - started
+    finally:
+        access_mod._VERIFY_TIMEOUT = original
+    assert "working" not in out["v2"], out["v2"]
+    assert "did not answer within" in out["v2"]["detail"]
+    assert took < 5, f"the bound did not hold: {took:.1f}s"
+
+
+def test_nothing_configured_still_makes_no_call_at_all():
+    """The property the module docstring promises, unchanged: with nothing configured it
+    answers instantly, because there is nothing to ask about."""
+    import time
+
+    class Client:
+        @property
+        def credentials(self):
+            raise AssertionError("check_access must not probe when nothing is configured")
+
+    from csa_skilljar.mcp._config import settings_from_env
+
+    app = MCPServer(name="t")
+    register_access_tools(app, lambda: Client(), settings_from_env({}))
+    started = time.monotonic()
+    out = fn(app, "check_access")()
+    assert out["v2"]["configured"] is False
+    assert time.monotonic() - started < 1
+
+
+def test_check_access_is_annotated_as_reaching_skilljar():
+    """It calls Skilljar whenever a credential is configured, so it is open-world - while
+    `describe_capabilities` beside it genuinely is not, which is why it has its own annotation
+    rather than the shared `LOCAL_READ` being widened. A hint that lies is worse than an absent
+    one, in either direction."""
+    app = build({})
+    checked = app._tool_manager._tools["check_access"]
+    described = app._tool_manager._tools["describe_capabilities"]
+    assert checked.annotations.open_world_hint is True
+    assert checked.annotations.read_only_hint is True
+    assert described.annotations.open_world_hint is False, (
+        "describe_capabilities really is local - widening the shared annotation would have "
+        "made this lie in the other direction"
+    )
