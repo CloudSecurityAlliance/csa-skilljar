@@ -70,8 +70,8 @@ meaning. Both censuses were then mutation-tested, per CLAUDE.md's rule that a ch
 cannot fail is theatre; that rule existed and I had not applied it to the census itself.
 
 Generalised out of this project as
-[`insights/a-census-proves-only-what-its-membership-rule-admits.md`](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/insights/a-census-proves-only-what-its-membership-rule-admits.md)
-in CINO-Platform-Engineering, because the shape is not specific to tests — an allowlist, a
+[`insights/a-census-proves-only-what-its-membership-rule-admits.md`](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/insights/a-census-proves-only-what-its-membership-rule-admits.md)
+in CINO-Engineering, because the shape is not specific to tests — an allowlist, a
 dashboard query and a scheduled report over "all open items" are all membership rules
 written once from the typical member and never revisited.
 

@@ -85,7 +85,7 @@ verified.
 
 These come from `csa-google-workspace`, verified against `mcp` 2.1.0. Three of them fail with no
 error at all. See
-[PYTHON-SDK-TRAPS](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/research/mcp-servers/PYTHON-SDK-TRAPS.md).
+[PYTHON-SDK-TRAPS](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/research/mcp-servers/PYTHON-SDK-TRAPS.md).
 
 1. **Nothing may touch stdout.** Under stdio, stdout *is* the JSON-RPC channel. One stray byte
    corrupts the session and the server looks alive while answering nothing. Every diagnostic goes
@@ -142,7 +142,7 @@ Practical rules:
 
 ## Zero defect — surface failures, never suppress them
 
-Follows [ZERO-DEFECT.md](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/ZERO-DEFECT.md).
+Follows [ZERO-DEFECT.md](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/ZERO-DEFECT.md).
 The principles that have already caught real defects here:
 
 - **ZD-1, handle every error explicitly.** No swallowed exceptions. `decode_claims`
@@ -251,7 +251,7 @@ issuance or scoping; destructive local operations; anything the spec lists as a 
   against `FakeBackend`. Keep `README.md` and `CHANGELOG.md` in sync.
 - **Do not describe unimplemented things as working.** The README carries a status banner; keep it
   honest as phases land.
-- Follows [CSA public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
+- Follows [CSA public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
   branch protection enforced for admins, required CI gates (lint, type-check, test matrix,
   coverage floor, security scan), Actions pinned to commit SHAs, releases via Trusted Publishing.
 

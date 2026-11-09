@@ -281,7 +281,7 @@ write has been.
 - **Shrinking.** Each v1 family retired as v2 ships its equivalent, triggered by
   `check_upstream.py` and `WAITING-FOR-001`. **A block that deletes code is a success.**
 - **Answering the five research questions** in design spec §10, contributed back to
-  CINO-Platform-Engineering as the third-server data point.
+  CINO-Engineering as the third-server data point.
 
 ---
 

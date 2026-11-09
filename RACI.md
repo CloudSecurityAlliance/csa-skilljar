@@ -5,7 +5,7 @@ to make the boundaries explicit rather than to coordinate a team.
 
 | Decision domain | Responsible | Accountable | Consulted | Informed |
 |---|---|---|---|---|
-| Project scope and phasing | Claude (proposes) | Kurt Seifried | CINO-Platform-Engineering patterns | CINO Project Tracker |
+| Project scope and phasing | Claude (proposes) | Kurt Seifried | CINO-Engineering patterns | CINO Project Tracker |
 | Architecture and technical design | Claude (proposes) | Kurt Seifried | csa-google-workspace precedent | — |
 | Security posture and threat model | Claude (drafts) | Kurt Seifried | CSA security practice | — |
 | Credential issuance and scoping | Kurt Seifried | Kurt Seifried | — | — |
