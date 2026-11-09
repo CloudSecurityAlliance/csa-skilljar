@@ -80,7 +80,7 @@ has the same exposure as any other client.
 
 ## Known deviation from CSA's zero-defect standard
 
-[ZERO-DEFECT §13](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/ZERO-DEFECT.md)
+[ZERO-DEFECT §13](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/ZERO-DEFECT.md)
 requires secrets in a dedicated secrets manager rather than environment variables. A local
 stdio server launched by an MCP client has only environment variables available. Stated here
 rather than left to look like an oversight; revisit if this ever runs as a hosted service.

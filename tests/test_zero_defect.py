@@ -1,4 +1,4 @@
-"""Guards derived from CINO-Platform-Engineering ZERO-DEFECT.md.
+"""Guards derived from CINO-Engineering ZERO-DEFECT.md.
 
 Each test here exists because an earlier version of this code had the defect it
 describes. They are grouped separately from the feature tests because they encode a

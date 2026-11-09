@@ -41,4 +41,4 @@ interactive flow as making changes.
 
 Generalises past this vendor. Any MCP server behind interactive OAuth has the same property, and
 any project doing compatibility work against one will hit it. Worth mentioning to
-CINO-Platform-Engineering if a second instance appears.
+CINO-Engineering if a second instance appears.

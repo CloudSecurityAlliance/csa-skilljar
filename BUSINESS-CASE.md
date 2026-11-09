@@ -101,5 +101,5 @@ asset.
 - `pip install csa-skilljar` works from PyPI with build attestations
 - At least one CSA training workflow that previously required manual work runs unattended
 - The five research questions in design spec §10 answered and contributed to
-  CINO-Platform-Engineering
+  CINO-Engineering
 - At least one v1 family retired because v2 shipped it — the clearest signal the design was right

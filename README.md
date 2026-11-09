@@ -294,7 +294,7 @@ python3 -m venv .venv
 Commands are written `.venv/bin/...` deliberately — a bare `pytest` resolves to whatever
 is on `PATH`, which is how a suite passes against the wrong dependency versions.
 
-Contributions follow [CSA's public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
+Contributions follow [CSA's public repo standards](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/PUBLIC-GITHUB-REPO-STANDARDS.md):
 branch and PR for every change, required CI gates, no direct pushes to `main`.
 
 ## Releasing

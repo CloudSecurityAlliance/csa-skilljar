@@ -69,4 +69,4 @@ repo, which is the reason to name it from inside this repo.
   [`BACKUP-RESOURCES.md`](https://github.com/CloudSecurityAlliance-Internal/CSA-Plugins/blob/main/BACKUP-RESOURCES.md) —
   the repo that deliberately *does* keep secrets in git.
 - `os.chmod` on Windows, and the other calls that run and lie:
-  [`POSIX-AND-WINDOWS.md`](https://github.com/CloudSecurityAlliance-Internal/CINO-Platform-Engineering/blob/main/POSIX-AND-WINDOWS.md).
+  [`POSIX-AND-WINDOWS.md`](https://github.com/CloudSecurityAlliance-Internal/CINO-Engineering/blob/main/POSIX-AND-WINDOWS.md).
