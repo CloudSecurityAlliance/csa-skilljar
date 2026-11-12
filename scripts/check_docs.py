@@ -111,16 +111,16 @@ def build_checks() -> list[tuple[str, int, list[tuple[str, str]]]]:
             (S, r"advertises \*\*(\d+) OAuth scopes\*\*"),
             (S, r"Scope catalog \| (\d+) advertised"),
             ("README.md", r"advertises \*\*(\d+) scopes\*\*"),
-            ("CLAUDE.md", r"advertises\s+\*\*(\d+) scopes\*\*"),
+            ("AGENTS.md", r"advertises\s+\*\*(\d+) scopes\*\*"),
         ]),
         ("scopes used by the v2 spec", _v2_scopes_used(), [
             (S, r"published v2 spec uses \*\*(\d+)\*\*"),
             (S, r"(\d+) used by the published spec"),
             ("README.md", r"uses \*\*(\d+)\*\*"),
-            ("CLAUDE.md", r"uses\s+\*\*(\d+)\*\*"),
+            ("AGENTS.md", r"uses\s+\*\*(\d+)\*\*"),
         ]),
         ("entities in the inventory", entities, [
-            ("CLAUDE.md", r"(\d+)-entity"),
+            ("AGENTS.md", r"(\d+)-entity"),
             ("CHANGELOG.md", r"(\d+)-entity"),
         ]),
     ]

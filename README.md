@@ -274,7 +274,7 @@ composite writes. Reasons are in the spec.
 | [WAITING-FOR.md](WAITING-FOR.md) | External conditions we are waiting on, each with an observable trigger |
 | [FRICTION.md](FRICTION.md) | Work that is harder than it should be — including how this project works with AI |
 | [RACI.md](RACI.md) | Who decides what |
-| [CLAUDE.md](CLAUDE.md) | Behavioural contract for AI agents working here |
+| [AGENTS.md](AGENTS.md) | Instructions for every AI agent working here (`CLAUDE.md` and `GEMINI.md` point to it) |
 
 ## Development
 

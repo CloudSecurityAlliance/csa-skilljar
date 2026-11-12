@@ -2,7 +2,7 @@
 
 MCP's SDK turns any non-`ToolError` into an `UnexpectedToolError` and DISCARDS the
 message, so the user sees "Error executing tool X" and nothing about what went wrong.
-That is invariant 2 in CLAUDE.md, and it fails silently: the tool call errors either
+That is invariant 2 in AGENTS.md, and it fails silently: the tool call errors either
 way, and only the text differs.
 """
 import pytest

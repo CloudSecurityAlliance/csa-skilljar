@@ -35,3 +35,10 @@ htmlcov/
 # tested across a Python matrix: consumers resolve against their own constraints. Neither
 # csa-google-workspace nor csa-google-gmail-calendar tracks one.
 uv.lock
+
+# --- personal agent-instruction overrides: never commit -------------------
+# Claude Code reads CLAUDE.local.md and it switches AGENTS.md off; an override replaces
+# AGENTS.md in Codex (CINO-Engineering AGENT-INSTRUCTION-FILES.md).
+CLAUDE.local.md
+AGENTS.override.md
+AGENTS.local.md

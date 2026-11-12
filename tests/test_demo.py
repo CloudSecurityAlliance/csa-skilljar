@@ -155,7 +155,7 @@ def test_an_unknown_mode_is_refused():
     from mcp.server.mcpserver.exceptions import ToolError
     app = server()
     # translate_errors turns a ValueError into a ToolError, which is the contract that
-    # keeps the message from being discarded (CLAUDE.md invariant 2).
+    # keeps the message from being discarded (AGENTS.md invariant 2).
     with pytest.raises(ToolError) as e:
         app._tool_manager._tools["demonstration_plan"].fn(mode="destroy_everything")
     assert "read_only" in str(e.value)
