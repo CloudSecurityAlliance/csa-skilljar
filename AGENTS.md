@@ -182,7 +182,7 @@ into a system Python is unsupported.
 ```bash
 ./scripts/verify.sh                         # everything CI checks, no suppressed output
 
-python3.14 -m venv .venv                    # requires-python >=3.14; .python-version still says 3.12 (#132)
+python3.14 -m venv .venv                    # 3.14 standard (GIL) build: requires-python, .python-version (DEC-025)
 .venv/bin/python -m pip install -e ".[dev]"
 
 .venv/bin/python -m pytest -q               # offline: no network, no credentials
