@@ -36,7 +36,7 @@ environment:
   CSA_SKILLJAR_V1_API_KEY        v1 organization API key (paths, webhooks, assets,
                                  commerce, ILT, taxonomy)
   CSA_SKILLJAR_PROFILE           parity (default) | authoring | people | reporting
-                                 | operations | admin | full
+                                 | operations | admin | package-cleanup | full
   CSA_SKILLJAR_ENV_FILE          path to a file holding any of the above, one KEY=VALUE
                                  per line. An already-set variable wins over the file.
 """

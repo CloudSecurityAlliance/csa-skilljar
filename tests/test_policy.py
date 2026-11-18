@@ -373,11 +373,14 @@ DELETE_CAPABILITIES = {
 }
 
 
-def test_no_default_profile_grants_a_delete():
+def test_only_full_and_package_cleanup_grant_a_delete():
     """policy.py states the delete/write split as a principle. This enforces it.
 
     An authoring credential that can create and update content must not thereby be able
-    to destroy it. `full` is the deliberate exception - it is the "I mean it" profile.
+    to destroy it. There are two pinned exceptions: `full`, the "I mean it" profile, and
+    `package-cleanup`, which holds `webpackages.delete` and no other delete. The substance
+    of the split holds: delete does not ride along with write, because `package-cleanup`
+    has neither `webpackages.write` nor `content.write`.
     """
     import csa_skilljar.policy as P
     offenders = {
@@ -390,7 +393,8 @@ def test_no_default_profile_grants_a_delete():
     assert offenders.pop("package-cleanup", None) == ["webpackages.delete"]
     assert offenders == {}, (
         f"these profiles grant a delete capability: {offenders}. Either the profile is "
-        f"wrong or the principle in policy.py has changed - do not widen this test.")
+        f"wrong, or it is a new exception, which needs the same explicit, named pin as "
+        f"`package-cleanup` above and a note in policy.py - not a looser test.")
 
 
 def test_every_destructive_op_is_gated_on_a_delete_capability():
