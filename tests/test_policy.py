@@ -385,6 +385,9 @@ def test_no_default_profile_grants_a_delete():
         for name, caps in P.PROFILES.items()
         if name != "full" and set(caps) & DELETE_CAPABILITIES
     }
+    # The one reviewed exception: `package-cleanup` exists to delete web packages, and
+    # holds no other delete. Written by hand, so a second delete in it still fails here.
+    assert offenders.pop("package-cleanup", None) == ["webpackages.delete"]
     assert offenders == {}, (
         f"these profiles grant a delete capability: {offenders}. Either the profile is "
         f"wrong or the principle in policy.py has changed - do not widen this test.")
@@ -583,3 +586,17 @@ def test_every_orange_name_is_a_real_gated_method():
     import csa_skilljar.policy as P
     unknown = sorted(P.ORANGE_TOOLS - set(P._GATES))
     assert unknown == [], f"{unknown} are in ORANGE_TOOLS but have no gate entry"
+
+
+# ── package-cleanup · a one-off, narrow profile ─────────────────────────────────
+
+def test_package_cleanup_profile_is_exactly_its_four_capabilities():
+    assert set(P.PROFILES["package-cleanup"]) == {
+        "publishing.read", "publishing.write", "webpackages.read", "webpackages.delete"}
+
+
+def test_package_cleanup_cannot_touch_content_people_or_credentials():
+    caps = set(P.PROFILES["package-cleanup"])
+    assert not caps & {"content.write", "content.delete", "webpackages.write",
+                       "people.write", "people.destructive", "admin.credentials",
+                       "publishing.delete", "enrolment.write"}
