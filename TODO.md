@@ -16,6 +16,10 @@ file plus open GitHub Issues finds everything.
 
 ## Next
 
+- **Decide after the #1044 run whether to remove the `package-cleanup` profile or keep it
+  deliberately** (Customer360-Backend#1044). It was added for one cleanup run and is the only
+  non-`full` profile holding a delete capability; the guard test pins that exception.
+
 - **23 open issues from security audit `2026-08-30-01` → [#76](https://github.com/CloudSecurityAlliance/csa-skilljar/issues/76).**
   This is the largest body of open work on the project and it is tracked in GitHub, not
   here, per the todo-index convention. Two things to read before picking any of them off:

@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- **`package-cleanup` profile** for a one-off Skilljar test-package cleanup run. It grants
+  exactly four capabilities: `publishing.read`, `publishing.write`, `webpackages.read` and
+  `webpackages.delete`. The run uses `get_published_course`, `unpublish_published_course`,
+  `get_web_package` and `delete_web_package`, but the capabilities reach more tools:
+  `publishing.write` also gates `publish_courses`, `update_published_courses` and
+  `republish_published_course`, and the two read capabilities also gate
+  `list_published_courses`, `list_domains`, `get_domain` and `list_web_packages`. It grants
+  no content, people, credential or publishing-delete capability, and no
+  `webpackages.write`. It is meant to sit behind a temporary OAuth client scoped to the
+  same four things, which is the real narrowing. It is the only profile besides `full` that
+  holds a delete capability (`webpackages.delete`), so
+  `test_only_full_and_package_cleanup_grant_a_delete` (renamed) now pins that exception by
+  hand. Not used against real Skilljar yet; writes remain
+  unverified (see `AGENTS.md`).
+
 ## [0.16.1] - 2026-09-29
 ### Changed
 - **Requires Python 3.14 or later** (`requires-python = ">=3.14"`, was `>=3.10`).

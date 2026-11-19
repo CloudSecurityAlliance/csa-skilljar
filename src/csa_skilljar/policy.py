@@ -26,9 +26,12 @@ READ_PEOPLE = "people.read"
 READ_REPORTING = "reporting.read"
 WRITE_CONTENT = "content.write"
 # Deletes are gated separately from writes on purpose: an authoring credential that can
-# create and update content should not thereby be able to destroy it. No default profile
-# grants this - enforced by test_no_default_profile_grants_a_delete, which is written by
-# hand rather than derived from PROFILES, so the table cannot vouch for itself.
+# create and update content should not thereby be able to destroy it. Only two profiles
+# hold a delete capability: `full`, and `package-cleanup`, which holds webpackages.delete
+# and no other delete. Delete still does not ride along with write: package-cleanup has
+# neither webpackages.write nor content.write. Enforced by
+# test_only_full_and_package_cleanup_grant_a_delete, written by hand rather than derived
+# from PROFILES, so the table cannot vouch for itself.
 DELETE_CONTENT = "content.delete"
 WRITE_PEOPLE = "people.write"
 WRITE_ENROLMENT = "enrolment.write"
@@ -86,6 +89,13 @@ PROFILES: dict[str, tuple[str, ...]] = {
     "operations": (READ_CONTENT, READ_PEOPLE, READ_REPORTING, WRITE_ENROLMENT,
                    READ_GROUPS, READ_PUBLISHING, READ_WEB_PACKAGES, READ_PROGRESS),
     "admin": (ADMIN_CREDENTIALS,),
+    # One-off: unpublish a published course, then delete its web package, behind a
+    # temporary OAuth client scoped to the same four things. Reads are included so a
+    # run can confirm state before and after. It grants no content, people, credential
+    # or publishing-delete capability; webpackages.delete is the only delete it holds,
+    # and test_only_full_and_package_cleanup_grant_a_delete pins exactly that pair by hand.
+    "package-cleanup": (READ_PUBLISHING, WRITE_PUBLISHING, READ_WEB_PACKAGES,
+                        DELETE_WEB_PACKAGES),
     "full": ALL_CAPABILITIES,
 }
 
