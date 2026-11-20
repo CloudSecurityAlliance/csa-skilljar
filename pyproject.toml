@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "csa-skilljar"
 dynamic = ["version"]
-description = "Python client and local MCP server for both Skilljar REST APIs"
+description = "Python client and local MCP server for both Skilljar REST APIs. Not affiliated with or endorsed by Skilljar."
 readme = "README.md"
 requires-python = ">=3.14"
 license = "Apache-2.0"
