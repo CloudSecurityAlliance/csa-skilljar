@@ -4,7 +4,7 @@ A Python library and local MCP server for the [Skilljar](https://www.skilljar.co
 education platform, covering **both** of Skilljar's REST APIs — v1 and v2 — behind one set of
 tools.
 
-Not affiliated with or endorsed by Skilljar. Skilljar is a trademark of its owner.
+Not affiliated with or endorsed by Skilljar or Gainsight. Skilljar is a trademark of its owner.
 
 > **Status: all seventeen blocks complete. Full 73-tool parity with Skilljar's official server, plus every capability that exists only in v1. v0.15.0 on PyPI.**
 >
