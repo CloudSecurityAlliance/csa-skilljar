@@ -21,6 +21,12 @@ All notable changes to this project are documented here. Format follows
   hand. Not used against real Skilljar yet; writes remain
   unverified (see `AGENTS.md`).
 
+### Changed
+- **The README and the package summary say this project is not affiliated with or endorsed
+  by Skilljar.** The name carries Skilljar's, so the README now states that near the top, with a
+  trademark notice, and the PyPI summary ends with it. Documentation and package metadata
+  only: no code, tool or behaviour changed.
+
 ## [0.16.1] - 2026-09-29
 ### Changed
 - **Requires Python 3.14 or later** (`requires-python = ">=3.14"`, was `>=3.10`).
